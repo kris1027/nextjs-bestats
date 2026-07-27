@@ -1,28 +1,19 @@
 import Image from 'next/image';
+import type { JSX } from 'react';
 
-type ShowProps = {
-  id: number;
-  name: string;
-  poster_path: string;
-  vote_average: number;
-};
+import { trendingShows } from '@/lib/tmdb';
 
-const HomePage = async () => {
-  const res = await fetch(`${process.env.TMDB_API_URL}/trending/tv/week`, {
-    headers: { Authorization: `Bearer ${process.env.TMDB_API_TOKEN}` },
-  });
+const HomePage = async (): Promise<JSX.Element> => {
+  const shows = await trendingShows();
 
-  if (!res.ok) throw new Error(`TMDB request failed: ${res.status}`);
-
-  const data = await res.json();
-  const shows: ShowProps[] = data.results;
+  console.log(shows);
 
   return (
     <main className='p-4 flex flex-col items-center gap-4'>
       <h1 className='text-xl bold font-bold'>
         Popularne seriale w tym tygodniu:
       </h1>
-      <ul className='grid grid-cols-2 gap-4'>
+      <ul className='grid grid-cols-1 gap-4'>
         {shows.map((show) => (
           <li key={show.id}>
             <Image

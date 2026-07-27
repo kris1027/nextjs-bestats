@@ -1,15 +1,20 @@
 import type { Metadata } from 'next';
 import { Montserrat, Raleway } from 'next/font/google';
 import './globals.css';
+import type { NextFontWithVariable } from 'next/dist/compiled/@next/font';
+import type { JSX } from 'react';
 
 import { cn } from '@/lib/utils';
 
-const montserratHeading = Montserrat({
+const montserratHeading: NextFontWithVariable = Montserrat({
   subsets: ['latin'],
   variable: '--font-heading',
 });
 
-const raleway = Raleway({ subsets: ['latin'], variable: '--font-sans' });
+const raleway: NextFontWithVariable = Raleway({
+  subsets: ['latin'],
+  variable: '--font-sans',
+});
 
 export const metadata: Metadata = {
   title: 'BeStats',
@@ -20,7 +25,7 @@ export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
-}>) {
+}>): JSX.Element {
   return (
     <html
       lang='en'
