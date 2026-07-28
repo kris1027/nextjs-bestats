@@ -5,17 +5,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { trendingMovies, trendingShows } from '@/lib/tmdb';
 
 const HomePage = async (): Promise<JSX.Element> => {
-  const shows = await trendingShows();
-  const movies = await trendingMovies();
+  const [shows, movies] = await Promise.all([
+    trendingShows(),
+    trendingMovies(),
+  ]);
 
   return (
     <main className='p-4 flex flex-col items-center gap-4'>
-      <Tabs className='flex items-center'>
+      <Tabs defaultValue='shows' className='flex items-center'>
         <TabsList>
-          <TabsTrigger value={shows}>Seriale</TabsTrigger>
-          <TabsTrigger value={movies}>Filmy</TabsTrigger>
+          <TabsTrigger value='shows'>Seriale</TabsTrigger>
+          <TabsTrigger value='movies'>Filmy</TabsTrigger>
         </TabsList>
-        <TabsContent value={shows}>
+        <TabsContent value='shows'>
           <h2 className='text-xl bold font-bold'>
             Popularne seriale w tym tygodniu:
           </h2>
@@ -28,6 +30,7 @@ const HomePage = async (): Promise<JSX.Element> => {
                   height={513}
                   alt={show.name}
                   loading='eager'
+                  className='h-auto w-full'
                 />
                 <div className='flex justify-between p-1'>
                   <h2 className='font-semibold'>{show.name}</h2>
@@ -39,7 +42,7 @@ const HomePage = async (): Promise<JSX.Element> => {
             ))}
           </ul>
         </TabsContent>
-        <TabsContent value={movies}>
+        <TabsContent value='movies'>
           <h2 className='text-xl bold font-bold'>
             Popularne filmy w tym tygodniu:
           </h2>
@@ -52,6 +55,7 @@ const HomePage = async (): Promise<JSX.Element> => {
                   height={513}
                   alt={movie.title}
                   loading='eager'
+                  className='h-auto w-full'
                 />
                 <div className='flex justify-between p-1'>
                   <h2 className='font-semibold'>{movie.title}</h2>
