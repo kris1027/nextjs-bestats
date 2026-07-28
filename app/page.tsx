@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 
-import MediaCard from '@/components/ui/media-card';
+import MediaList from '@/components/media/media-list';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { trendingMovies, trendingShows } from '@/lib/tmdb';
 
@@ -18,24 +18,14 @@ const HomePage = async (): Promise<JSX.Element> => {
           <TabsTrigger value='movies'>Filmy</TabsTrigger>
         </TabsList>
         <TabsContent value='shows'>
-          <h2 className='text-xl bold font-bold'>
+          <h2 className='text-xl font-bold'>
             Popularne seriale w tym tygodniu:
           </h2>
-          <ul className='grid grid-cols-1 gap-4'>
-            {shows.map((show) => (
-              <MediaCard media={show} key={show.id} />
-            ))}
-          </ul>
+          <MediaList media={shows} />
         </TabsContent>
         <TabsContent value='movies'>
-          <h2 className='text-xl bold font-bold'>
-            Popularne filmy w tym tygodniu:
-          </h2>
-          <ul className='grid grid-cols-1 gap-4'>
-            {movies.map((movie) => (
-              <MediaCard media={movie} key={movie.id} />
-            ))}
-          </ul>
+          <h2 className='text-xl font-bold'>Popularne filmy w tym tygodniu:</h2>
+          <MediaList media={movies} />
         </TabsContent>
       </Tabs>
     </main>

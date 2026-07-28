@@ -11,8 +11,7 @@ const MediaCard = ({ media }: { media: Show | Movie }): JSX.Element => {
           src={`${process.env.NEXT_PUBLIC_TMDB_POSTER_PATH}${media.poster_path}`}
           width={342}
           height={513}
-          alt={media.media_type === 'movie' ? media.title : media.name}
-          loading='eager'
+          alt=''
           className='h-auto w-full'
         />
       ) : (
@@ -21,9 +20,9 @@ const MediaCard = ({ media }: { media: Show | Movie }): JSX.Element => {
         </div>
       )}
       <div className='flex justify-between p-1'>
-        <h2 className='font-semibold'>
+        <h3 className='font-semibold'>
           {media.media_type === 'movie' ? media.title : media.name}
-        </h2>
+        </h3>
         <p className='font-semibold'>{media.vote_average.toFixed(1)}</p>
       </div>
     </li>
