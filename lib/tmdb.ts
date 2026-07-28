@@ -33,7 +33,7 @@ const fetchTMDB = async <T>(path: string): Promise<T> => {
     next: { revalidate: 3600 },
   });
 
-  if (!res.ok) throw new Error(`TMDB server error: ${res.status}`);
+  if (!res.ok) throw new Error(`TMDB ${res.status} for ${path}`);
 
   return res.json();
 };
@@ -41,7 +41,7 @@ const fetchTMDB = async <T>(path: string): Promise<T> => {
 export const trendingShows = async (): Promise<Show[]> => {
   const data = await fetchTMDB<TrendingShowResponse>('/trending/tv/week');
 
-  if (!data) throw new Error('Trending Shows data fetching fails');
+  if (!data.results) throw new Error('Failed to fetch trending shows');
 
   return data.results;
 };
@@ -49,7 +49,7 @@ export const trendingShows = async (): Promise<Show[]> => {
 export const trendingMovies = async (): Promise<Movie[]> => {
   const data = await fetchTMDB<TrendingMovieResponse>('/trending/movie/week');
 
-  if (!data) throw new Error('Trending Movies data fetching fails');
+  if (!data.results) throw new Error('Failed to fetch trending movies');
 
   return data.results;
 };
