@@ -28,7 +28,7 @@ export default function RootLayout({
 }>): JSX.Element {
   return (
     <html
-      lang='en'
+      lang='pl'
       className={cn(
         'h-full',
         'antialiased',

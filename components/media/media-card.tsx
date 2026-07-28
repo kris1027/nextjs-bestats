@@ -13,6 +13,7 @@ const MediaCard = ({ media }: { media: Show | Movie }): JSX.Element => {
           height={513}
           alt=''
           className='h-auto w-full'
+          sizes='(min-width: 1024px) 244px, (min-width: 640px) 50vw, 100vw'
         />
       ) : (
         <div className='flex aspect-2/3 items-center justify-center rounded-lg bg-muted text-muted-foreground text-sm '>
@@ -20,10 +21,10 @@ const MediaCard = ({ media }: { media: Show | Movie }): JSX.Element => {
         </div>
       )}
       <div className='flex justify-between p-1'>
-        <h3 className='font-semibold'>
+        <h3 className='min-w-0 truncate font-semibold'>
           {media.media_type === 'movie' ? media.title : media.name}
         </h3>
-        <p className='font-semibold'>{media.vote_average.toFixed(1)}</p>
+        <p className='shrink font-semibold'>{media.vote_average.toFixed(1)}</p>
       </div>
     </li>
   );

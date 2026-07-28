@@ -11,19 +11,22 @@ const HomePage = async (): Promise<JSX.Element> => {
   ]);
 
   return (
-    <main className='p-4 flex flex-col items-center gap-4'>
-      <Tabs defaultValue='shows' className='flex items-center'>
+    <main className='flex-1 p-4'>
+      <Tabs
+        defaultValue='shows'
+        className='mx-auto w-full max-w-5xl items-center'
+      >
         <TabsList>
           <TabsTrigger value='shows'>Seriale</TabsTrigger>
           <TabsTrigger value='movies'>Filmy</TabsTrigger>
         </TabsList>
-        <TabsContent value='shows'>
+        <TabsContent value='shows' className='w-full'>
           <h2 className='text-xl font-bold'>
             Popularne seriale w tym tygodniu:
           </h2>
           <MediaList media={shows} />
         </TabsContent>
-        <TabsContent value='movies'>
+        <TabsContent value='movies' className='w-full'>
           <h2 className='text-xl font-bold'>Popularne filmy w tym tygodniu:</h2>
           <MediaList media={movies} />
         </TabsContent>
