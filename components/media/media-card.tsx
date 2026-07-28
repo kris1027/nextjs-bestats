@@ -4,13 +4,15 @@ import type { JSX } from 'react';
 import type { Movie, Show } from '@/lib/tmdb';
 
 const MediaCard = ({ media }: { media: Show | Movie }): JSX.Element => {
+  const label = media.media_type === 'movie' ? media.title : media.name;
+
   return (
     <li>
       {media.poster_path ? (
         <Image
           src={`${process.env.NEXT_PUBLIC_TMDB_POSTER_PATH}${media.poster_path}`}
-          width={342}
-          height={513}
+          width={780}
+          height={1170}
           alt=''
           className='h-auto w-full'
           sizes='(min-width: 1024px) 244px, (min-width: 640px) 50vw, 100vw'
@@ -21,10 +23,12 @@ const MediaCard = ({ media }: { media: Show | Movie }): JSX.Element => {
         </div>
       )}
       <div className='flex justify-between p-1'>
-        <h3 className='min-w-0 truncate font-semibold'>
-          {media.media_type === 'movie' ? media.title : media.name}
+        <h3 className='min-w-0 truncate font-semibold' title={label}>
+          {label}
         </h3>
-        <p className='shrink font-semibold'>{media.vote_average.toFixed(1)}</p>
+        <p className='shrink-0 font-semibold'>
+          {media.vote_average.toFixed(1)}
+        </p>
       </div>
     </li>
   );
