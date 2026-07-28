@@ -24,14 +24,20 @@ const HomePage = async (): Promise<JSX.Element> => {
           <ul className='grid grid-cols-1 gap-4'>
             {shows.map((show) => (
               <li key={show.id}>
-                <Image
-                  src={`${process.env.TMDB_POSTER_PATH}${show.poster_path}`}
-                  width={342}
-                  height={513}
-                  alt={show.name}
-                  loading='eager'
-                  className='h-auto w-full'
-                />
+                {show.poster_path ? (
+                  <Image
+                    src={`${process.env.TMDB_POSTER_PATH}${show.poster_path}`}
+                    width={342}
+                    height={513}
+                    alt={show.name}
+                    loading='eager'
+                    className='h-auto w-full'
+                  />
+                ) : (
+                  <div className='flex aspect-2/3 items-center justify-center rounded-lg bg-muted text-muted-foreground text-sm '>
+                    brak plakatu
+                  </div>
+                )}
                 <div className='flex justify-between p-1'>
                   <h2 className='font-semibold'>{show.name}</h2>
                   <p className='font-semibold'>
@@ -49,14 +55,20 @@ const HomePage = async (): Promise<JSX.Element> => {
           <ul className='grid grid-cols-1 gap-4'>
             {movies.map((movie) => (
               <li key={movie.id}>
-                <Image
-                  src={`${process.env.TMDB_POSTER_PATH}${movie.poster_path}`}
-                  width={342}
-                  height={513}
-                  alt={movie.title}
-                  loading='eager'
-                  className='h-auto w-full'
-                />
+                {movie.poster_path ? (
+                  <Image
+                    src={`${process.env.TMDB_POSTER_PATH}${movie.poster_path}`}
+                    width={342}
+                    height={513}
+                    alt={movie.title}
+                    loading='eager'
+                    className='h-auto w-full'
+                  />
+                ) : (
+                  <div className='flex aspect-2/3 items-center justify-center rounded-lg bg-muted text-muted-foreground text-sm '>
+                    brak plakatu
+                  </div>
+                )}
                 <div className='flex justify-between p-1'>
                   <h2 className='font-semibold'>{movie.title}</h2>
                   <p className='font-semibold'>
