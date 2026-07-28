@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "biome check",
     "typecheck": "tsc --noEmit",
-    "format": "biome check --write"
+    "format": "biome check --write",
+    "pre-commit": "biome check --write && biome check && tsc --noEmit && next build"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
