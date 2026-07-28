@@ -30,6 +30,7 @@ const fetchTMDB = async <T>(path: string): Promise<T> => {
 
   const res = await fetch(`${baseUrl}${path}`, {
     headers: { Authorization: `Bearer ${token}` },
+    next: { revalidate: 3600 },
   });
 
   if (!res.ok) throw new Error(`TMDB server error: ${res.status}`);
