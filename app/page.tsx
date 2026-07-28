@@ -1,18 +1,17 @@
 import Image from 'next/image';
 import type { JSX } from 'react';
 
-import { trendingShows } from '@/lib/tmdb';
+import { trendingMovies, trendingShows } from '@/lib/tmdb';
 
 const HomePage = async (): Promise<JSX.Element> => {
   const shows = await trendingShows();
-
-  console.log(shows);
+  const movies = await trendingMovies();
 
   return (
     <main className='p-4 flex flex-col items-center gap-4'>
-      <h1 className='text-xl bold font-bold'>
+      <h2 className='text-xl bold font-bold'>
         Popularne seriale w tym tygodniu:
-      </h1>
+      </h2>
       <ul className='grid grid-cols-1 gap-4'>
         {shows.map((show) => (
           <li key={show.id}>
@@ -26,6 +25,26 @@ const HomePage = async (): Promise<JSX.Element> => {
             <div className='flex justify-between p-1'>
               <h2 className='font-semibold'>{show.name}</h2>
               <p className='font-semibold'>{show.vote_average.toFixed(1)}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <h2 className='text-xl bold font-bold'>
+        Popularne filmy w tym tygodniu:
+      </h2>
+      <ul className='grid grid-cols-1 gap-4'>
+        {movies.map((movie) => (
+          <li key={movie.id}>
+            <Image
+              src={`${process.env.TMDB_POSTER_PATH}${movie.poster_path}`}
+              width={342}
+              height={513}
+              alt={movie.title}
+              loading='eager'
+            />
+            <div className='flex justify-between p-1'>
+              <h2 className='font-semibold'>{movie.title}</h2>
+              <p className='font-semibold'>{movie.vote_average.toFixed(1)}</p>
             </div>
           </li>
         ))}

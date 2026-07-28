@@ -5,15 +5,19 @@ export type Show = {
   vote_average: number;
 };
 
-type TrendingResponse = {
-  results: Show[];
-};
-
 export type Movie = {
   id: number;
   title: string;
   poster_path: string;
-  vote_average: string;
+  vote_average: number;
+};
+
+type TrendingShowResponse = {
+  results: Show[];
+};
+
+type TrendingMovieResponse = {
+  results: Movie[];
 };
 
 const fetchTMDB = async <T>(path: string): Promise<T> => {
@@ -34,9 +38,17 @@ const fetchTMDB = async <T>(path: string): Promise<T> => {
 };
 
 export const trendingShows = async (): Promise<Show[]> => {
-  const data = await fetchTMDB<TrendingResponse>('/trending/tv/week');
+  const data = await fetchTMDB<TrendingShowResponse>('/trending/tv/week');
 
   if (!data) throw new Error('Trending Shows data fetching fails');
+
+  return data.results;
+};
+
+export const trendingMovies = async (): Promise<Movie[]> => {
+  const data = await fetchTMDB<TrendingMovieResponse>('/trending/movie/week');
+
+  if (!data) throw new Error('Trending Movies data fetching fails');
 
   return data.results;
 };
