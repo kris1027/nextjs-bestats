@@ -18,6 +18,13 @@ type TrendingResponse<T> = {
   results: T[];
 };
 
+export type MediaItem = {
+  id: number;
+  label: string;
+  posterUrl: string | null;
+  rating: number;
+};
+
 const fetchTMDB = async <T>(path: string): Promise<T> => {
   const baseUrl = process.env.TMDB_API_URL;
   const token = process.env.TMDB_API_TOKEN;
@@ -43,6 +50,21 @@ const trending = async <T>(kind: 'tv' | 'movie'): Promise<T[]> => {
 
   return data.results;
 };
+
+export const posterUrl = (path: string): string => {
+  const base = process.env.NEXT_PUBLIC_TMDB_POSTER_PATH;
+
+  if (!base) throw new Error('Missing NEXT_PUBLIC_TMDB_POSTER_PATH');
+
+  return `${base}${path}`;
+};
+
+export const toMediaItem = (media: Show | Movie): MediaItem => ({
+  id: media.id,
+  label: media.media_type === 'movie' ? media.title : media.name,
+  posterUrl: media.poster_path ? posterUrl(media.poster_path) : null,
+  rating: media.vote_average,
+});
 
 export const trendingShows = (): Promise<Show[]> => trending<Show>('tv');
 export const trendingMovies = (): Promise<Movie[]> => trending<Movie>('movie');

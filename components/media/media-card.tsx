@@ -1,16 +1,14 @@
 import Image from 'next/image';
 import type { JSX } from 'react';
 
-import type { Movie, Show } from '@/lib/tmdb';
+import type { MediaItem } from '@/lib/tmdb';
 
-const MediaCard = ({ media }: { media: Show | Movie }): JSX.Element => {
-  const label = media.media_type === 'movie' ? media.title : media.name;
-
+const MediaCard = ({ item }: { item: MediaItem }): JSX.Element => {
   return (
     <li>
-      {media.poster_path ? (
+      {item.posterUrl ? (
         <Image
-          src={`${process.env.NEXT_PUBLIC_TMDB_POSTER_PATH}${media.poster_path}`}
+          src={item.posterUrl}
           width={780}
           height={1170}
           alt=''
@@ -23,12 +21,10 @@ const MediaCard = ({ media }: { media: Show | Movie }): JSX.Element => {
         </div>
       )}
       <div className='flex justify-between p-1'>
-        <h3 className='min-w-0 truncate font-semibold' title={label}>
-          {label}
+        <h3 className='min-w-0 truncate font-semibold' title={item.label}>
+          {item.label}
         </h3>
-        <p className='shrink-0 font-semibold'>
-          {media.vote_average.toFixed(1)}
-        </p>
+        <p className='shrink-0 font-semibold'>{item.rating.toFixed(1)}</p>
       </div>
     </li>
   );
