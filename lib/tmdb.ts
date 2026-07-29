@@ -52,9 +52,9 @@ const trending = async <T>(kind: 'tv' | 'movie'): Promise<T[]> => {
 };
 
 export const posterUrl = (path: string): string => {
-  const base = process.env.NEXT_PUBLIC_TMDB_POSTER_PATH;
+  const base = process.env.TMDB_POSTER_PATH;
 
-  if (!base) throw new Error('Missing NEXT_PUBLIC_TMDB_POSTER_PATH');
+  if (!base) throw new Error('Missing TMDB_POSTER_PATH');
 
   return `${base}${path}`;
 };
