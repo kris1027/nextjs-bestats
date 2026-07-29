@@ -11,6 +11,7 @@ const MediaCard = ({ item }: { item: MediaItem }): JSX.Element => {
           src={item.posterUrl}
           width={780}
           height={1170}
+          // decorative: the title is announced by the adjacent <h3></h3>
           alt=''
           className='h-auto w-full'
           sizes='(min-width: 1024px) 244px, (min-width: 640px) 50vw, 100vw'
@@ -29,4 +30,4 @@ const MediaCard = ({ item }: { item: MediaItem }): JSX.Element => {
     </li>
   );
 };
-export default MediaCard;
+export { MediaCard };

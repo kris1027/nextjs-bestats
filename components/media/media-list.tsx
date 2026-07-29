@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 
-import MediaCard from '@/components/media/media-card';
+import { MediaCard } from '@/components/media/media-card';
 import { type Movie, type Show, toMediaItem } from '@/lib/tmdb';
 
 const MediaList = ({ media }: { media: (Show | Movie)[] }): JSX.Element => {
@@ -15,4 +15,4 @@ const MediaList = ({ media }: { media: (Show | Movie)[] }): JSX.Element => {
   );
 };
 
-export default MediaList;
+export { MediaList };
