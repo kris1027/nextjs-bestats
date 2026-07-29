@@ -26,7 +26,7 @@
     "rules": {
       "recommended": true,
       "nursery": {
-        "useExplicitType": "error"
+        "useExplicitType": "off"
       },
       "suspicious": {
         "noUnknownAtRules": "off",

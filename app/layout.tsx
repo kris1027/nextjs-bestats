@@ -5,17 +5,12 @@ import type { JSX } from 'react';
 
 import { cn } from '@/lib/utils';
 
-const headingFont: ReturnType<typeof Montserrat<'--font-heading'>> = Montserrat(
-  {
-    subsets: ['latin'],
-    variable: '--font-heading',
-  },
-);
-
-const bodyFont: ReturnType<typeof Raleway<'--font-sans'>> = Raleway({
+const headingFont = Montserrat({
   subsets: ['latin'],
-  variable: '--font-sans',
+  variable: '--font-heading',
 });
+const bodyFont = Raleway({ subsets: ['latin'], variable: '--font-sans' });
+
 export const metadata: Metadata = {
   title: 'BeStats',
   description:
