@@ -14,12 +14,8 @@ export type Movie = {
   media_type: 'movie';
 };
 
-type TrendingShowResponse = {
-  results: Show[];
-};
-
-type TrendingMovieResponse = {
-  results: Movie[];
+type TrendingResponse<T> = {
+  results: T[];
 };
 
 const fetchTMDB = async <T>(path: string): Promise<T> => {
@@ -40,18 +36,13 @@ const fetchTMDB = async <T>(path: string): Promise<T> => {
   return res.json();
 };
 
-export const trendingShows = async (): Promise<Show[]> => {
-  const data = await fetchTMDB<TrendingShowResponse>('/trending/tv/week');
+const trending = async <T>(kind: 'tv' | 'movie'): Promise<T[]> => {
+  const data = await fetchTMDB<TrendingResponse<T>>(`/trending/${kind}/week`);
 
-  if (!data.results) throw new Error('Failed to fetch trending shows');
-
-  return data.results;
-};
-
-export const trendingMovies = async (): Promise<Movie[]> => {
-  const data = await fetchTMDB<TrendingMovieResponse>('/trending/movie/week');
-
-  if (!data.results) throw new Error('Failed to fetch trending movies');
+  if (!data.results) throw new Error(`Failed to fetch trending ${kind}`);
 
   return data.results;
 };
+
+export const trendingShows = (): Promise<Show[]> => trending<Show>('tv');
+export const trendingMovies = (): Promise<Movie[]> => trending<Movie>('movie');
