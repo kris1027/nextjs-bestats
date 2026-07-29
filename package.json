@@ -2,13 +2,16 @@
   "name": "nextjs-bestats",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@11.15.1",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "biome check",
     "typecheck": "tsc --noEmit",
-    "format": "biome check --write"
+    "format": "biome check --write",
+    "pre-commit": "biome check && tsc --noEmit",
+    "prepare": "husky"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -27,6 +30,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "husky": "^9.1.7",
     "shadcn": "^4.15.0",
     "tailwindcss": "^4",
     "typescript": "^5"
