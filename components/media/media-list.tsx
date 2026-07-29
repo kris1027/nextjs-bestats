@@ -1,8 +1,7 @@
 import type { JSX } from 'react';
 
+import MediaCard from '@/components/media/media-card';
 import { type Movie, type Show, toMediaItem } from '@/lib/tmdb';
-
-import MediaCard from './media-card';
 
 const MediaList = ({ media }: { media: (Show | Movie)[] }): JSX.Element => {
   return (

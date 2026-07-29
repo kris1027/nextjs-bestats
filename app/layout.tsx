@@ -1,21 +1,21 @@
 import type { Metadata } from 'next';
 import { Montserrat, Raleway } from 'next/font/google';
 import './globals.css';
-import type { NextFontWithVariable } from 'next/dist/compiled/@next/font';
 import type { JSX } from 'react';
 
 import { cn } from '@/lib/utils';
 
-const montserratHeading: NextFontWithVariable = Montserrat({
-  subsets: ['latin'],
-  variable: '--font-heading',
-});
+const headingFont: ReturnType<typeof Montserrat<'--font-heading'>> = Montserrat(
+  {
+    subsets: ['latin'],
+    variable: '--font-heading',
+  },
+);
 
-const raleway: NextFontWithVariable = Raleway({
+const bodyFont: ReturnType<typeof Raleway<'--font-sans'>> = Raleway({
   subsets: ['latin'],
   variable: '--font-sans',
 });
-
 export const metadata: Metadata = {
   title: 'BeStats',
   description:
@@ -33,8 +33,8 @@ export default function RootLayout({
       className={cn(
         'h-full',
         'antialiased',
-        raleway.variable,
-        montserratHeading.variable,
+        bodyFont.variable,
+        headingFont.variable,
       )}
     >
       <body className='min-h-full flex flex-col'>{children}</body>
