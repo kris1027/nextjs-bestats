@@ -1,11 +1,13 @@
 import Image from 'next/image';
 import type { JSX } from 'react';
 
+import { Star } from 'lucide-react';
+
 import type { MediaItem } from '@/lib/tmdb';
 
 const MediaCard = ({ item }: { item: MediaItem }): JSX.Element => {
   return (
-    <li>
+    <li className='transition duration-300 ease-out hover:-translate-y-2 hover:shadow-xl'>
       {item.posterUrl ? (
         <Image
           src={item.posterUrl}
@@ -21,11 +23,16 @@ const MediaCard = ({ item }: { item: MediaItem }): JSX.Element => {
           brak plakatu
         </div>
       )}
-      <div className='flex justify-between p-1'>
+      <div className='flex justify-between p-2 bg-red-500 text-white'>
         <h3 className='min-w-0 truncate font-semibold' title={item.label}>
           {item.label}
         </h3>
-        <p className='shrink-0 font-semibold'>{item.rating.toFixed(1)}</p>
+        <div className='shrink-0 font-semibold flex items-center gap-1'>
+          <span>
+            <Star size={14} fill='white' />
+          </span>
+          <p>{item.rating.toFixed(1)}</p>{' '}
+        </div>
       </div>
     </li>
   );
