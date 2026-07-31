@@ -7,7 +7,7 @@ import type { MediaItem } from '@/lib/tmdb';
 
 const MediaCard = ({ item }: { item: MediaItem }): JSX.Element => {
   return (
-    <li className='transition duration-300 ease-out hover:-translate-y-2 hover:shadow-xl'>
+    <li className='transition duration-300 ease-out hover:-translate-y-2 cursor-pointer hover:ring-2 hover:ring-ring'>
       {item.posterUrl ? (
         <Image
           src={item.posterUrl}
@@ -23,7 +23,7 @@ const MediaCard = ({ item }: { item: MediaItem }): JSX.Element => {
           brak plakatu
         </div>
       )}
-      <div className='flex justify-between p-2 bg-red-500 text-white'>
+      <div className='flex justify-between p-2 bg-primary text-primary-foreground'>
         <h3 className='min-w-0 truncate font-semibold' title={item.label}>
           {item.label}
         </h3>

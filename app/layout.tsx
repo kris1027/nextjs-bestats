@@ -26,6 +26,7 @@ export default function RootLayout({
     <html
       lang='pl'
       className={cn(
+        'dark',
         'h-full',
         'antialiased',
         bodyFont.variable,
