@@ -23,6 +23,7 @@ export type MediaItem = {
   label: string;
   posterUrl: string | null;
   rating: number;
+  type: string;
 };
 
 const fetchTMDB = async <T>(path: string): Promise<T> => {
@@ -64,6 +65,7 @@ export const toMediaItem = (media: Show | Movie): MediaItem => ({
   label: media.media_type === 'movie' ? media.title : media.name,
   posterUrl: media.poster_path ? posterUrl(media.poster_path) : null,
   rating: media.vote_average,
+  type: media.media_type,
 });
 
 export const trendingShows = (): Promise<Show[]> => trending<Show>('tv');
