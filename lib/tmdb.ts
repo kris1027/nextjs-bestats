@@ -32,7 +32,7 @@ export type MediaItem = {
   label: string;
   posterUrl: string | null;
   rating: number;
-  type: string;
+  type: 'tv' | 'movie';
 };
 
 export type MediaDetails = {
