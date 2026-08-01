@@ -61,12 +61,6 @@ const trending = async <T>(kind: 'tv' | 'movie'): Promise<T[]> => {
   return data.results;
 };
 
-export const showDetails = async (id: number): Promise<ShowDetails> => {
-  const data = await fetchTMDB<ShowDetails>(`/tv/${id}`);
-
-  return data;
-};
-
 export const posterUrl = (path: string): string => {
   const base = process.env.TMDB_POSTER_PATH;
 
@@ -85,3 +79,6 @@ export const toMediaItem = (media: Show | Movie): MediaItem => ({
 
 export const trendingShows = (): Promise<Show[]> => trending<Show>('tv');
 export const trendingMovies = (): Promise<Movie[]> => trending<Movie>('movie');
+
+export const showDetails = (id: number): Promise<ShowDetails> =>
+  fetchTMDB<ShowDetails>(`/tv/${id}`);
