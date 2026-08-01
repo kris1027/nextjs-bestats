@@ -8,10 +8,10 @@ const DetailedShowPage = async ({
   params: Promise<{ id: string }>;
 }) => {
   const { id } = await params;
+
+  if (!/^[1-9]\d*$/.test(id)) notFound();
+
   const showId = Number(id);
-
-  if (!Number.isInteger(showId) || showId <= 0) notFound();
-
   const show = await showDetails(showId);
 
   return (
