@@ -18,7 +18,7 @@ const MediaCard = ({ item }: { item: MediaItem }): JSX.Element => {
             src={item.posterUrl}
             width={780}
             height={1170}
-            // decorative: the title is announced by the adjacent <h3></h3>
+            // decorative: the link's accessible name comes from the <h3> inside it
             alt=''
             className='h-auto w-full'
             sizes='(min-width: 1024px) 244px, (min-width: 640px) 50vw, 100vw'
