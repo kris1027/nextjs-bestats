@@ -1,3 +1,5 @@
+export type MediaType = 'tv' | 'movie';
+
 export type Show = {
   id: number;
   name: string;
@@ -32,7 +34,7 @@ export type MediaItem = {
   label: string;
   posterUrl: string | null;
   rating: number;
-  type: 'tv' | 'movie';
+  type: MediaType;
 };
 
 const fetchTMDB = async <T>(path: string): Promise<T> => {
@@ -53,7 +55,7 @@ const fetchTMDB = async <T>(path: string): Promise<T> => {
   return res.json();
 };
 
-const trending = async <T>(kind: 'tv' | 'movie'): Promise<T[]> => {
+const trending = async <T>(kind: MediaType): Promise<T[]> => {
   const data = await fetchTMDB<TrendingResponse<T>>(`/trending/${kind}/week`);
 
   if (!data.results) throw new Error(`Failed to fetch trending ${kind}`);
