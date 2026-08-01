@@ -1,3 +1,5 @@
+import { notFound } from 'next/navigation';
+
 import { showDetails } from '@/lib/tmdb';
 
 const DetailedShowPage = async ({
@@ -6,13 +8,20 @@ const DetailedShowPage = async ({
   params: Promise<{ id: string }>;
 }) => {
   const { id } = await params;
-  const show = await showDetails(Number(id));
+  const showId = Number(id);
 
-  console.log(show);
+  if (!Number.isInteger(showId) || showId <= 0) notFound();
+
+  const show = await showDetails(showId);
 
   return (
     <main>
-      <h2>Detailed Show</h2>
+      <h2>{show.name}</h2>
+      <p>{show.overview}</p>
+      <p>{show.first_air_date}</p>
+      <p>{show.number_of_episodes}</p>
+      <p>{show.number_of_seasons}</p>
+      <p>{show.vote_average}</p>
     </main>
   );
 };
