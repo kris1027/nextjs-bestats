@@ -33,10 +33,8 @@ const MediaCard = ({ item }: { item: MediaItem }): JSX.Element => {
             {item.label}
           </h3>
           <div className='shrink-0 font-semibold flex items-center gap-1'>
-            <span>
-              <Star size={14} fill='white' />
-            </span>
-            <p>{item.rating.toFixed(1)}</p>{' '}
+            <Star size={14} className='fill-current' />
+            <p>{item.rating.toFixed(1)}</p>
           </div>
         </div>
       </Link>
