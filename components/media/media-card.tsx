@@ -9,7 +9,7 @@ import type { MediaItem } from '@/lib/tmdb';
 const MediaCard = ({ item }: { item: MediaItem }): JSX.Element => {
   return (
     <li className='transition duration-300 ease-out hover:-translate-y-2 cursor-pointer hover:ring-2 hover:ring-ring'>
-      <Link href={`${item.type}/${item.id}`}>
+      <Link href={`/${item.type}/${item.id}`}>
         {item.posterUrl ? (
           <Image
             src={item.posterUrl}
