@@ -6,6 +6,15 @@ export type Show = {
   media_type: 'tv';
 };
 
+export type ShowDetails = Show & {
+  backdrop_path: string | null;
+  first_air_date: string;
+  number_of_episodes: number;
+  number_of_seasons: number;
+  overview: string;
+  vote_count: number;
+};
+
 export type Movie = {
   id: number;
   title: string;
@@ -24,6 +33,15 @@ export type MediaItem = {
   posterUrl: string | null;
   rating: number;
   type: string;
+};
+
+export type MediaDetails = {
+  background: string | null;
+  release: string;
+  episodes: number;
+  seasons: number;
+  description: string;
+  raters: number;
 };
 
 const fetchTMDB = async <T>(path: string): Promise<T> => {
@@ -52,6 +70,14 @@ const trending = async <T>(kind: 'tv' | 'movie'): Promise<T[]> => {
   return data.results;
 };
 
+export const showDetails = async <T>(id: number): Promise<T> => {
+  const data = await fetchTMDB<T>(`/tv/${id}`);
+
+  if (!data) throw new Error(`Failed to fetch show details for ${id}`);
+
+  return data;
+};
+
 export const posterUrl = (path: string): string => {
   const base = process.env.TMDB_POSTER_PATH;
 
@@ -66,6 +92,15 @@ export const toMediaItem = (media: Show | Movie): MediaItem => ({
   posterUrl: media.poster_path ? posterUrl(media.poster_path) : null,
   rating: media.vote_average,
   type: media.media_type,
+});
+
+export const toMediaDetails = (detailedMedia: ShowDetails): MediaDetails => ({
+  background: detailedMedia.backdrop_path,
+  release: detailedMedia.first_air_date,
+  episodes: detailedMedia.number_of_episodes,
+  seasons: detailedMedia.number_of_seasons,
+  description: detailedMedia.overview,
+  raters: detailedMedia.vote_count,
 });
 
 export const trendingShows = (): Promise<Show[]> => trending<Show>('tv');
