@@ -1,6 +1,6 @@
 export type MediaType = 'tv' | 'movie';
 
-export type Show = {
+export type ShowCard = {
   id: number;
   name: string;
   poster_path: string | null;
@@ -8,13 +8,17 @@ export type Show = {
   media_type: 'tv';
 };
 
-export type ShowDetails = Omit<Show, 'media_type'> & {
+export type ShowDetails = {
+  id: number;
+  name: string;
+  poster_path: string | null;
+  vote_average: number;
+  vote_count: number;
   backdrop_path: string | null;
   first_air_date: string;
   number_of_episodes: number;
   number_of_seasons: number;
   overview: string;
-  vote_count: number;
 };
 
 export type Movie = {
@@ -71,7 +75,7 @@ export const posterUrl = (path: string): string => {
   return `${base}${path}`;
 };
 
-export const toMediaItem = (media: Show | Movie): MediaItem => ({
+export const toMediaItem = (media: ShowCard | Movie): MediaItem => ({
   id: media.id,
   label: media.media_type === 'movie' ? media.title : media.name,
   posterUrl: media.poster_path ? posterUrl(media.poster_path) : null,
@@ -79,7 +83,8 @@ export const toMediaItem = (media: Show | Movie): MediaItem => ({
   mediaType: media.media_type,
 });
 
-export const trendingShows = (): Promise<Show[]> => trending<Show>('tv');
+export const trendingShows = (): Promise<ShowCard[]> =>
+  trending<ShowCard>('tv');
 export const trendingMovies = (): Promise<Movie[]> => trending<Movie>('movie');
 
 export const showDetails = (id: number): Promise<ShowDetails> =>
