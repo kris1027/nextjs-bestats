@@ -21,13 +21,13 @@ const HomePage = async (): Promise<JSX.Element> => {
           <TabsTrigger value='movies'>Filmy</TabsTrigger>
         </TabsList>
         <TabsContent value='shows' className='w-full'>
-          <h2 className='text-xl font-bold p-4'>
+          <h2 className='text-xl font-bold py-4'>
             Popularne seriale w tym tygodniu:
           </h2>
           <MediaList media={shows} />
         </TabsContent>
         <TabsContent value='movies' className='w-full'>
-          <h2 className='text-xl font-bold p-4'>
+          <h2 className='text-xl font-bold py-4'>
             Popularne filmy w tym tygodniu:
           </h2>
           <MediaList media={movies} />

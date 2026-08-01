@@ -26,6 +26,7 @@ export default function RootLayout({
     <html
       lang='pl'
       className={cn(
+        // Light block is intentionally parked for a future theme toggle
         'dark',
         'h-full',
         'antialiased',
