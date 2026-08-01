@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import type { JSX } from 'react';
 
 import { showDetails } from '@/lib/tmdb';
 
@@ -6,7 +7,7 @@ const DetailedShowPage = async ({
   params,
 }: {
   params: Promise<{ id: string }>;
-}) => {
+}): Promise<JSX.Element> => {
   const { id } = await params;
 
   if (!/^[1-9]\d*$/.test(id)) notFound();
