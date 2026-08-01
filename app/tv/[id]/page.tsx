@@ -10,9 +10,10 @@ const DetailedShowPage = async ({
 }): Promise<JSX.Element> => {
   const { id } = await params;
 
-  if (!/^[1-9]\d*$/.test(id)) notFound();
-
   const showId = Number(id);
+
+  if (!/^[1-9]\d{0,8}$/.test(id)) notFound();
+
   const show = await showDetails(showId);
 
   return (
