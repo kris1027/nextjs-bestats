@@ -1,5 +1,7 @@
 export type MediaType = 'tv' | 'movie';
 
+export type ImageKind = 'poster' | 'backdrop';
+
 export type ShowCard = {
   id: number;
   name: string;
@@ -67,13 +69,19 @@ const trending = async <T>(kind: MediaType): Promise<T[]> => {
   return data.results;
 };
 
-export const posterUrl = (path: string): string => {
-  const base = process.env.TMDB_POSTER_PATH;
+const imageUrl = (kind: ImageKind, path: string): string => {
+  const base =
+    kind === 'poster'
+      ? process.env.TMDB_POSTER_PATH
+      : process.env.TMDB_BACKDROP_PATH;
 
-  if (!base) throw new Error('Missing TMDB_POSTER_PATH');
+  if (!base) throw new Error(`Missing TMDB_${kind.toUpperCase()}_PATH`);
 
   return `${base}${path}`;
 };
+
+export const posterUrl = (path: string): string => imageUrl('poster', path);
+export const backdropUrl = (path: string): string => imageUrl('backdrop', path);
 
 export const toMediaItem = (media: ShowCard | Movie): MediaItem => ({
   id: media.id,
