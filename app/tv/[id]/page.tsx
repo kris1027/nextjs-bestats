@@ -1,7 +1,8 @@
+import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import type { JSX } from 'react';
 
-import { showDetails } from '@/lib/tmdb';
+import { backdropUrl, showDetails } from '@/lib/tmdb';
 
 const DetailedShowPage = async ({
   params,
@@ -17,7 +18,23 @@ const DetailedShowPage = async ({
   const show = await showDetails(showId);
 
   return (
-    <main>
+    <main className='flex-1 p-4'>
+      {show.backdrop_path ? (
+        <Image
+          src={backdropUrl(show.backdrop_path)}
+          width={1280}
+          height={720}
+          // decorative: the page's accessible name comes from the <h2> below it
+          alt=''
+          className='h-auto w-full'
+          sizes='100vw'
+          priority
+        />
+      ) : (
+        <div className='flex aspect-video items-center justify-center bg-muted text-muted-foreground text-sm'>
+          brak tła
+        </div>
+      )}
       <h2>{show.name}</h2>
       <p>{show.overview}</p>
       <p>{show.first_air_date}</p>

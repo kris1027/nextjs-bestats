@@ -75,6 +75,14 @@ export const posterUrl = (path: string): string => {
   return `${base}${path}`;
 };
 
+export const backdropUrl = (path: string): string => {
+  const base = process.env.TMDB_BACKDROP_PATH;
+
+  if (!base) throw new Error('Missing TMDB_BACKDROP_PATH');
+
+  return `${base}${path}`;
+};
+
 export const toMediaItem = (media: ShowCard | Movie): MediaItem => ({
   id: media.id,
   label: media.media_type === 'movie' ? media.title : media.name,
