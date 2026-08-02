@@ -4,6 +4,7 @@ import type { JSX } from 'react';
 
 import { Star } from 'lucide-react';
 
+import { MediaPlaceholder } from '@/components/media/media-placeholder';
 import { BackButton } from '@/components/ui/back-button';
 import { Tag } from '@/components/ui/tag';
 import { backdropUrl, posterUrl, showDetails } from '@/lib/tmdb';
@@ -42,9 +43,7 @@ const DetailedShowPage = async ({
             priority
           />
         ) : (
-          <div className='flex h-full items-center justify-center bg-muted text-muted-foreground text-sm'>
-            brak tła
-          </div>
+          <MediaPlaceholder kind='backdrop' />
         )}
         {/* fades the bottom 60% of the backdrop into the page background */}
         <div className='pointer-events-none absolute inset-0 bg-linear-to-b from-transparent from-40% to-background' />
@@ -54,7 +53,8 @@ const DetailedShowPage = async ({
       </div>
       {/* the poster overlaps the bottom third of the backdrop */}
       <div className='relative -mt-[calc(var(--backdrop-h)/3)] grid gap-8 px-8 pb-8 sm:grid-cols-[208px_1fr] lg:grid-cols-[260px_1fr]'>
-        <div>
+        {/* the slot owns the poster's size, so both branches match */}
+        <div className='w-42 shadow-lg sm:w-52 lg:w-65'>
           {show.poster_path ? (
             <Image
               src={posterUrl(show.poster_path)}
@@ -62,13 +62,11 @@ const DetailedShowPage = async ({
               height={1170}
               // decorative: the page's accessible name comes from the <h1> below it
               alt=''
-              className='h-auto w-42 shadow-lg sm:w-52 lg:w-65'
+              className='h-auto w-full'
               sizes='(min-width: 1024px) 260px, (min-width: 640px) 208px, 168px'
             />
           ) : (
-            <div className='flex w-42 aspect-2/3 items-center justify-center bg-muted text-muted-foreground text-sm shadow-lg sm:w-52 lg:w-65'>
-              brak plakatu
-            </div>
+            <MediaPlaceholder kind='poster' />
           )}
         </div>
 

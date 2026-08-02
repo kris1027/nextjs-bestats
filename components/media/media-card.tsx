@@ -4,6 +4,7 @@ import type { JSX } from 'react';
 
 import { Star } from 'lucide-react';
 
+import { MediaPlaceholder } from '@/components/media/media-placeholder';
 import type { MediaItem } from '@/lib/tmdb';
 
 const MediaCard = ({ item }: { item: MediaItem }): JSX.Element => {
@@ -24,9 +25,7 @@ const MediaCard = ({ item }: { item: MediaItem }): JSX.Element => {
             sizes='(min-width: 1024px) 244px, (min-width: 640px) 50vw, 100vw'
           />
         ) : (
-          <div className='flex aspect-2/3 items-center justify-center bg-muted text-muted-foreground text-sm'>
-            brak plakatu
-          </div>
+          <MediaPlaceholder kind='poster' />
         )}
         <div className='flex items-center justify-between gap-2 bg-primary px-2.5 py-1.5 text-primary-foreground'>
           <h2

@@ -1,6 +1,6 @@
 export type MediaType = 'tv' | 'movie';
 
-type ImageKind = 'poster' | 'backdrop';
+export type ImageKind = 'poster' | 'backdrop';
 
 export type ShowCard = {
   id: number;
