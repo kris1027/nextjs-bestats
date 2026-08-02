@@ -4,6 +4,7 @@ import type { JSX, ReactNode } from 'react';
 
 import { Star } from 'lucide-react';
 
+import { BackButton } from '@/components/ui/back-button';
 import { backdropUrl, posterUrl, showDetails } from '@/lib/tmdb';
 import { formatAirDate, formatCount } from '@/lib/utils';
 
@@ -48,6 +49,9 @@ const DetailedShowPage = async ({
         )}
         {/* fades the bottom 60% of the backdrop into the page background */}
         <div className='pointer-events-none absolute inset-0 bg-linear-to-b from-transparent from-40% to-background' />
+        <BackButton href='/' className='absolute top-6 left-6'>
+          Powrót
+        </BackButton>
       </div>
       {/* the top ~36% of the poster overlaps the backdrop */}
       <div className='relative -mt-23 grid gap-8 px-8 pb-8 sm:-mt-28 sm:grid-cols-[208px_1fr] lg:-mt-35 lg:grid-cols-[260px_1fr]'>
