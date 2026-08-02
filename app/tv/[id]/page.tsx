@@ -1,18 +1,13 @@
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import type { JSX, ReactNode } from 'react';
+import type { JSX } from 'react';
 
 import { Star } from 'lucide-react';
 
 import { BackButton } from '@/components/ui/back-button';
+import { Tag } from '@/components/ui/tag';
 import { backdropUrl, posterUrl, showDetails } from '@/lib/tmdb';
 import { formatAirDate, formatCount } from '@/lib/utils';
-
-const Tag = ({ children }: { children: ReactNode }): JSX.Element => (
-  <span className='inline-flex items-center border border-primary-accent px-2.5 py-0.75 text-[11px] text-primary-accent tracking-wide'>
-    {children}
-  </span>
-);
 
 const DetailedShowPage = async ({
   params,
@@ -78,7 +73,7 @@ const DetailedShowPage = async ({
         </div>
 
         {/* clears the overlap so the text starts 1rem below the backdrop */}
-        <div className='flex flex-col gap-4 sm:pt-[calc(var(--backdrop-h)/3_+_1rem)]'>
+        <div className='flex flex-col gap-4 sm:pt-[calc(var(--backdrop-h)/3+1rem)]'>
           <h1 className='font-black font-heading text-3xl leading-[1.05] lg:text-[40px]'>
             {show.name}
           </h1>
