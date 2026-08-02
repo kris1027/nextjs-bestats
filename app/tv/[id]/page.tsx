@@ -8,7 +8,7 @@ import { backdropUrl, posterUrl, showDetails } from '@/lib/tmdb';
 import { formatAirDate, formatCount } from '@/lib/utils';
 
 const Tag = ({ children }: { children: ReactNode }): JSX.Element => (
-  <span className='inline-flex items-center border border-primary px-2.5 py-0.75 text-[11px] text-primary tracking-wide'>
+  <span className='inline-flex items-center border border-primary-accent px-2.5 py-0.75 text-[11px] text-primary-accent tracking-wide'>
     {children}
   </span>
 );
@@ -59,11 +59,11 @@ const DetailedShowPage = async ({
               height={1170}
               // decorative: the page's accessible name comes from the <h2> below it
               alt=''
-              className='h-auto w-42 shadow-[0_12px_32px_rgb(0_0_0/0.35)] sm:w-52 lg:w-65'
+              className='h-auto w-42 shadow-lg sm:w-52 lg:w-65'
               sizes='(min-width: 1024px) 260px, (min-width: 640px) 208px, 168px'
             />
           ) : (
-            <div className='flex w-42 aspect-2/3 items-center justify-center bg-muted text-muted-foreground text-sm shadow-[0_12px_32px_rgb(0_0_0/0.35)] sm:w-52 lg:w-65'>
+            <div className='flex w-42 aspect-2/3 items-center justify-center bg-muted text-muted-foreground text-sm shadow-lg sm:w-52 lg:w-65'>
               brak plakatu
             </div>
           )}
@@ -77,7 +77,7 @@ const DetailedShowPage = async ({
 
           <div className='flex flex-wrap items-center gap-6'>
             <div className='flex items-center gap-1.5'>
-              <Star size={20} className='fill-current text-primary' />
+              <Star size={20} className='fill-current text-primary-accent' />
               <span className='font-extrabold font-heading text-lg'>
                 {show.vote_average.toFixed(1)}
               </span>

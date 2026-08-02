@@ -8,7 +8,7 @@ import type { MediaItem } from '@/lib/tmdb';
 
 const MediaCard = ({ item }: { item: MediaItem }): JSX.Element => {
   return (
-    <li className='transition duration-300 ease-out hover:-translate-y-2 hover:ring-2 hover:ring-ring focus-within:-translate-y-2 focus-within:ring-2 focus-within:ring-ring'>
+    <li className='transition duration-150 ease-out hover:-translate-y-1.5 hover:shadow-lg focus-within:-translate-y-1.5 focus-within:ring-2 focus-within:ring-ring'>
       <Link
         href={`/${item.mediaType}/${item.id}`}
         className='focus-visible:outline-hidden'
@@ -24,16 +24,19 @@ const MediaCard = ({ item }: { item: MediaItem }): JSX.Element => {
             sizes='(min-width: 1024px) 244px, (min-width: 640px) 50vw, 100vw'
           />
         ) : (
-          <div className='flex aspect-2/3 items-center justify-center rounded-lg bg-muted text-muted-foreground text-sm '>
+          <div className='flex aspect-2/3 items-center justify-center bg-muted text-muted-foreground text-sm'>
             brak plakatu
           </div>
         )}
-        <div className='flex justify-between p-2 bg-primary text-primary-foreground'>
-          <h3 className='min-w-0 truncate font-semibold' title={item.label}>
+        <div className='flex items-center justify-between gap-2 bg-primary px-2.5 py-1.5 text-primary-foreground'>
+          <h2
+            className='min-w-0 truncate font-extrabold font-heading text-[13px] leading-[1.2]'
+            title={item.label}
+          >
             {item.label}
-          </h3>
-          <div className='shrink-0 font-semibold flex items-center gap-1'>
-            <Star size={14} className='fill-current' />
+          </h2>
+          <div className='flex shrink-0 items-center gap-1 whitespace-nowrap font-extrabold font-heading text-xs'>
+            <Star size={12} className='fill-current' />
             <p>{item.rating.toFixed(1)}</p>
           </div>
         </div>
