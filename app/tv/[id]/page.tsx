@@ -36,7 +36,7 @@ const DetailedShowPage = async ({
           <Image
             src={backdropUrl(show.backdrop_path)}
             fill
-            // decorative: the page's accessible name comes from the <h2> below it
+            // decorative: the page's accessible name comes from the <h1> below it
             alt=''
             className='object-cover'
             sizes='(min-width: 1200px) 1200px, 100vw'
@@ -61,7 +61,7 @@ const DetailedShowPage = async ({
               src={posterUrl(show.poster_path)}
               width={780}
               height={1170}
-              // decorative: the page's accessible name comes from the <h2> below it
+              // decorative: the page's accessible name comes from the <h1> below it
               alt=''
               className='h-auto w-42 shadow-lg sm:w-52 lg:w-65'
               sizes='(min-width: 1024px) 260px, (min-width: 640px) 208px, 168px'
@@ -75,9 +75,9 @@ const DetailedShowPage = async ({
 
         {/* clears the backdrop so the text starts just below its bottom edge */}
         <div className='flex flex-col gap-4 sm:pt-32 lg:pt-39'>
-          <h2 className='font-black font-heading text-3xl leading-[1.05] lg:text-[40px]'>
+          <h1 className='font-black font-heading text-3xl leading-[1.05] lg:text-[40px]'>
             {show.name}
-          </h2>
+          </h1>
 
           <div className='flex flex-wrap items-center gap-6'>
             <div className='flex items-center gap-1.5'>
