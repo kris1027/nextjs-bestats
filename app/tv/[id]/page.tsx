@@ -30,15 +30,19 @@ const DetailedShowPage = async ({
   const airDate = formatAirDate(show.first_air_date);
 
   return (
-    <main className='mx-auto w-full max-w-300 flex-1'>
-      <div className='relative h-70 w-full overflow-hidden sm:h-88 lg:h-105'>
+    // --backdrop-h drives the backdrop height, the poster's overlap and the
+    // text clearance below; changing it keeps all three in step
+    <main className='mx-auto w-full max-w-300 flex-1 [--backdrop-h:17.5rem] sm:[--backdrop-h:22rem] lg:[--backdrop-h:26.25rem]'>
+      <div className='relative h-(--backdrop-h) w-full overflow-hidden'>
         {show.backdrop_path ? (
           <Image
             src={backdropUrl(show.backdrop_path)}
             fill
             // decorative: the page's accessible name comes from the <h1> below it
             alt=''
-            className='object-cover'
+            // top-anchored: wide viewports crop ~255px, and the gradient below
+            // already hides the bottom, so send the whole crop there
+            className='object-cover object-top'
             sizes='(min-width: 1200px) 1200px, 100vw'
             priority
           />
@@ -53,8 +57,8 @@ const DetailedShowPage = async ({
           Powrót
         </BackButton>
       </div>
-      {/* the top ~36% of the poster overlaps the backdrop */}
-      <div className='relative -mt-23 grid gap-8 px-8 pb-8 sm:-mt-28 sm:grid-cols-[208px_1fr] lg:-mt-35 lg:grid-cols-[260px_1fr]'>
+      {/* the poster overlaps the bottom third of the backdrop */}
+      <div className='relative -mt-[calc(var(--backdrop-h)/3)] grid gap-8 px-8 pb-8 sm:grid-cols-[208px_1fr] lg:grid-cols-[260px_1fr]'>
         <div>
           {show.poster_path ? (
             <Image
@@ -73,8 +77,8 @@ const DetailedShowPage = async ({
           )}
         </div>
 
-        {/* clears the backdrop so the text starts just below its bottom edge */}
-        <div className='flex flex-col gap-4 sm:pt-32 lg:pt-39'>
+        {/* clears the overlap so the text starts 1rem below the backdrop */}
+        <div className='flex flex-col gap-4 sm:pt-[calc(var(--backdrop-h)/3_+_1rem)]'>
           <h1 className='font-black font-heading text-3xl leading-[1.05] lg:text-[40px]'>
             {show.name}
           </h1>
