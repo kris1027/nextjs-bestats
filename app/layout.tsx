@@ -3,6 +3,7 @@ import { Montserrat } from 'next/font/google';
 import './globals.css';
 import type { JSX } from 'react';
 
+import { LOCALE } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 const sans = Montserrat({ subsets: ['latin'], variable: '--font-sans' });
@@ -20,7 +21,7 @@ export default function RootLayout({
 }>): JSX.Element {
   return (
     <html
-      lang='en'
+      lang={LOCALE}
       className={cn(
         // Light block is intentionally parked for a future theme toggle
         'dark',

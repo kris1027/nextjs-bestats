@@ -14,6 +14,17 @@ import { ArrowLeft } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
+/**
+ * Renders as a real link to `href` — that is the semantic destination, the
+ * fallback, and what modifier-clicks and the status bar act on. When the
+ * visitor reached this page from inside the app, the click is intercepted and
+ * turned into a history step instead, so the scroll position they left is
+ * restored.
+ *
+ * Next exposes no "can I go back?" API. `history.length` is the usable signal:
+ * it counts soft navigations, whereas `document.referrer` does not update on
+ * them and would misreport in-app navigation as external.
+ */
 const BackButton = ({
   href,
   children,
@@ -24,6 +35,9 @@ const BackButton = ({
   className?: string;
 }): JSX.Element => {
   const router = useRouter();
+
+  // read in an effect, not during render: the server has no window, and
+  // branching on it directly would desync the markup at hydration
   const [hasHistory, setHasHistory] = useState(false);
 
   useEffect(() => {
@@ -31,6 +45,7 @@ const BackButton = ({
   }, []);
 
   const handleClick = (event: MouseEvent<HTMLAnchorElement>): void => {
+    // leave cmd/ctrl/shift-click and middle-click to open `href` as usual
     if (
       event.button !== 0 ||
       event.metaKey ||

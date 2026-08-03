@@ -25,6 +25,8 @@ const HomePage = async (): Promise<JSX.Element> => {
           <MediaList media={shows} />
         </TabsContent>
         <TabsContent value='movies' className='w-full'>
+          {/* one h1 per page: Base UI unmounts the inactive panel, so only the
+              selected tab's heading is ever in the DOM */}
           <h1 className='text-xl font-bold py-4'>Trending movies this week:</h1>
           <MediaList media={movies} />
         </TabsContent>
