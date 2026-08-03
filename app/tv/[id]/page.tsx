@@ -64,14 +64,14 @@ const DetailedShowPage = async ({
         </div>
 
         <div className='flex flex-col gap-4 sm:pt-[calc(var(--backdrop-h)/3+1rem)]'>
-          <h1 className='font-black font-heading text-3xl leading-[1.05] lg:text-[40px]'>
+          <h1 className='font-black text-3xl leading-[1.05] lg:text-[40px]'>
             {show.name}
           </h1>
 
           <div className='flex flex-wrap items-center gap-6'>
             <div className='flex items-center gap-1.5'>
               <Star size={20} className='fill-current text-primary-accent' />
-              <span className='font-extrabold font-heading text-lg'>
+              <span className='font-extrabold text-lg'>
                 {show.vote_average.toFixed(1)}
               </span>
               <span className='text-sm opacity-60'>

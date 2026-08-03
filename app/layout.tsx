@@ -1,15 +1,11 @@
 import type { Metadata } from 'next';
-import { Montserrat, Raleway } from 'next/font/google';
+import { Montserrat } from 'next/font/google';
 import './globals.css';
 import type { JSX } from 'react';
 
 import { cn } from '@/lib/utils';
 
-const headingFont = Montserrat({
-  subsets: ['latin'],
-  variable: '--font-heading',
-});
-const bodyFont = Raleway({ subsets: ['latin'], variable: '--font-sans' });
+const sans = Montserrat({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
   title: 'BeStats',
@@ -30,8 +26,7 @@ export default function RootLayout({
         'dark',
         'h-full',
         'antialiased',
-        bodyFont.variable,
-        headingFont.variable,
+        sans.variable,
       )}
     >
       <body className='min-h-full flex flex-col'>{children}</body>
