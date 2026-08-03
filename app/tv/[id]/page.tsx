@@ -26,8 +26,6 @@ const DetailedShowPage = async ({
   const airDate = formatAirDate(show.first_air_date);
 
   return (
-    // --backdrop-h drives the backdrop height, the poster's overlap and the
-    // text clearance below; changing it keeps all three in step
     <main className='mx-auto w-full max-w-300 flex-1 [--backdrop-h:17.5rem] sm:[--backdrop-h:22rem] lg:[--backdrop-h:26.25rem]'>
       <div className='relative h-(--backdrop-h) w-full overflow-hidden'>
         {show.backdrop_path ? (
@@ -36,8 +34,6 @@ const DetailedShowPage = async ({
             fill
             // decorative: the page's accessible name comes from the <h1> below it
             alt=''
-            // top-anchored: wide viewports crop ~255px, and the gradient below
-            // already hides the bottom, so send the whole crop there
             className='object-cover object-top'
             sizes='(min-width: 1200px) 1200px, 100vw'
             priority
@@ -45,15 +41,12 @@ const DetailedShowPage = async ({
         ) : (
           <MediaPlaceholder kind='backdrop' />
         )}
-        {/* fades the bottom 60% of the backdrop into the page background */}
         <div className='pointer-events-none absolute inset-0 bg-linear-to-b from-transparent from-40% to-background' />
         <BackButton href='/' className='absolute top-6 left-6'>
-          Powrót
+          Back
         </BackButton>
       </div>
-      {/* the poster overlaps the bottom third of the backdrop */}
       <div className='relative -mt-[calc(var(--backdrop-h)/3)] grid gap-8 px-8 pb-8 sm:grid-cols-[208px_1fr] lg:grid-cols-[260px_1fr]'>
-        {/* the slot owns the poster's size, so both branches match */}
         <div className='w-42 shadow-lg sm:w-52 lg:w-65'>
           {show.poster_path ? (
             <Image
@@ -70,7 +63,6 @@ const DetailedShowPage = async ({
           )}
         </div>
 
-        {/* clears the overlap so the text starts 1rem below the backdrop */}
         <div className='flex flex-col gap-4 sm:pt-[calc(var(--backdrop-h)/3+1rem)]'>
           <h1 className='font-black font-heading text-3xl leading-[1.05] lg:text-[40px]'>
             {show.name}
@@ -85,26 +77,23 @@ const DetailedShowPage = async ({
               <span className='text-sm opacity-60'>
                 (
                 {formatCount(show.vote_count, {
-                  one: 'głos',
-                  few: 'głosy',
-                  many: 'głosów',
+                  one: 'vote',
+                  other: 'votes',
                 })}
                 )
               </span>
             </div>
-            {airDate ? <Tag>Premiera: {airDate}</Tag> : null}
+            {airDate ? <Tag>First aired: {airDate}</Tag> : null}
             <Tag>
               {formatCount(show.number_of_seasons, {
-                one: 'sezon',
-                few: 'sezony',
-                many: 'sezonów',
+                one: 'season',
+                other: 'seasons',
               })}
             </Tag>
             <Tag>
               {formatCount(show.number_of_episodes, {
-                one: 'odcinek',
-                few: 'odcinki',
-                many: 'odcinków',
+                one: 'episode',
+                other: 'episodes',
               })}
             </Tag>
           </div>

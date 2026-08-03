@@ -14,7 +14,7 @@ const bodyFont = Raleway({ subsets: ['latin'], variable: '--font-sans' });
 export const metadata: Metadata = {
   title: 'BeStats',
   description:
-    'Zostań statystyką, zapisuj co oglądasz, w co grasz... Dane z TMDB',
+    'Become a statistic — track the shows and movies you watch. Data from TMDB',
 };
 
 export default function RootLayout({
@@ -24,7 +24,7 @@ export default function RootLayout({
 }>): JSX.Element {
   return (
     <html
-      lang='pl'
+      lang='en'
       className={cn(
         // Light block is intentionally parked for a future theme toggle
         'dark',

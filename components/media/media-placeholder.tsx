@@ -4,8 +4,8 @@ import type { ImageKind } from '@/lib/tmdb';
 import { cn } from '@/lib/utils';
 
 const variants = {
-  poster: { shape: 'aspect-2/3', label: 'brak plakatu' },
-  backdrop: { shape: 'h-full', label: 'brak tła' },
+  poster: { shape: 'aspect-2/3', label: 'no poster' },
+  backdrop: { shape: 'h-full', label: 'no backdrop' },
 } as const;
 
 const MediaPlaceholder = ({ kind }: { kind: ImageKind }): JSX.Element => {
