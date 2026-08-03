@@ -29,12 +29,12 @@ const MediaCard = ({ item }: { item: MediaItem }): JSX.Element => {
         )}
         <div className='flex items-center justify-between gap-2 bg-primary px-2.5 py-1.5 text-primary-foreground'>
           <h2
-            className='min-w-0 truncate font-extrabold font-heading text-[13px] leading-[1.2]'
+            className='min-w-0 truncate font-extrabold text-[13px] leading-[1.2]'
             title={item.label}
           >
             {item.label}
           </h2>
-          <div className='flex shrink-0 items-center gap-1 whitespace-nowrap font-extrabold font-heading text-xs'>
+          <div className='flex shrink-0 items-center gap-1 whitespace-nowrap font-extrabold text-xs'>
             <Star size={12} className='fill-current' />
             <p>{item.rating.toFixed(1)}</p>
           </div>

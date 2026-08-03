@@ -7,8 +7,8 @@ import { Star } from 'lucide-react';
 import { MediaPlaceholder } from '@/components/media/media-placeholder';
 import { BackButton } from '@/components/ui/back-button';
 import { Tag } from '@/components/ui/tag';
+import { formatAirDate, formatCount } from '@/lib/format';
 import { backdropUrl, posterUrl, showDetails } from '@/lib/tmdb';
-import { formatAirDate, formatCount } from '@/lib/utils';
 
 const DetailedShowPage = async ({
   params,
@@ -48,7 +48,7 @@ const DetailedShowPage = async ({
         {/* fades the bottom 60% of the backdrop into the page background */}
         <div className='pointer-events-none absolute inset-0 bg-linear-to-b from-transparent from-40% to-background' />
         <BackButton href='/' className='absolute top-6 left-6'>
-          Powrót
+          Back
         </BackButton>
       </div>
       {/* the poster overlaps the bottom third of the backdrop */}
@@ -72,39 +72,36 @@ const DetailedShowPage = async ({
 
         {/* clears the overlap so the text starts 1rem below the backdrop */}
         <div className='flex flex-col gap-4 sm:pt-[calc(var(--backdrop-h)/3+1rem)]'>
-          <h1 className='font-black font-heading text-3xl leading-[1.05] lg:text-[40px]'>
+          <h1 className='font-black text-3xl leading-[1.05] lg:text-[40px]'>
             {show.name}
           </h1>
 
           <div className='flex flex-wrap items-center gap-6'>
             <div className='flex items-center gap-1.5'>
               <Star size={20} className='fill-current text-primary-accent' />
-              <span className='font-extrabold font-heading text-lg'>
+              <span className='font-extrabold text-lg'>
                 {show.vote_average.toFixed(1)}
               </span>
               <span className='text-sm opacity-60'>
                 (
                 {formatCount(show.vote_count, {
-                  one: 'głos',
-                  few: 'głosy',
-                  many: 'głosów',
+                  one: 'vote',
+                  other: 'votes',
                 })}
                 )
               </span>
             </div>
-            {airDate ? <Tag>Premiera: {airDate}</Tag> : null}
+            {airDate ? <Tag>First aired: {airDate}</Tag> : null}
             <Tag>
               {formatCount(show.number_of_seasons, {
-                one: 'sezon',
-                few: 'sezony',
-                many: 'sezonów',
+                one: 'season',
+                other: 'seasons',
               })}
             </Tag>
             <Tag>
               {formatCount(show.number_of_episodes, {
-                one: 'odcinek',
-                few: 'odcinki',
-                many: 'odcinków',
+                one: 'episode',
+                other: 'episodes',
               })}
             </Tag>
           </div>

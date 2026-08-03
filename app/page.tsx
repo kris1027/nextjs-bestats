@@ -17,21 +17,17 @@ const HomePage = async (): Promise<JSX.Element> => {
         className='mx-auto w-full max-w-5xl items-center'
       >
         <TabsList>
-          <TabsTrigger value='shows'>Seriale</TabsTrigger>
-          <TabsTrigger value='movies'>Filmy</TabsTrigger>
+          <TabsTrigger value='shows'>Shows</TabsTrigger>
+          <TabsTrigger value='movies'>Movies</TabsTrigger>
         </TabsList>
         <TabsContent value='shows' className='w-full'>
-          <h1 className='text-xl font-bold py-4'>
-            Popularne seriale w tym tygodniu:
-          </h1>
+          <h1 className='text-xl font-bold py-4'>Trending shows this week:</h1>
           <MediaList media={shows} />
         </TabsContent>
         <TabsContent value='movies' className='w-full'>
           {/* one h1 per page: Base UI unmounts the inactive panel, so only the
               selected tab's heading is ever in the DOM */}
-          <h1 className='text-xl font-bold py-4'>
-            Popularne filmy w tym tygodniu:
-          </h1>
+          <h1 className='text-xl font-bold py-4'>Trending movies this week:</h1>
           <MediaList media={movies} />
         </TabsContent>
       </Tabs>
