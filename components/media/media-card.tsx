@@ -5,13 +5,13 @@ import type { JSX } from 'react';
 import { Star } from 'lucide-react';
 
 import { MediaPlaceholder } from '@/components/media/media-placeholder';
-import type { MediaItem } from '@/lib/tmdb';
+import type { MediaItem } from '@/lib/media';
 
 const MediaCard = ({ item }: { item: MediaItem }): JSX.Element => {
   return (
     <li className='transition duration-150 ease-out hover:-translate-y-1.5 hover:shadow-lg focus-within:-translate-y-1.5 focus-within:ring-2 focus-within:ring-ring'>
       <Link
-        href={`/${item.mediaType}/${item.id}`}
+        href={`/${item.kind}/${item.id}`}
         className='focus-visible:outline-hidden'
       >
         {item.posterUrl ? (
@@ -25,7 +25,7 @@ const MediaCard = ({ item }: { item: MediaItem }): JSX.Element => {
             sizes='(min-width: 1024px) 244px, (min-width: 640px) 50vw, 100vw'
           />
         ) : (
-          <MediaPlaceholder kind='poster' />
+          <MediaPlaceholder artwork='poster' />
         )}
         <div className='flex items-center justify-between gap-2 bg-primary px-2.5 py-1.5 text-primary-foreground'>
           <h2

@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 
-import type { ImageKind } from '@/lib/tmdb';
+import type { Artwork } from '@/lib/media';
 import { cn } from '@/lib/utils';
 
 const variants = {
@@ -8,8 +8,8 @@ const variants = {
   backdrop: { shape: 'h-full', label: 'no backdrop' },
 } as const;
 
-const MediaPlaceholder = ({ kind }: { kind: ImageKind }): JSX.Element => {
-  const { shape, label } = variants[kind];
+const MediaPlaceholder = ({ artwork }: { artwork: Artwork }): JSX.Element => {
+  const { shape, label } = variants[artwork];
 
   return (
     <div

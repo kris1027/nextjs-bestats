@@ -1,49 +1,57 @@
-export type MediaType = 'tv' | 'movie';
+/**
+ * TMDB's half of the app: what its endpoints return and how to reach them.
+ * Everything here is spelled the way TMDB spells it — the glossary's words
+ * begin in `lib/media.ts`, which maps these shapes into them.
+ */
 
-export type ImageKind = 'poster' | 'backdrop';
-
-export type ShowCard = {
+/** A Show as the trending endpoint reports it. */
+export type TmdbShow = {
   id: number;
   name: string;
   poster_path: string | null;
   vote_average: number;
-  media_type: 'tv';
 };
 
-export type ShowDetails = {
+/** A Movie as the trending endpoint reports it. */
+export type TmdbMovie = {
+  id: number;
+  title: string;
+  poster_path: string | null;
+  vote_average: number;
+};
+
+/** A Show as `/tv/{id}` reports it. */
+export type TmdbShowDetails = {
   id: number;
   name: string;
   poster_path: string | null;
+  backdrop_path: string | null;
   vote_average: number;
   vote_count: number;
-  backdrop_path: string | null;
   first_air_date: string;
   number_of_episodes: number;
   number_of_seasons: number;
   overview: string;
 };
 
-export type Movie = {
+/** A Movie as `/movie/{id}` reports it. */
+export type TmdbMovieDetails = {
   id: number;
   title: string;
   poster_path: string | null;
+  backdrop_path: string | null;
   vote_average: number;
-  media_type: 'movie';
+  vote_count: number;
+  release_date: string;
+  runtime: number | null;
+  overview: string;
 };
 
-type TrendingResponse<T> = {
+export type TrendingResponse<T> = {
   results: T[];
 };
 
-export type MediaItem = {
-  id: number;
-  label: string;
-  posterUrl: string | null;
-  rating: number;
-  mediaType: MediaType;
-};
-
-const fetchTMDB = async <T>(path: string): Promise<T> => {
+const request = async (path: string): Promise<Response> => {
   const baseUrl = process.env.TMDB_API_URL;
   const token = process.env.TMDB_API_TOKEN;
 
@@ -51,49 +59,49 @@ const fetchTMDB = async <T>(path: string): Promise<T> => {
     throw new Error('Missing TMDB_API_URL or TMDB_API_TOKEN');
   }
 
-  const res = await fetch(`${baseUrl}${path}`, {
+  return fetch(`${baseUrl}${path}`, {
     headers: { Authorization: `Bearer ${token}` },
     next: { revalidate: 3600 },
   });
+};
+
+/**
+ * For the endpoints the app builds itself, where every failure — a 404
+ * included — means TMDB moved or the app is misconfigured.
+ */
+export const fetchTMDB = async <T>(path: string): Promise<T> => {
+  const res = await request(path);
 
   if (!res.ok) throw new Error(`TMDB ${res.status} for ${path}`);
 
   return res.json();
 };
 
-const trending = async <T>(kind: MediaType): Promise<T[]> => {
-  const data = await fetchTMDB<TrendingResponse<T>>(`/trending/${kind}/week`);
+/**
+ * For the endpoints an address bar can reach, where a 404 only means nobody
+ * is there. Every other failure still throws, so a 500 keeps meaning
+ * something is genuinely broken rather than that someone mistyped a URL.
+ */
+export const findTMDB = async <T>(path: string): Promise<T | null> => {
+  const res = await request(path);
 
-  if (!data.results) throw new Error(`Failed to fetch trending ${kind}`);
+  if (res.status === 404) return null;
 
-  return data.results;
+  if (!res.ok) throw new Error(`TMDB ${res.status} for ${path}`);
+
+  return res.json();
 };
 
-const imageUrl = (kind: ImageKind, path: string): string => {
+const imageUrl = (artwork: 'poster' | 'backdrop', path: string): string => {
   const base =
-    kind === 'poster'
+    artwork === 'poster'
       ? process.env.TMDB_POSTER_PATH
       : process.env.TMDB_BACKDROP_PATH;
 
-  if (!base) throw new Error(`Missing TMDB_${kind.toUpperCase()}_PATH`);
+  if (!base) throw new Error(`Missing TMDB_${artwork.toUpperCase()}_PATH`);
 
   return `${base}${path}`;
 };
 
 export const posterUrl = (path: string): string => imageUrl('poster', path);
 export const backdropUrl = (path: string): string => imageUrl('backdrop', path);
-
-export const toMediaItem = (media: ShowCard | Movie): MediaItem => ({
-  id: media.id,
-  label: media.media_type === 'movie' ? media.title : media.name,
-  posterUrl: media.poster_path ? posterUrl(media.poster_path) : null,
-  rating: media.vote_average,
-  mediaType: media.media_type,
-});
-
-export const trendingShows = (): Promise<ShowCard[]> =>
-  trending<ShowCard>('tv');
-export const trendingMovies = (): Promise<Movie[]> => trending<Movie>('movie');
-
-export const showDetails = (id: number): Promise<ShowDetails> =>
-  fetchTMDB<ShowDetails>(`/tv/${id}`);

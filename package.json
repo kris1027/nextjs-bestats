@@ -10,7 +10,8 @@
     "lint": "biome check",
     "typecheck": "tsc --noEmit",
     "format": "biome check --write",
-    "pre-commit": "biome check && tsc --noEmit",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test",
+    "pre-commit": "biome check && tsc --noEmit && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test",
     "prepare": "husky"
   },
   "dependencies": {

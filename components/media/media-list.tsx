@@ -1,16 +1,14 @@
 import type { JSX } from 'react';
 
 import { MediaCard } from '@/components/media/media-card';
-import { type Movie, type ShowCard, toMediaItem } from '@/lib/tmdb';
+import type { MediaItem } from '@/lib/media';
 
-const MediaList = ({ media }: { media: (ShowCard | Movie)[] }): JSX.Element => {
+const MediaList = ({ media }: { media: MediaItem[] }): JSX.Element => {
   return (
     <ul className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
-      {media.map((entry) => {
-        const item = toMediaItem(entry);
-
-        return <MediaCard item={item} key={item.id} />;
-      })}
+      {media.map((item) => (
+        <MediaCard item={item} key={item.id} />
+      ))}
     </ul>
   );
 };
