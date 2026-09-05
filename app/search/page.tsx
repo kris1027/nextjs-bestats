@@ -6,20 +6,41 @@ import { KindTabs } from '@/components/search/kind-tabs';
 import { SearchForm } from '@/components/search/search-form';
 import { BackButton } from '@/components/ui/back-button';
 import { formatTally } from '@/lib/format';
-import { isKind, type Kind, searchMovies, searchShows } from '@/lib/media';
+import {
+  hasMatches,
+  isKind,
+  KIND_WORDS,
+  type Kind,
+  type Matches,
+  matchedNothing,
+  searchMedia,
+} from '@/lib/media';
 
 type SearchParams = { [key: string]: string | string[] | undefined };
-
-const NOUNS: Record<Kind, { one: string; other: string }> = {
-  tv: { one: 'show', other: 'shows' },
-  movie: { one: 'movie', other: 'movies' },
-};
 
 /** A query parameter can repeat — `?q=a&q=b` — so the first one wins. */
 const firstValue = (value: string | string[] | undefined): string =>
   (Array.isArray(value) ? value[0] : value) ?? '';
 
-/** Every state of this page is the form plus something; this is the plus. */
+/**
+ * Which tab opens when the address does not name one: a Kind with Matches
+ * first, Shows when both have them. When neither has any, the unanswered Kind
+ * opens, so a failed search is never left behind a closed tab.
+ */
+const defaultKind = (shows: Matches | null, movies: Matches | null): Kind => {
+  if (hasMatches(shows)) return 'tv';
+  if (hasMatches(movies)) return 'movie';
+
+  return shows === null ? 'tv' : 'movie';
+};
+
+/**
+ * The frame every state of this page shares: the back affordance and the
+ * search form, wrapped around whatever that state has to say. An empty Query,
+ * a Query nothing matched, a Query neither Kind answered and a Query with
+ * Matches differ only in `children`, so the frame is written once here rather
+ * than four times below.
+ */
 const Shell = ({
   query,
   children,
@@ -70,10 +91,8 @@ const SearchPage = async ({
     );
   }
 
-  const [shows, movies] = await Promise.all([
-    searchShows(query),
-    searchMovies(query),
-  ]);
+  const search = await searchMedia(query);
+  const { tv: shows, movie: movies } = search;
 
   const heading = (
     <h1 className='font-black text-3xl leading-[1.05]'>
@@ -81,10 +100,29 @@ const SearchPage = async ({
     </h1>
   );
 
-  // Both Kinds are empty, so tabs would be two empty panels. This is still a
-  // 200: there is a search box at this address, which is what the visitor
-  // needs next.
-  if (!shows.items.length && !movies.items.length) {
+  // Neither Kind answered, so the page cannot report what matched — and must
+  // not report that nothing did. Still a 200, for the same reason as below.
+  if (!shows && !movies) {
+    return (
+      <Shell query={query}>
+        {heading}
+        <p className='opacity-60'>
+          TMDB did not answer. Try that search again in a moment.
+        </p>
+      </Shell>
+    );
+  }
+
+  // Both Kinds answered and both are empty, so tabs would be two empty panels
+  // wearing a `0` apiece. Returning before `KindTabs` leaves `?kind=` inert
+  // here on purpose: it earns its place in the address by opening the list the
+  // sender meant and by letting a closed tab admit what waits behind it, and
+  // there is no list on either side to do either for.
+  // — `docs/adr/0004-search-is-two-searches.md`
+  //
+  // Still a 200: there is a search box at this address, which is what the
+  // visitor needs next.
+  if (matchedNothing(shows) && matchedNothing(movies)) {
     return (
       <Shell query={query}>
         {heading}
@@ -99,28 +137,29 @@ const SearchPage = async ({
   // The address names the tab. Absent, it opens on whichever Kind has
   // something to show — Shows when both do.
   const kind = firstValue(params.kind);
-  const selected: Kind = isKind(kind)
-    ? kind
-    : shows.items.length > 0
-      ? 'tv'
-      : 'movie';
-  const matches = selected === 'tv' ? shows : movies;
+  const selected: Kind = isKind(kind) ? kind : defaultKind(shows, movies);
+  const matches = search[selected];
+  const words = KIND_WORDS[selected];
 
   return (
     <Shell query={query}>
       {heading}
-      <KindTabs query={query} selected={selected} />
-      {matches.items.length > 0 ? (
+      <KindTabs query={query} selected={selected} search={search} />
+      {matches === null ? (
+        <p className='opacity-60'>
+          TMDB did not answer for {words.other}. Try that search again in a
+          moment.
+        </p>
+      ) : matches.items.length > 0 ? (
         <>
           <p className='text-sm opacity-60'>
-            Showing{' '}
-            {formatTally(matches.items.length, matches.total, NOUNS[selected])}
+            Showing {formatTally(matches.items.length, matches.total, words)}
           </p>
           <MediaList media={matches.items} />
         </>
       ) : (
         <p className='opacity-60'>
-          No {NOUNS[selected].other} match “{query}”.
+          No {words.other} match “{query}”.
         </p>
       )}
     </Shell>

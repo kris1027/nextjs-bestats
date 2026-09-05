@@ -6,6 +6,7 @@ import { test } from 'node:test';
 import {
   formatCount,
   formatDate,
+  formatNumber,
   formatRuntime,
   formatTally,
 } from './format.ts';
@@ -63,6 +64,16 @@ test('formatTally drops the "top" once the list holds everything', () => {
   assert.equal(formatTally(1, 1, { one: 'movie', other: 'movies' }), '1 movie');
 });
 
-test('formatTally has nothing to withhold when nothing was found', () => {
+// The search page never asks this: it returns before the tally when both Kinds
+// came back empty. `formatTally` is exported all the same, and zero is an
+// ordinary total for it the way it is for `formatCount` above, so the contract
+// is pinned here rather than left for the next caller to find in production.
+test('formatTally counts a total of zero, whatever its callers guard', () => {
   assert.equal(formatTally(0, 0, { one: 'show', other: 'shows' }), '0 shows');
+});
+
+test('formatNumber groups a large number and leaves a small one alone', () => {
+  assert.equal(formatNumber(1204), '1,204');
+  assert.equal(formatNumber(7), '7');
+  assert.equal(formatNumber(0), '0');
 });
