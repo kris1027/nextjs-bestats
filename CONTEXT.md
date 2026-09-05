@@ -57,7 +57,9 @@ _Avoid_: Search term, keyword, input
 What a Query finds for one Kind — the Media Items TMDB matched, and how many
 it matched in all. Only the first page is fetched, so the count is usually
 larger than the list, and the page says so rather than letting the list stand
-for the whole.
+for the whole. A Kind TMDB did not answer for has no Matches at all, which is
+not the same as matching nothing and is never shown as an empty list or a
+count of zero.
 _Avoid_: Results, hits, search results
 
 **Rating**:
