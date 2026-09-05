@@ -3,9 +3,9 @@ import { notFound } from 'next/navigation';
 import type { JSX } from 'react';
 
 import { MediaDetail } from '@/components/media/media-detail';
-import { isMediaType, type MediaDetails, mediaDetails } from '@/lib/tmdb';
+import { isKind, type MediaDetails, mediaDetails } from '@/lib/media';
 
-type RouteParams = { mediaType: string; id: string };
+type RouteParams = { kind: string; id: string };
 
 // TMDB ids are positive integers, so anything else cannot exist and is a 404
 // before a request is made.
@@ -22,11 +22,11 @@ const ID_PATTERN = /^[1-9]\d{0,8}$/;
 const findMedia = async (
   params: Promise<RouteParams>,
 ): Promise<MediaDetails | null> => {
-  const { mediaType, id } = await params;
+  const { kind, id } = await params;
 
-  if (!isMediaType(mediaType) || !ID_PATTERN.test(id)) return null;
+  if (!isKind(kind) || !ID_PATTERN.test(id)) return null;
 
-  return mediaDetails(mediaType, Number(id));
+  return mediaDetails(kind, Number(id));
 };
 
 export const generateMetadata = async ({

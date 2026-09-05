@@ -24,17 +24,17 @@ export const formatCount = (
   return `${numberFormat.format(count)} ${noun}`;
 };
 
-/** TMDB returns an empty string for shows that have not aired yet. */
-export const formatAirDate = (date: string): string | null => {
+/** TMDB returns an empty string for a date it does not have. */
+export const formatDate = (date: string): string | null => {
   const parsed = new Date(date);
 
   return Number.isNaN(parsed.getTime()) ? null : dateFormat.format(parsed);
 };
 
 /**
- * TMDB gives runtime in whole minutes, and `null` or `0` for films whose
+ * TMDB gives runtime in whole minutes, and `null` or `0` for movies whose
  * length it does not know. Unlike the counts above this is abbreviated, so a
- * three-hour film stays a tag rather than a sentence.
+ * three-hour movie stays a tag rather than a sentence.
  */
 export const formatRuntime = (minutes: number | null): string | null => {
   if (!minutes) return null;

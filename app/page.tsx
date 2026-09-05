@@ -2,7 +2,7 @@ import type { JSX } from 'react';
 
 import { MediaList } from '@/components/media/media-list';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { trendingMovies, trendingShows } from '@/lib/tmdb';
+import { trendingMovies, trendingShows } from '@/lib/media';
 
 const HomePage = async (): Promise<JSX.Element> => {
   const [shows, movies] = await Promise.all([

@@ -7,7 +7,7 @@ import { MediaPlaceholder } from '@/components/media/media-placeholder';
 import { BackButton } from '@/components/ui/back-button';
 import { Tag } from '@/components/ui/tag';
 import { formatCount } from '@/lib/format';
-import type { MediaDetails } from '@/lib/tmdb';
+import type { MediaDetails } from '@/lib/media';
 
 const MediaDetail = ({ media }: { media: MediaDetails }): JSX.Element => {
   return (
@@ -28,7 +28,7 @@ const MediaDetail = ({ media }: { media: MediaDetails }): JSX.Element => {
             priority
           />
         ) : (
-          <MediaPlaceholder kind='backdrop' />
+          <MediaPlaceholder artwork='backdrop' />
         )}
         {/* fades the bottom 60% of the backdrop into the page background */}
         <div className='pointer-events-none absolute inset-0 bg-linear-to-b from-transparent from-40% to-background' />
@@ -51,7 +51,7 @@ const MediaDetail = ({ media }: { media: MediaDetails }): JSX.Element => {
               sizes='(min-width: 1024px) 260px, (min-width: 640px) 208px, 168px'
             />
           ) : (
-            <MediaPlaceholder kind='poster' />
+            <MediaPlaceholder artwork='poster' />
           )}
         </div>
 

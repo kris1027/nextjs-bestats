@@ -3,7 +3,7 @@ import { test } from 'node:test';
 
 // Node strips the types itself and does not read tsconfig `paths`, so this
 // import is relative and carries its extension.
-import { formatAirDate, formatCount, formatRuntime } from './format.ts';
+import { formatCount, formatDate, formatRuntime } from './format.ts';
 
 test('formatRuntime splits minutes into hours and minutes', () => {
   assert.equal(formatRuntime(134), '2h 14m');
@@ -38,10 +38,10 @@ test('formatCount groups large numbers', () => {
   );
 });
 
-test('formatAirDate formats a calendar date in UTC', () => {
-  assert.equal(formatAirDate('2024-03-12'), 'March 12, 2024');
+test('formatDate formats a calendar date in UTC', () => {
+  assert.equal(formatDate('2024-03-12'), 'March 12, 2024');
 });
 
-test('formatAirDate has nothing to say about an unaired title', () => {
-  assert.equal(formatAirDate(''), null);
+test('formatDate has nothing to say about a date TMDB does not have', () => {
+  assert.equal(formatDate(''), null);
 });
