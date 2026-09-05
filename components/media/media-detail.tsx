@@ -62,7 +62,7 @@ const MediaDetail = ({ media }: { media: MediaDetails }): JSX.Element => {
           </h1>
 
           <div className='flex flex-wrap items-center gap-6'>
-            {/* an unvoted title has no rating: TMDB's 0 is a placeholder,
+            {/* unvoted Media has no Rating: TMDB's 0 is a placeholder,
                 and the vote count is what tells the two apart */}
             {media.voteCount > 0 ? (
               <div className='flex items-center gap-1.5'>

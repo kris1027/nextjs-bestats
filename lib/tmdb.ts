@@ -7,7 +7,7 @@
 /**
  * A Show as the list endpoints report it. Trending and search describe a Show
  * differently — only trending declares `media_type` — but they agree on every
- * field a card needs, so one type serves both.
+ * field a Media Item needs, so one type serves both.
  */
 export type TmdbShow = {
   id: number;

@@ -4,7 +4,7 @@ import type { JSX } from 'react';
 import { Search } from 'lucide-react';
 
 /**
- * A GET form, so every search becomes an address of its own and the results
+ * A GET form, so every search becomes an address of its own and its Matches
  * stay server-rendered. `next/form` renders a real `<form>` — the browser's
  * own submission still works with no JavaScript — but intercepts it into a
  * client-side navigation, so submitting does not reload the document the way
