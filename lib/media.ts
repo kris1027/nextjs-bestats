@@ -79,17 +79,23 @@ const toShowDetails = (show: TmdbShowDetails): MediaDetails => {
   return toMediaDetails(
     show,
     show.name,
-    toFacts(
-      aired && `First aired: ${aired}`,
-      formatCount(show.number_of_seasons, {
-        one: 'season',
-        other: 'seasons',
-      }),
-      formatCount(show.number_of_episodes, {
-        one: 'episode',
-        other: 'episodes',
-      }),
-    ),
+    // TMDB reports one season and one episode for shows that have never
+    // aired, so a count only becomes a finished statement once there is an
+    // air date to anchor it. Do not drop this guard: the placeholder is a 1,
+    // not a 0, and no falsy check will catch it.
+    aired
+      ? toFacts(
+          `First aired: ${aired}`,
+          formatCount(show.number_of_seasons, {
+            one: 'season',
+            other: 'seasons',
+          }),
+          formatCount(show.number_of_episodes, {
+            one: 'episode',
+            other: 'episodes',
+          }),
+        )
+      : [],
   );
 };
 
