@@ -48,11 +48,30 @@ by Kind, and a Fact TMDB has no value for is absent rather than blank —
 including where TMDB supplies a placeholder in place of one.
 _Avoid_: Attribute, metadata, field, stat
 
+**Query**:
+The words a visitor typed to find Media. TMDB's word too, so it stays spelled
+`query` on the wire and in code; the address bar shortens it to `q`.
+_Avoid_: Search term, keyword, input
+
+**Matches**:
+What a Query finds for one Kind — the Media Items TMDB matched, and how many
+it matched in all. Only the first page is fetched, so the count is usually
+larger than the list, and the page says so rather than letting the list stand
+for the whole.
+_Avoid_: Results, hits, search results
+
+**Rating**:
+TMDB's average score for a piece of Media, out of ten. Media nobody has voted
+on has no Rating: TMDB reports a `0`, which is a placeholder standing in for
+an absent score rather than a score of zero, so it is left out the way an
+absent Fact is.
+_Avoid_: Score, stars, vote
+
 **Artwork**:
 A picture TMDB supplies for a piece of Media — a Poster or a Backdrop.
 _Avoid_: Image, art, kind
 
 **Trending**:
-What TMDB reports as most popular over the past week. The home page shows
-nothing else, and the ranking is TMDB's, not the app's.
+What TMDB reports as most popular over the past week. It is the only Media the
+home page shows, and the ranking is TMDB's, not the app's.
 _Avoid_: Popular, top, featured
