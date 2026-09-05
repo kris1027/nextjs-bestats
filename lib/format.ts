@@ -46,3 +46,20 @@ export const formatRuntime = (minutes: number | null): string | null => {
 
   return rest ? `${hours}h ${rest}m` : `${hours}h`;
 };
+
+/**
+ * Describes a list that may be only part of what was found. Naming both
+ * numbers is only honest while there are more; once the list holds everything
+ * there is no "top" to qualify and the plain count is the whole truth.
+ *
+ * Reads as the tail of a sentence — "Showing the top 20 of 1,247 shows",
+ * "Showing 6 shows".
+ */
+export const formatTally = (
+  shown: number,
+  total: number,
+  forms: { one: string; other: string },
+): string =>
+  total > shown
+    ? `the top ${numberFormat.format(shown)} of ${formatCount(total, forms)}`
+    : formatCount(total, forms);

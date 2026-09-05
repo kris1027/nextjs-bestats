@@ -4,6 +4,7 @@ import {
   fetchTMDB,
   findTMDB,
   posterUrl,
+  type SearchResponse,
   type TmdbMovie,
   type TmdbMovieDetails,
   type TmdbShow,
@@ -27,6 +28,15 @@ export type MediaItem = {
   rating: number;
   voteCount: number;
   kind: Kind;
+};
+
+/**
+ * What a Query finds for one Kind. `total` counts everything TMDB matched,
+ * so it is usually larger than `items` — only the first page is fetched.
+ */
+export type Matches = {
+  items: MediaItem[];
+  total: number;
 };
 
 /**
@@ -153,4 +163,38 @@ export const mediaDetails = async (
   const movie = await findTMDB<TmdbMovieDetails>(`/movie/${id}`);
 
   return movie && toMovieDetails(movie);
+};
+
+const searchTMDB = async <T>(
+  kind: Kind,
+  query: string,
+): Promise<SearchResponse<T>> => {
+  // TMDB answers a query it cannot match with an empty page, never a 404, so
+  // any failure here means the endpoint moved rather than that nobody matched.
+  const path = `/search/${kind}?query=${encodeURIComponent(query)}`;
+  const data = await fetchTMDB<SearchResponse<T>>(path);
+
+  if (!data.results) throw new Error(`TMDB returned no results for ${path}`);
+
+  return data;
+};
+
+export const searchShows = async (query: string): Promise<Matches> => {
+  const data = await searchTMDB<TmdbShow>('tv', query);
+
+  return {
+    items: data.results.map((show) => toMediaItem(show, show.name, 'tv')),
+    total: data.total_results,
+  };
+};
+
+export const searchMovies = async (query: string): Promise<Matches> => {
+  const data = await searchTMDB<TmdbMovie>('movie', query);
+
+  return {
+    items: data.results.map((movie) =>
+      toMediaItem(movie, movie.title, 'movie'),
+    ),
+    total: data.total_results,
+  };
 };
