@@ -9,7 +9,11 @@ import { cn } from '@/lib/utils';
 const sans = Montserrat({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: 'BeStats',
+  title: {
+    default: 'BeStats',
+    // detail pages set only their own label; this frames it
+    template: '%s · BeStats',
+  },
   description:
     'Become a statistic — track the shows and movies you watch. Data from TMDB',
 };

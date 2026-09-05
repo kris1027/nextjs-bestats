@@ -1,5 +1,4 @@
 import Image from 'next/image';
-import { notFound } from 'next/navigation';
 import type { JSX } from 'react';
 
 import { Star } from 'lucide-react';
@@ -7,32 +6,18 @@ import { Star } from 'lucide-react';
 import { MediaPlaceholder } from '@/components/media/media-placeholder';
 import { BackButton } from '@/components/ui/back-button';
 import { Tag } from '@/components/ui/tag';
-import { formatAirDate, formatCount } from '@/lib/format';
-import { backdropUrl, posterUrl, showDetails } from '@/lib/tmdb';
+import { formatCount } from '@/lib/format';
+import type { MediaDetails } from '@/lib/tmdb';
 
-const DetailedShowPage = async ({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<JSX.Element> => {
-  const { id } = await params;
-
-  const showId = Number(id);
-
-  if (!/^[1-9]\d{0,8}$/.test(id)) notFound();
-
-  const show = await showDetails(showId);
-
-  const airDate = formatAirDate(show.first_air_date);
-
+const MediaDetail = ({ media }: { media: MediaDetails }): JSX.Element => {
   return (
     // --backdrop-h drives the backdrop height, the poster's overlap and the
     // text clearance below; changing it keeps all three in step
     <main className='mx-auto w-full max-w-300 flex-1 [--backdrop-h:17.5rem] sm:[--backdrop-h:22rem] lg:[--backdrop-h:26.25rem]'>
       <div className='relative h-(--backdrop-h) w-full overflow-hidden'>
-        {show.backdrop_path ? (
+        {media.backdropUrl ? (
           <Image
-            src={backdropUrl(show.backdrop_path)}
+            src={media.backdropUrl}
             fill
             // decorative: the page's accessible name comes from the <h1> below it
             alt=''
@@ -55,9 +40,9 @@ const DetailedShowPage = async ({
       <div className='relative -mt-[calc(var(--backdrop-h)/3)] grid gap-8 px-8 pb-8 sm:grid-cols-[208px_1fr] lg:grid-cols-[260px_1fr]'>
         {/* the slot owns the poster's size, so both branches match */}
         <div className='w-42 shadow-lg sm:w-52 lg:w-65'>
-          {show.poster_path ? (
+          {media.posterUrl ? (
             <Image
-              src={posterUrl(show.poster_path)}
+              src={media.posterUrl}
               width={780}
               height={1170}
               // decorative: the page's accessible name comes from the <h1> below it
@@ -73,44 +58,35 @@ const DetailedShowPage = async ({
         {/* clears the overlap so the text starts 1rem below the backdrop */}
         <div className='flex flex-col gap-4 sm:pt-[calc(var(--backdrop-h)/3+1rem)]'>
           <h1 className='font-black text-3xl leading-[1.05] lg:text-[40px]'>
-            {show.name}
+            {media.label}
           </h1>
 
           <div className='flex flex-wrap items-center gap-6'>
             <div className='flex items-center gap-1.5'>
               <Star size={20} className='fill-current text-primary-accent' />
               <span className='font-extrabold text-lg'>
-                {show.vote_average.toFixed(1)}
+                {media.rating.toFixed(1)}
               </span>
               <span className='text-sm opacity-60'>
                 (
-                {formatCount(show.vote_count, {
+                {formatCount(media.voteCount, {
                   one: 'vote',
                   other: 'votes',
                 })}
                 )
               </span>
             </div>
-            {airDate ? <Tag>First aired: {airDate}</Tag> : null}
-            <Tag>
-              {formatCount(show.number_of_seasons, {
-                one: 'season',
-                other: 'seasons',
-              })}
-            </Tag>
-            <Tag>
-              {formatCount(show.number_of_episodes, {
-                one: 'episode',
-                other: 'episodes',
-              })}
-            </Tag>
+            {/* facts arrive formatted and unique, so each is its own key */}
+            {media.facts.map((fact) => (
+              <Tag key={fact}>{fact}</Tag>
+            ))}
           </div>
 
           <div className='my-2 h-0.5 bg-foreground/40' />
 
-          {show.overview ? (
+          {media.overview ? (
             <p className='max-w-[62ch] text-base leading-relaxed'>
-              {show.overview}
+              {media.overview}
             </p>
           ) : null}
         </div>
@@ -119,4 +95,4 @@ const DetailedShowPage = async ({
   );
 };
 
-export default DetailedShowPage;
+export { MediaDetail };

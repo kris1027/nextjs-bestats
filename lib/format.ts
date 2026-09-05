@@ -30,3 +30,19 @@ export const formatAirDate = (date: string): string | null => {
 
   return Number.isNaN(parsed.getTime()) ? null : dateFormat.format(parsed);
 };
+
+/**
+ * TMDB gives runtime in whole minutes, and `null` or `0` for films whose
+ * length it does not know. Unlike the counts above this is abbreviated, so a
+ * three-hour film stays a tag rather than a sentence.
+ */
+export const formatRuntime = (minutes: number | null): string | null => {
+  if (!minutes) return null;
+
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+
+  if (!hours) return `${rest}m`;
+
+  return rest ? `${hours}h ${rest}m` : `${hours}h`;
+};
