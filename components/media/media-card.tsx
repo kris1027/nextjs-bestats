@@ -34,10 +34,14 @@ const MediaCard = ({ item }: { item: MediaItem }): JSX.Element => {
           >
             {item.label}
           </h2>
-          <div className='flex shrink-0 items-center gap-1 whitespace-nowrap font-extrabold text-xs'>
-            <Star size={12} className='fill-current' />
-            <p>{item.rating.toFixed(1)}</p>
-          </div>
+          {/* nobody has voted, so there is no rating to state — a 0.0 here
+              would read as a score rather than as its absence */}
+          {item.voteCount > 0 ? (
+            <div className='flex shrink-0 items-center gap-1 whitespace-nowrap font-extrabold text-xs'>
+              <Star size={12} className='fill-current' />
+              <p>{item.rating.toFixed(1)}</p>
+            </div>
+          ) : null}
         </div>
       </Link>
     </li>

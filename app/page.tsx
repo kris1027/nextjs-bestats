@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 
 import { MediaList } from '@/components/media/media-list';
+import { SearchForm } from '@/components/search/search-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { trendingMovies, trendingShows } from '@/lib/media';
 
@@ -12,6 +13,9 @@ const HomePage = async (): Promise<JSX.Element> => {
 
   return (
     <main className='flex-1 p-4'>
+      <div className='mx-auto w-full max-w-5xl py-4'>
+        <SearchForm />
+      </div>
       <Tabs
         defaultValue='shows'
         className='mx-auto w-full max-w-5xl items-center'

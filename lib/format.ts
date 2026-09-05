@@ -14,11 +14,20 @@ const dateFormat = new Intl.DateTimeFormat(LOCALE, {
   timeZone: 'UTC',
 });
 
+/**
+ * A noun in the two forms counting it needs — "season" and "seasons". Said
+ * once here because it travels: the count formatters take it, and a Kind's
+ * words carry it.
+ *
+ * The fields are CLDR's plural-category names, not `singular`/`plural`: they
+ * are the categories `Intl.PluralRules` names for this locale, so a language
+ * with more of them would gain fields rather than have these two renamed.
+ * Leave them spelled this way.
+ */
+export type NounForms = { one: string; other: string };
+
 /** English has two plural categories, so `count === 1` is the whole rule. */
-export const formatCount = (
-  count: number,
-  forms: { one: string; other: string },
-): string => {
+export const formatCount = (count: number, forms: NounForms): string => {
   const noun = count === 1 ? forms.one : forms.other;
 
   return `${numberFormat.format(count)} ${noun}`;
@@ -46,3 +55,28 @@ export const formatRuntime = (minutes: number | null): string | null => {
 
   return rest ? `${hours}h ${rest}m` : `${hours}h`;
 };
+
+/**
+ * Describes a list that may be only part of what was found. Naming both
+ * numbers is only honest while there are more; once the list holds everything
+ * there is no "top" to qualify and the plain count is the whole truth.
+ *
+ * Reads as the tail of a sentence — "Showing the top 20 of 1,247 shows",
+ * "Showing 6 shows".
+ */
+export const formatTally = (
+  shown: number,
+  total: number,
+  forms: NounForms,
+): string =>
+  total > shown
+    ? `the top ${numberFormat.format(shown)} of ${formatCount(total, forms)}`
+    : formatCount(total, forms);
+
+/**
+ * A number on its own, grouped for the locale. For the places a noun is
+ * already in view and repeating it would only pad the label — a tab that
+ * names its Kind and wears its count.
+ */
+export const formatNumber = (value: number): string =>
+  numberFormat.format(value);

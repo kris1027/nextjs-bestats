@@ -4,20 +4,26 @@
  * begin in `lib/media.ts`, which maps these shapes into them.
  */
 
-/** A Show as the trending endpoint reports it. */
+/**
+ * A Show as the list endpoints report it. Trending and search describe a Show
+ * differently — only trending declares `media_type` — but they agree on every
+ * field a Media Item needs, so one type serves both.
+ */
 export type TmdbShow = {
   id: number;
   name: string;
   poster_path: string | null;
   vote_average: number;
+  vote_count: number;
 };
 
-/** A Movie as the trending endpoint reports it. */
+/** A Movie as the list endpoints report it. See `TmdbShow`. */
 export type TmdbMovie = {
   id: number;
   title: string;
   poster_path: string | null;
   vote_average: number;
+  vote_count: number;
 };
 
 /** A Show as `/tv/{id}` reports it. */
@@ -49,6 +55,15 @@ export type TmdbMovieDetails = {
 
 export type TrendingResponse<T> = {
   results: T[];
+};
+
+/**
+ * `total_results` counts everything TMDB matched, not what it returned — a
+ * page holds 20 of them.
+ */
+export type SearchResponse<T> = {
+  results: T[];
+  total_results: number;
 };
 
 const request = async (path: string): Promise<Response> => {
