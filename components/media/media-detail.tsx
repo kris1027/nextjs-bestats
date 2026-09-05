@@ -62,20 +62,24 @@ const MediaDetail = ({ media }: { media: MediaDetails }): JSX.Element => {
           </h1>
 
           <div className='flex flex-wrap items-center gap-6'>
-            <div className='flex items-center gap-1.5'>
-              <Star size={20} className='fill-current text-primary-accent' />
-              <span className='font-extrabold text-lg'>
-                {media.rating.toFixed(1)}
-              </span>
-              <span className='text-sm opacity-60'>
-                (
-                {formatCount(media.voteCount, {
-                  one: 'vote',
-                  other: 'votes',
-                })}
-                )
-              </span>
-            </div>
+            {/* an unvoted title has no rating: TMDB's 0 is a placeholder,
+                and the vote count is what tells the two apart */}
+            {media.voteCount > 0 ? (
+              <div className='flex items-center gap-1.5'>
+                <Star size={20} className='fill-current text-primary-accent' />
+                <span className='font-extrabold text-lg'>
+                  {media.rating.toFixed(1)}
+                </span>
+                <span className='text-sm opacity-60'>
+                  (
+                  {formatCount(media.voteCount, {
+                    one: 'vote',
+                    other: 'votes',
+                  })}
+                  )
+                </span>
+              </div>
+            ) : null}
             {/* facts arrive formatted and unique, so each is its own key */}
             {media.facts.map((fact) => (
               <Tag key={fact}>{fact}</Tag>

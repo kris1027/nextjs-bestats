@@ -10,6 +10,7 @@ export type TmdbShow = {
   name: string;
   poster_path: string | null;
   vote_average: number;
+  vote_count: number;
 };
 
 /** A Movie as the trending endpoint reports it. */
@@ -18,6 +19,7 @@ export type TmdbMovie = {
   title: string;
   poster_path: string | null;
   vote_average: number;
+  vote_count: number;
 };
 
 /** A Show as `/tv/{id}` reports it. */

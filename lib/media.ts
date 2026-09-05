@@ -15,12 +15,17 @@ export type Kind = 'tv' | 'movie';
 
 export type Artwork = 'poster' | 'backdrop';
 
-/** What a card renders. */
+/**
+ * What a card renders. `voteCount` is carried for the guard rather than the
+ * screen: nobody having voted is the only thing that distinguishes an unrated
+ * piece of Media from one TMDB scores at zero.
+ */
 export type MediaItem = {
   id: number;
   label: string;
   posterUrl: string | null;
   rating: number;
+  voteCount: number;
   kind: Kind;
 };
 
@@ -56,6 +61,7 @@ const toMediaItem = (
   label,
   posterUrl: media.poster_path ? posterUrl(media.poster_path) : null,
   rating: media.vote_average,
+  voteCount: media.vote_count,
   kind,
 });
 
