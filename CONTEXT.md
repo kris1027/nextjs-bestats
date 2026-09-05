@@ -6,6 +6,10 @@ a viewer exists yet.
 
 ## Language
 
+These words bind code as much as prose — types, functions, route segments,
+filenames. The exception is TMDB's own vocabulary (`tv`, `movie`, the
+snake_case fields of its payloads), which stays spelled as TMDB spells it.
+
 **Media**:
 A thing that can be watched — a Show or a Movie. The word for whichever of the
 two you do not yet need to distinguish.
@@ -40,8 +44,13 @@ _Avoid_: Full media, page data
 **Fact**:
 One short, finished statement about a piece of Media — its release, its length,
 how many seasons it ran. Facts are the only part of Media Details that differ
-by Kind, and a Fact TMDB has no value for is absent rather than blank.
+by Kind, and a Fact TMDB has no value for is absent rather than blank —
+including where TMDB supplies a placeholder in place of one.
 _Avoid_: Attribute, metadata, field, stat
+
+**Artwork**:
+A picture TMDB supplies for a piece of Media — a Poster or a Backdrop.
+_Avoid_: Image, art, kind
 
 **Trending**:
 What TMDB reports as most popular over the past week. The home page shows
