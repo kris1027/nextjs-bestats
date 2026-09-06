@@ -9,55 +9,45 @@ have watched" — and `docs/adr/0003` split the domain layer off from the TMDB
 client precisely so those records would have "a home that is not named after a
 third-party API". v1 is that home.
 
-This file is a plan, not a record of decisions. The decisions that are hard to
-reverse become ADRs in step 0 and the new words go into `CONTEXT.md`. Once
-they exist, they are the authority and this file is scaffolding.
+This file is a plan, not a record of decisions. Step 0 has landed, so for
+everything it covered `CONTEXT.md` and `docs/adr/` are now the authority and
+the sections below defer to them rather than restating them.
 
 ## Language
 
-Three terms enter the glossary in step 0. They are drafted here; `CONTEXT.md`
-is where they become binding.
+Six terms entered the glossary rather than the three this section originally
+drafted: Visitor, Viewer, Watch Record, Planned, Watched and Watchlist.
+`CONTEXT.md` is the authority on all of them, and the drafts have been removed
+from here so there is only one place to read them.
 
-**Viewer**:
-A person signed in to BeStats. The word the reader's own watching earns them,
-rather than the word a system would use for them.
-_Avoid_: User, account, member, profile
+The two the draft missed were both about naming what already existed. A
+Visitor is anyone using BeStats, signed in or not — the word the marking
+controls render for, and the word `CONTEXT.md` and `docs/adr/0004` had been
+using in lower case all along. Planned and Watched became terms of their own,
+standing to a Watch Record as Show and Movie stand to Kind, which also gives
+`/watched` a word behind it.
 
-**Watch Record**:
-One Viewer's recorded relationship to one piece of Media. It is in exactly one
-state — Planned or Watched — and a piece of Media a Viewer has said nothing
-about has no Watch Record at all, which is not a third state.
-_Avoid_: Entry, mark, status, tracking
-
-**Watchlist**:
-A Viewer's Planned Watch Records — the Media they mean to watch. Watched Media
-is not on it, because you no longer mean to watch what you have watched.
-_Avoid_: Queue, saved, list, favourites
-
-Note that Entry was already unavailable: it sits on Media's _Avoid_ list.
+Viewer lost its second sentence. "The word the reader's own watching earns
+them" would have excluded a Viewer who has signed in and recorded nothing.
 
 ## The invariant
 
-A Watch Record is Planned or Watched, never both and never neither. Marking
-Watched takes the Media off the Watchlist; marking Planned puts it back.
-Unmarking deletes the row.
+Both halves of this are now recorded as decisions, and the schema that enforces
+them lands in step 1:
 
-One row per Viewer per piece of Media, keyed `(viewerId, kind, tmdbId)`. The
-key is composite because TMDB ids are only unique within a Kind — `tv/1399`
-and `movie/1399` are different Media. The state is a Postgres enum, so the
-invariant is enforced by the schema rather than by the code that writes it.
-
-A Watch Record stores nothing from TMDB. No label, no poster path, no
-snapshot. Rendering a list means asking TMDB for each item, which keeps
-`CONTEXT.md` literally true — every fact the app shows about a title comes
-from TMDB — and leaves no second copy that can disagree with the first.
+- `docs/adr/0007-watchlist-and-watched-are-one-record.md` — one row per Viewer
+  per piece of Media, keyed `(viewerId, kind, tmdbId)`, state as a Postgres
+  enum, unmarking deletes the row.
+- `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md` — no label, no
+  poster path, no snapshot.
 
 ## Architecture
 
 ```
 lib/tmdb   TMDB's wire vocabulary                     unchanged
 lib/media  the glossary's words, TMDB-shaped          unchanged
-lib/watch  Viewer and Watch Record, from our own DB   new
+lib/auth   Better Auth's instance, and the Viewer     step 2
+lib/watch  Watch Records, from our own database       step 3
 ```
 
 `lib/media` never learns that Viewers exist. A Media Item stays what the
@@ -76,10 +66,16 @@ fail apart: the database being unreachable does not stop Trending rendering.
 | Database   | Neon Postgres                 | scales to zero, HTTP driver suits serverless, branch per preview, real enums |
 | ORM        | Drizzle                       | schema is TypeScript, so `tsconfig` strictness reaches it |
 | Auth       | Better Auth                   | the Viewer lives in our database, so a Watch Record has a real foreign key |
-| Sign-in    | Google and GitHub only        | removes email delivery, verification, reset and hashing from v1 entirely |
+| Sign-in    | Google and GitHub only        | removes email delivery, verification, reset and hashing from v1 entirely; one app per provider, proxied to every environment |
 | Mutations  | Server Actions + `useOptimistic` | instant on a grid, still a real form, degrades without JS |
 | Tests      | Vitest, replacing `node --test` | unit on pre-commit, integration against real Postgres in CI |
 | CI         | GitHub Actions                | there is none today                                       |
+
+Production has been live at `nextjs-bestats.vercel.app` since before this plan
+was written, and preview deployments run per pull request, so step 7's "Deploy"
+was never outstanding. The bill arrives earlier instead: OAuth has to work
+across localhost, previews and production from the day it lands, which is half
+of `docs/adr/0009-every-environment-is-a-neon-branch.md`.
 
 ## Routes
 
@@ -92,10 +88,16 @@ fail apart: the database being unreachable does not stop Trending rendering.
 
 Every new top-level segment is static, so `docs/adr/0001` holds.
 
-Marking controls render for everyone, signed in or not. A signed-out click
-goes to `/sign-in?next=…` and the mark is applied on return — a visitor who
+Marking controls render for every Visitor, signed in or not. A Visitor who
 never sees the control never learns the app does anything TMDB does not, and
 one rendering path for a card is worth more than a hidden one.
+
+A signed-out click goes to `/sign-in?next=…`, which carries a destination and
+nothing else — a same-origin relative path, or it is ignored. The Visitor lands
+back where they were and clicks again. Replaying the intent through the OAuth
+round trip was in the first draft of this plan and was dropped: it is machinery
+whose only failure mode is creating a Watch Record nobody asked for, spent to
+save one click on a path a Viewer takes once.
 
 Lists paginate at 20 because each item costs a TMDB request. Twenty per page
 bounds that cost whatever a Viewer has watched, matches the page size TMDB
@@ -104,37 +106,51 @@ uses everywhere else in the app, and lets `formatTally` say "the top 20 of
 
 ## Build order
 
-Each step should land as its own branch and PR, in this order. Steps 1 and 2
-are infrastructure with nothing to see; step 4 is the first one a visitor
-would notice.
+Steps 0, 1 and 2 share one branch — `feat/viewer-foundation` — because the
+schema cannot be written before the tables its foreign key points at. From
+step 3 on, each step is its own branch and PR. Steps 1 and 2 are
+infrastructure with nothing to see; step 4 is the first one a Visitor would
+notice.
 
-**0. Words first.** Add Viewer, Watch Record and Watchlist to `CONTEXT.md`.
-Write the four ADRs listed below. Update `CLAUDE.md`: the module boundary
-gains `lib/watch`, the Tests section is rewritten for Vitest, the standing
-rules gain the exclusive-state invariant. No code.
+**0. Words first.** _Done._ Six terms into `CONTEXT.md`, and its
+vendor-vocabulary exception widened to cover Better Auth's `user` alongside
+TMDB's `tv`. Five ADRs rather than four — `0009` records the environment
+topology, because a redirect URI pointing at production from a laptop reads as
+a mistake without it. `CLAUDE.md`'s module boundary gains `lib/auth`, its Tests
+section is rewritten for Vitest, its standing rules gain the exclusive-state
+invariant, and the paragraph documenting the pre-commit drift is deleted rather
+than amended, because step 1 fixes the drift. No code.
 
 **1. Foundation.** Migrate `lib/format.test.mts` to Vitest as
 `lib/format.test.ts`, with `@/` path aliases working. Split the suite into
 unit and integration projects. Add the GitHub Actions workflow — lint,
-typecheck, unit, then integration against a Neon branch. Fix the pre-commit
-drift `CLAUDE.md` currently documents rather than documenting it further.
-Provision Neon, add Drizzle, write the schema and the first migration.
+typecheck, unit, then integration against an ephemeral Neon branch. Reconcile
+the pre-commit drift to one definition: `.husky/pre-commit` becomes the single
+line `pnpm pre-commit`. Provision Neon, add Drizzle, write the schema and the
+first migration — Better Auth's four tables and `watch_records` together, so
+the integration project has the invariant itself to test on its first run.
 
 **2. Auth.** Better Auth with the Drizzle adapter. Google and GitHub
-providers. `/sign-in` honouring `?next=`. A session helper `lib/watch` and
-the pages can both read. Sign-in and sign-out in the header. New environment
-variables into `.env.example`.
+providers, one app each, with `oAuthProxy` carrying localhost and previews
+through production's callback. `/sign-in` honouring a validated `?next=`.
+`lib/auth` owning the instance and exporting the `viewer()` helper that
+`lib/watch` and the pages both read. A site header — the app has none today —
+with sign-in and a sign-out driven by a Server Action, so step 4 keeps its
+claim to the first client component. New environment variables into
+`.env.example`.
 
 **3. `lib/watch`.** Pure rules in one file and tested — the state transitions,
 building the lookup a page hands its cards, what an unanswered piece of Media
 looks like in a list. Thin query functions beside them, covered by the
 integration project. The Server Actions that set and clear a Watch Record,
 authorised against the session and never against a client-supplied Viewer id.
+The schema and its migration already exist, so this step is logic only.
 
 **4. The control.** The first stateful client component in the app: a form
 whose action is the Server Action, wrapped in `useOptimistic` so it flips on
 click and reverts with a message if the write fails. Placed on `MediaCard`
-and on the detail page.
+and on the detail page. A signed-out click leaves through `?next=` and comes
+back to a page where the Visitor clicks again; nothing is replayed for them.
 
 **5. The lists.** `/watchlist` and `/watched`, paginated, newest first, each
 with its own metadata and its own empty state. Switching between them is a
@@ -145,31 +161,38 @@ than mirroring its styling a third time.
 through the foreign key. Rate limiting on the marking action.
 
 **7. Polish.** `loading.tsx` and `error.tsx` per route, with Suspense around
-the TMDB fetches. The theme toggle `app/layout.tsx` has been parked for since
-`03173a8`. Deploy.
+the TMDB fetches — worth more here than elsewhere, since a list of twenty Watch
+Records is twenty TMDB requests. The theme toggle `app/layout.tsx` has been
+parked for since `03173a8`, and step 2's header is where it goes.
 
 ## Documents this produces
 
-- `CONTEXT.md` — Viewer, Watch Record, Watchlist
+- `CONTEXT.md` — Visitor, Viewer, Watch Record, Planned, Watched, Watchlist,
+  and a vendor-vocabulary exception that now names Better Auth
 - `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
 - `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
 - `docs/adr/0007-watchlist-and-watched-are-one-record.md`
 - `docs/adr/0008-vitest-replaces-the-node-test-runner.md`
-- `CLAUDE.md` — module boundary, Tests, standing rules
+- `docs/adr/0009-every-environment-is-a-neon-branch.md`
+- `CLAUDE.md` — Commands, Tests, module boundary, standing rules
+- `README.md` — a setup section, since a fresh clone now needs a database and
+  two OAuth applications before it will run
+- `.env.example` — the database URL, Better Auth's secrets and four provider
+  credentials
 
-`0008` matters most of those. `CLAUDE.md` presently says Vitest "should not be
-added", so replacing the runner overturns a written rule and has to be
-recorded as such rather than quietly edited away.
+`0008` mattered most of those. `CLAUDE.md` said Vitest "should not be added",
+so replacing the runner overturned a written rule and had to be recorded as
+such rather than quietly edited away.
 
 ## Known frictions
 
 Three things this plan makes worse before it makes them better. Named here so
 they are decided rather than discovered.
 
-The pre-commit drift is real and about to widen. `.husky/pre-commit` runs
-`pnpm lint-staged`, `pnpm typecheck` and `pnpm test` directly, while the
-`pre-commit` script checks the whole repo without writing. A suite split in
-two makes the two definitions disagree further. Step 1 reconciles them.
+The pre-commit drift was real and about to widen — two artefacts named
+pre-commit, disagreeing quietly, with a suite split in two about to push them
+further apart. Step 1 reconciles them to one definition. CI remains a third
+thing and differs on purpose, having no staging area to format against.
 
 There will be three tab treatments. Client tabs on `/`, hand-mirrored link
 tabs on `/search`, and now the lists. `docs/adr/0004` already warns that the
@@ -177,7 +200,9 @@ first two drift; step 5 must reuse rather than mirror.
 
 A Watch Record whose Media TMDB will not answer for needs a rendering. The app
 already distinguishes an unanswered Kind from an empty one, and that
-distinction is reused rather than a third word invented for it.
+distinction is reused rather than a third word invented for it. This one is
+sharpened rather than eased by `0006`: with no stored label, there is nothing
+to fall back on.
 
 ## Deferred to v2
 
