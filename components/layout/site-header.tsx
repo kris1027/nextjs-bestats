@@ -5,7 +5,7 @@ import { ListLinks } from '@/components/layout/list-links';
 import { SettingsLink } from '@/components/layout/settings-link';
 import { SignInLink } from '@/components/layout/sign-in-link';
 import { ViewerAvatar } from '@/components/layout/viewer-avatar';
-import { viewer } from '@/lib/auth';
+import { answeredViewer } from '@/lib/auth';
 import { signOut } from '@/lib/auth-actions';
 
 const control =
@@ -17,12 +17,20 @@ const control =
  * header is a named seam rather than a property of the whole app: the pages
  * `docs/v1-plan.md` calls "unchanged and public" stay that way as far as the
  * renderer allows.
+ *
+ * Nothing at all when the sign-in went Unanswered: "Sign in" would tell a
+ * Viewer they are not one, and the header's fixed height already holds the
+ * space for nothing.
  */
-const ViewerControl = async (): Promise<JSX.Element> => {
-  const currentViewer = await viewer();
+const ViewerControl = async (): Promise<JSX.Element | null> => {
+  const asked = await answeredViewer();
+
+  if (asked.answer === 'unanswered') return null;
 
   // a client link, because only the client knows the address to come back to
-  if (!currentViewer) return <SignInLink className={control} />;
+  if (asked.answer === 'visitor') return <SignInLink className={control} />;
+
+  const currentViewer = asked.viewer;
 
   return (
     <div className='flex items-center gap-4'>

@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import type { JSX } from 'react';
+import { type JSX, Suspense } from 'react';
 
 import { MediaDetail } from '@/components/media/media-detail';
+import { MediaDetailSkeleton } from '@/components/media/media-skeleton';
+import { MarkingControlSkeleton } from '@/components/watch/control-skeleton';
 import { MarkingControl } from '@/components/watch/marking-control';
-import { viewer } from '@/lib/auth';
+import { answeredViewer } from '@/lib/auth';
 import {
   isKind,
   isMediaId,
@@ -59,33 +61,58 @@ export const generateMetadata = async ({
   };
 };
 
-const MediaPage = async ({
+/**
+ * The marking control for this Media, behind a boundary of its own: it
+ * alone waits on the Viewer and the database, and the Media should not.
+ * Nothing when the lookup went Unanswered, the same as a card.
+ */
+const Control = async ({
+  media,
+}: {
+  media: MediaRef;
+}): Promise<JSX.Element | null> => {
+  const lookup = await answeredWatchLookup(await answeredViewer(), [media]);
+
+  if (lookup === null) return null;
+
+  return <MarkingControl media={media} state={stateOf(lookup, media)} />;
+};
+
+/**
+ * The Media, once TMDB has answered. Behind the page's boundary because
+ * the address is read at request time; the skeleton holds the frame.
+ */
+const Found = async ({
   params,
 }: {
   params: Promise<RouteParams>;
 }): Promise<JSX.Element> => {
-  const [found, currentViewer] = await Promise.all([
-    findMedia(params),
-    viewer(),
-  ]);
+  const found = await findMedia(params);
 
   if (!found) notFound();
 
   const { media, ref } = found;
 
-  const lookup = await answeredWatchLookup(currentViewer?.id ?? null, [ref]);
-
   return (
     <MediaDetail
       media={media}
-      // no control when the lookup went Unanswered, the same as a card
       control={
-        lookup !== null ? (
-          <MarkingControl media={ref} state={stateOf(lookup, ref)} />
-        ) : undefined
+        <Suspense fallback={<MarkingControlSkeleton />}>
+          <Control media={ref} />
+        </Suspense>
       }
     />
   );
 };
+
+const MediaPage = ({
+  params,
+}: {
+  params: Promise<RouteParams>;
+}): JSX.Element => (
+  <Suspense fallback={<MediaDetailSkeleton />}>
+    <Found params={params} />
+  </Suspense>
+);
 
 export default MediaPage;

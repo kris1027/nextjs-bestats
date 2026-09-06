@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 
-import { viewer } from '@/lib/auth';
+import { answeredViewer } from '@/lib/auth';
 import { isKind, isMediaId, type MediaRef } from '@/lib/media';
 import { nextPath, signInAddress } from '@/lib/next-path';
 import {
@@ -37,7 +37,9 @@ export type MarkResult = { state: WatchState | null } | { error: string };
  * another tab cannot carry a delete instruction in a hidden field.
  *
  * In this order on purpose: the Viewer first, so a signed-out Visitor with a
- * tampered form is sent to sign in rather than shown a stack trace; then the
+ * tampered form is sent to sign in rather than shown a stack trace — and a
+ * sign-in that went Unanswered is a sentence under the buttons, not a trip
+ * to the sign-in page for someone who may well be signed in; then the
  * input, which throws rather than returns because our own form cannot
  * produce it; then the press is counted, so a refused press costs one
  * statement and no read or write. Only the count and the write itself are
@@ -48,14 +50,20 @@ export type MarkResult = { state: WatchState | null } | { error: string };
  * — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
  */
 export const mark = async (formData: FormData): Promise<MarkResult> => {
-  const currentViewer = await viewer();
+  const asked = await answeredViewer();
 
-  if (!currentViewer) {
+  if (asked.answer === 'unanswered') {
+    return { error: 'Could not check your sign-in. Try again in a moment.' };
+  }
+
+  if (asked.answer === 'visitor') {
     // the destination only: nothing is replayed once they are back
     const destination = nextPath(String(formData.get('next') ?? ''));
 
     redirect(signInAddress(destination));
   }
+
+  const currentViewer = asked.viewer;
 
   const kind = String(formData.get('kind') ?? '');
   const id = String(formData.get('id') ?? '');

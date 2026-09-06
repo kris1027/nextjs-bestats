@@ -44,7 +44,7 @@ the hand-written migrations in there are held to the same rule as the rest.
   tests twice. `lib/test-viewers.ts` makes the Viewers every integration file
   needs.
 - An action's test stands in for the session by mocking `lib/auth` so
-  `viewer()` answers with a disposable Viewer, as
+  `answeredViewer()` answers with a disposable Viewer, as
   `lib/watch-actions.integration.test.ts` does. Never by giving the action a
   Viewer parameter: the action reads the Viewer from the session and from
   nowhere else, and a parameter would be the client-supplied id it exists to
@@ -70,10 +70,13 @@ Watch Record.
 
 The same shape holds for auth. `lib/auth` owns Neon Auth's instance and the
 `user`-shaped session it hands back; `app/` and `components/` read the current
-Viewer through its `viewer()` helper and never reach for a session themselves.
-`lib/media` never learns that Viewers exist. That boundary is why swapping a
-self-hosted Better Auth for Neon's managed one cost one module rather than the
-application.
+Viewer through its two helpers and never reach for a session themselves.
+`answeredViewer()` answers Viewer, Visitor or Unanswered, for the header and
+the public pages, which leave the Viewer's half out when the sign-in could
+not be checked; `viewer()` throws on Unanswered, for the pages that can
+neither redirect nor render without knowing. `lib/media` never learns that
+Viewers exist. That boundary is why swapping a self-hosted Better Auth for
+Neon's managed one cost one module rather than the application.
 — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
 
 `lib/watch` holds Watch Records. `lib/watch.ts` is its pure half, so it never
@@ -81,10 +84,12 @@ imports `lib/db`, whose import throws without `DATABASE_URL`. A client
 component may import it, and `lib/watch-actions.ts` for the action a
 `'use server'` file exists to hand out, and nothing else in the module. The
 queries take a Viewer id and never decide whose it is; only the action reads
-`lib/auth`. A page reads `viewer()` itself and hands the id, or `null` for a
-Visitor, to `answeredWatchLookup`, whose own `null` is Unanswered and means
-no controls. `lib/watch` reads `lib/media` for `Kind` and its guards, and
-`lib/media` reads neither `lib/watch` nor `lib/auth`.
+`lib/auth`, and the page lookup takes what `answeredViewer()` answered as a
+type alone: a page reads the Viewer itself and hands the answer to
+`answeredWatchLookup`, whose `null` is Unanswered and means no controls,
+whether the database or the sign-in was what did not answer. `lib/watch`
+reads `lib/media` for `Kind` and its guards, and `lib/media` reads neither
+`lib/watch` nor `lib/auth`.
 
 `components/watch/` is what a Visitor sees of Watch Records, and it has two
 halves with different rights. The client half — the marking control and the
@@ -134,6 +139,13 @@ routes share it.
   The exception is `NEON_AUTH_COOKIE_SECRET`, and `.env.example` says so.
   — `docs/adr/0009-every-environment-is-a-neon-branch.md`
 - Never edit or commit `.env.local`.
+- `cacheComponents` is on, so a page's request-time reads — `cookies()`,
+  `params`, `searchParams`, a database query — sit inside a Suspense boundary
+  the page draws itself, with a skeleton the height of what replaces it as
+  the fallback. `loading.tsx` only where the whole page follows a check. The
+  TMDB cache is `lib/tmdb`'s and by directive, never a fetch option, and a
+  theme preference can never be a cookie.
+  — `docs/adr/0010-the-shell-is-prerendered.md`
 
 ## Conventions Biome does not enforce
 

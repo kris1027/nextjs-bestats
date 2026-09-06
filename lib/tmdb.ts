@@ -1,3 +1,5 @@
+import { cacheLife } from 'next/cache';
+
 /**
  * TMDB's half of the app: what its endpoints return and how to reach them.
  * Everything here is spelled the way TMDB spells it — the glossary's words
@@ -76,15 +78,27 @@ const request = async (path: string): Promise<Response> => {
 
   return fetch(`${baseUrl}${path}`, {
     headers: { Authorization: `Bearer ${token}` },
-    next: { revalidate: 3600 },
   });
 };
+
+/**
+ * The two fetchers below are cached by directive rather than by a fetch
+ * option: under `cacheComponents` the option is superseded, and this is the
+ * one module that knows a request is made at all. An hour, as the option
+ * said. A thrown request never reaches the cache, so Unanswered stays a
+ * per-request answer; a 404 does, and Gone Media stops being asked for.
+ * — `docs/adr/0010-the-shell-is-prerendered.md`
+ */
+const TMDB_CACHE_LIFE = 'hours';
 
 /**
  * For the endpoints the app builds itself, where every failure — a 404
  * included — means TMDB moved or the app is misconfigured.
  */
 export const fetchTMDB = async <T>(path: string): Promise<T> => {
+  'use cache';
+  cacheLife(TMDB_CACHE_LIFE);
+
   const res = await request(path);
 
   if (!res.ok) throw new Error(`TMDB ${res.status} for ${path}`);
@@ -98,6 +112,9 @@ export const fetchTMDB = async <T>(path: string): Promise<T> => {
  * something is genuinely broken rather than that someone mistyped a URL.
  */
 export const findTMDB = async <T>(path: string): Promise<T | null> => {
+  'use cache';
+  cacheLife(TMDB_CACHE_LIFE);
+
   const res = await request(path);
 
   if (res.status === 404) return null;

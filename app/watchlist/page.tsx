@@ -11,12 +11,13 @@ export const metadata: Metadata = {
 
 // `watchlist` is a static segment, so the standing rule about top-level
 // routes holds — docs/adr/0001-one-route-serves-both-kinds.md
-const WatchlistPage = async ({
+const WatchlistPage = ({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>;
-}): Promise<JSX.Element> => (
-  <WatchRecordList state='planned' page={(await searchParams).page} />
+}): JSX.Element => (
+  // the promise, unread: the list reads `?page=` behind its own boundaries
+  <WatchRecordList state='planned' searchParams={searchParams} />
 );
 
 export default WatchlistPage;

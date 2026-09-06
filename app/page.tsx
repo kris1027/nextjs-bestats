@@ -1,51 +1,91 @@
-import type { JSX } from 'react';
+import { cache, type JSX, Suspense } from 'react';
 
 import { MediaList } from '@/components/media/media-list';
+import { MediaGridSkeleton } from '@/components/media/media-skeleton';
 import { SearchForm } from '@/components/search/search-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { viewer } from '@/lib/auth';
-import { trendingMovies, trendingShows } from '@/lib/media';
+import { answeredViewer } from '@/lib/auth';
+import {
+  KIND_WORDS,
+  KINDS,
+  type Kind,
+  type Trending,
+  trendingMedia,
+} from '@/lib/media';
+import type { WatchLookup } from '@/lib/watch';
 import { answeredWatchLookup } from '@/lib/watch-queries';
 
-const HomePage = async (): Promise<JSX.Element> => {
-  const [shows, movies, currentViewer] = await Promise.all([
-    trendingShows(),
-    trendingMovies(),
-    viewer(),
-  ]);
+/**
+ * Both Kinds and one lookup for every card on both tabs, asked for once per
+ * request however many panels ask: `cache` is what lets two sibling panels
+ * share a request without a promise threaded through the client tabs.
+ */
+const trendingAndLookup = cache(
+  async (): Promise<{ trending: Trending; lookup: WatchLookup | null }> => {
+    const [trending, asked] = await Promise.all([
+      trendingMedia(),
+      answeredViewer(),
+    ]);
 
-  // one query for both tabs' cards
-  const lookup = await answeredWatchLookup(currentViewer?.id ?? null, [
-    ...shows,
-    ...movies,
-  ]);
+    const lookup = await answeredWatchLookup(asked, [
+      ...(trending.tv ?? []),
+      ...(trending.movie ?? []),
+    ]);
 
-  return (
-    <main className='flex-1 p-4'>
-      <div className='mx-auto w-full max-w-5xl py-4'>
-        <SearchForm />
-      </div>
-      <Tabs
-        defaultValue='shows'
-        className='mx-auto w-full max-w-5xl items-center'
-      >
-        <TabsList>
-          <TabsTrigger value='shows'>Shows</TabsTrigger>
-          <TabsTrigger value='movies'>Movies</TabsTrigger>
-        </TabsList>
-        <TabsContent value='shows' className='w-full'>
-          <h1 className='text-xl font-bold py-4'>Trending shows this week:</h1>
-          <MediaList media={shows} lookup={lookup} />
-        </TabsContent>
-        <TabsContent value='movies' className='w-full'>
-          {/* one h1 per page: Base UI unmounts the inactive panel, so only the
-              selected tab's heading is ever in the DOM */}
-          <h1 className='text-xl font-bold py-4'>Trending movies this week:</h1>
-          <MediaList media={movies} lookup={lookup} />
-        </TabsContent>
-      </Tabs>
-    </main>
+    return { trending, lookup };
+  },
+);
+
+/** What a Kind's panel opens on: its list, or the sentence for its absence. */
+const TrendingList = async ({ kind }: { kind: Kind }): Promise<JSX.Element> => {
+  const { trending, lookup } = await trendingAndLookup();
+  const media = trending[kind];
+
+  return media === null ? (
+    // an Unanswered Kind, said the way the search page says it
+    <p className='opacity-60'>
+      TMDB did not answer for {KIND_WORDS[kind].other}. Try that again in a
+      moment.
+    </p>
+  ) : (
+    <MediaList media={media} lookup={lookup} />
   );
 };
+
+/**
+ * The form, the tab list and both panels' headings are the shell; each
+ * panel's list streams into it. The boundary sits inside the panel rather
+ * than around it because Base UI links a panel to its tab in an effect: a
+ * panel that streams in after hydration renders that link where the server
+ * rendered none, and React reports the difference.
+ */
+const HomePage = (): JSX.Element => (
+  <main className='flex-1 p-4'>
+    <div className='mx-auto w-full max-w-5xl py-4'>
+      <SearchForm />
+    </div>
+    <Tabs defaultValue='tv' className='mx-auto w-full max-w-5xl items-center'>
+      <TabsList>
+        {KINDS.map((kind) => (
+          <TabsTrigger key={kind} value={kind}>
+            {KIND_WORDS[kind].label}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+      {KINDS.map((kind) => (
+        <TabsContent key={kind} value={kind} className='w-full'>
+          {/* one h1 per page: Base UI unmounts the inactive panel, so only
+              the selected tab's heading is ever in the DOM */}
+          <h1 className='text-xl font-bold py-4'>
+            Trending {KIND_WORDS[kind].other} this week:
+          </h1>
+          <Suspense fallback={<MediaGridSkeleton />}>
+            <TrendingList kind={kind} />
+          </Suspense>
+        </TabsContent>
+      ))}
+    </Tabs>
+  </main>
+);
 
 export default HomePage;

@@ -11,18 +11,21 @@ import { tallyMarking } from '@/lib/watch-queries';
 
 /**
  * `mark` reads the Viewer from the session and from nowhere else, so the
- * session is what these tests stand in for: `viewer()` answers with whichever
- * disposable Viewer the test names. Restructuring the action to take the
- * Viewer as a parameter would have handed it the client-supplied id it was
- * written to refuse.
+ * session is what these tests stand in for: `answeredViewer()` answers with
+ * whichever disposable Viewer the test names, or a Visitor. Restructuring
+ * the action to take the Viewer as a parameter would have handed it the
+ * client-supplied id it was written to refuse.
  */
 const currentViewer = vi.hoisted(() => ({ id: null as string | null }));
 
 vi.mock('@/lib/auth', () => ({
-  viewer: async () =>
+  answeredViewer: async () =>
     currentViewer.id
-      ? { id: currentViewer.id, name: 'Action Viewer', image: null }
-      : null,
+      ? {
+          answer: 'viewer',
+          viewer: { id: currentViewer.id, name: 'Action Viewer', image: null },
+        }
+      : { answer: 'visitor' },
 }));
 
 const viewer = disposableViewers();

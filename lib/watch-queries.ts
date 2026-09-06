@@ -1,5 +1,6 @@
 import { and, count, desc, eq, or, sql } from 'drizzle-orm';
 
+import type { ViewerAnswer } from '@/lib/auth';
 import { db } from '@/lib/db';
 import type { MediaRef } from '@/lib/media';
 import { markingTallies, watchRecords } from '@/lib/schema';
@@ -51,26 +52,29 @@ export const watchLookup = async (
 };
 
 /**
- * `watchLookup` for a page. A database that does not answer is Unanswered
- * rather than an exception: the page hands its cards `null`, they render no
- * control, and the TMDB half of the page renders as if nothing had happened —
- * the two sources fail apart. The cause is logged here because nothing
- * downstream carries it. The action keeps `watchLookup` itself, because it
- * has a message of its own to return.
+ * `watchLookup` for a page, which hands it what `answeredViewer()` answered.
+ * A database that does not answer is Unanswered rather than an exception:
+ * the page hands its cards `null`, they render no control, and the TMDB half
+ * of the page renders as if nothing had happened — the two sources fail
+ * apart. The cause is logged here because nothing downstream carries it. The
+ * action keeps `watchLookup` itself, because it has a message of its own to
+ * return.
  *
- * `viewerId` is `null` for a Visitor who has not signed in, and then nothing
- * is asked: no Viewer means no Watch Record, which is an empty lookup — a
- * real absence — and not an Unanswered one. Said here once rather than as a
- * ternary on every page.
+ * A Visitor asks nothing: no Viewer means no Watch Record, which is an empty
+ * lookup — a real absence — and not an Unanswered one. A sign-in that could
+ * not be checked asks nothing either, and that is Unanswered: a card that
+ * cannot know whose it is has nothing to press. Said here once rather than
+ * as a ternary on every page.
  */
 export const answeredWatchLookup = async (
-  viewerId: string | null,
+  asked: ViewerAnswer,
   refs: readonly MediaRef[],
 ): Promise<WatchLookup | null> => {
-  if (viewerId === null) return toLookup([]);
+  if (asked.answer === 'visitor') return toLookup([]);
+  if (asked.answer === 'unanswered') return null;
 
   try {
-    return await watchLookup(viewerId, refs);
+    return await watchLookup(asked.viewer.id, refs);
   } catch (cause) {
     console.error('Watch Records went Unanswered:', cause);
 
