@@ -5,7 +5,6 @@ import type { JSX } from 'react';
 import { MediaCard } from '@/components/media/media-card';
 import { MediaGrid } from '@/components/media/media-grid';
 import { LinkTabs } from '@/components/navigation/link-tabs';
-import { BackButton } from '@/components/ui/back-button';
 import { AbsentCard } from '@/components/watch/absent-card';
 import { viewer } from '@/lib/auth';
 import { formatNumber } from '@/lib/format';
@@ -83,9 +82,8 @@ const WatchRecordList = async ({
   return (
     <main className='flex-1 p-4'>
       <div className='mx-auto flex w-full max-w-5xl flex-col gap-6 py-4'>
-        <BackButton href='/' className='self-start'>
-          Back to trending
-        </BackButton>
+        {/* no Back here: the header and the tabs are the ways off a list,
+            and the empty state's "Browse trending" would only repeat one */}
         <h1 className='font-black text-3xl leading-[1.05]'>
           {LISTS[state].label}
         </h1>
