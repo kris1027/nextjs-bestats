@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import type { JSX } from 'react';
 
+import { signInAddress } from '@/lib/next-path';
 import { useAddress } from '@/lib/use-address';
 
 /**
@@ -14,10 +15,7 @@ const SignInLink = ({ className }: { className?: string }): JSX.Element => {
   const next = useAddress();
 
   return (
-    <Link
-      href={`/sign-in?next=${encodeURIComponent(next)}`}
-      className={className}
-    >
+    <Link href={signInAddress(next)} className={className}>
       Sign in
     </Link>
   );

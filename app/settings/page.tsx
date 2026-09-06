@@ -6,6 +6,7 @@ import type { JSX } from 'react';
 import { type DeletionRefusal, isDeletionRefusal, viewer } from '@/lib/auth';
 import { deleteViewer } from '@/lib/auth-actions';
 import { formatCount } from '@/lib/format';
+import { signInAddress } from '@/lib/next-path';
 import { firstValue, type SearchParams } from '@/lib/search-params';
 import { cn, control } from '@/lib/utils';
 import { watchTallies } from '@/lib/watch-queries';
@@ -31,7 +32,7 @@ const SettingsPage = async ({
 }): Promise<JSX.Element> => {
   const currentViewer = await viewer();
 
-  if (!currentViewer) redirect('/sign-in?next=%2Fsettings');
+  if (!currentViewer) redirect(signInAddress('/settings'));
 
   const [tallies, params] = await Promise.all([
     watchTallies(currentViewer.id),

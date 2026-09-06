@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation';
 
 import { auth, type DeletionRefusal, isProvider, viewer } from '@/lib/auth';
-import { nextPath } from '@/lib/next-path';
+import { nextPath, signInAddress } from '@/lib/next-path';
 
 /**
  * Hands the Visitor to a provider and brings them back to `?next=`.
@@ -56,7 +56,7 @@ const refused = (refusal: DeletionRefusal): string =>
  * because a form can be posted by anything.
  */
 export const deleteViewer = async (formData: FormData): Promise<void> => {
-  if (!(await viewer())) redirect('/sign-in?next=%2Fsettings');
+  if (!(await viewer())) redirect(signInAddress('/settings'));
 
   if (formData.get('confirmed') !== 'yes') redirect('/settings');
 

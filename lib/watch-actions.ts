@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 
 import { viewer } from '@/lib/auth';
 import { isKind, isMediaId, type MediaRef } from '@/lib/media';
-import { nextPath } from '@/lib/next-path';
+import { nextPath, signInAddress } from '@/lib/next-path';
 import {
   isWatchState,
   MARKS_PER_MINUTE,
@@ -54,7 +54,7 @@ export const mark = async (formData: FormData): Promise<MarkResult> => {
     // the destination only: nothing is replayed once they are back
     const destination = nextPath(String(formData.get('next') ?? ''));
 
-    redirect(`/sign-in?next=${encodeURIComponent(destination)}`);
+    redirect(signInAddress(destination));
   }
 
   const kind = String(formData.get('kind') ?? '');

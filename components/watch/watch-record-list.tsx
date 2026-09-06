@@ -9,6 +9,7 @@ import { AbsentCard } from '@/components/watch/absent-card';
 import { viewer } from '@/lib/auth';
 import { formatNumber } from '@/lib/format';
 import { mediaItems } from '@/lib/media';
+import { signInAddress } from '@/lib/next-path';
 import { pageNumber } from '@/lib/search-params';
 import { cn, control } from '@/lib/utils';
 import {
@@ -60,7 +61,7 @@ const WatchRecordList = async ({
 
   const currentViewer = await viewer();
 
-  if (!currentViewer) redirect(`/sign-in?next=${encodeURIComponent(here)}`);
+  if (!currentViewer) redirect(signInAddress(here));
 
   const [{ records, total }, tallies] = await Promise.all([
     watchRecordsPage(currentViewer.id, state, page),
