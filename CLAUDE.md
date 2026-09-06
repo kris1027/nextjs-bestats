@@ -1,7 +1,8 @@
 # BeStats
 
-A Next.js App Router app that browses what is trending on TMDB. Read the
-glossary below before naming anything — it binds code as much as prose.
+A Next.js App Router app that browses what is trending on TMDB and records
+what a Viewer has watched. Read the glossary below before naming anything —
+it binds code as much as prose.
 
 @CONTEXT.md
 
