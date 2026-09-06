@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import type { JSX } from 'react';
+import { type JSX, Suspense } from 'react';
 
 import { MediaDetail } from '@/components/media/media-detail';
+import { MediaDetailSkeleton } from '@/components/media/media-skeleton';
+import { MarkingControlSkeleton } from '@/components/watch/control-skeleton';
 import { MarkingControl } from '@/components/watch/marking-control';
 import { answeredViewer } from '@/lib/auth';
 import {
@@ -59,19 +61,17 @@ export const generateMetadata = async ({
   };
 };
 
-const MediaPage = async ({
-  params,
+/**
+ * The marking control for this Media, behind a boundary of its own: it
+ * alone waits on the Viewer and the database, and the Media should not.
+ * Nothing when the lookup went Unanswered, the same as a card.
+ */
+const Control = async ({
+  media,
 }: {
-  params: Promise<RouteParams>;
-}): Promise<JSX.Element> => {
-  const [found, asked] = await Promise.all([
-    findMedia(params),
-    answeredViewer(),
-  ]);
-
-  if (!found) notFound();
-
-  const { media, ref } = found;
+  media: MediaRef;
+}): Promise<JSX.Element | null> => {
+  const asked = await answeredViewer();
 
   // no lookup when the sign-in went Unanswered, as on the home page
   const lookup =
@@ -79,20 +79,49 @@ const MediaPage = async ({
       ? null
       : await answeredWatchLookup(
           asked.answer === 'viewer' ? asked.viewer.id : null,
-          [ref],
+          [media],
         );
+
+  if (lookup === null) return null;
+
+  return <MarkingControl media={media} state={stateOf(lookup, media)} />;
+};
+
+/**
+ * The Media, once TMDB has answered. Behind the page's boundary because
+ * the address is read at request time; the skeleton holds the frame.
+ */
+const Found = async ({
+  params,
+}: {
+  params: Promise<RouteParams>;
+}): Promise<JSX.Element> => {
+  const found = await findMedia(params);
+
+  if (!found) notFound();
+
+  const { media, ref } = found;
 
   return (
     <MediaDetail
       media={media}
-      // no control when the lookup went Unanswered, the same as a card
       control={
-        lookup !== null ? (
-          <MarkingControl media={ref} state={stateOf(lookup, ref)} />
-        ) : undefined
+        <Suspense fallback={<MarkingControlSkeleton />}>
+          <Control media={ref} />
+        </Suspense>
       }
     />
   );
 };
+
+const MediaPage = ({
+  params,
+}: {
+  params: Promise<RouteParams>;
+}): JSX.Element => (
+  <Suspense fallback={<MediaDetailSkeleton />}>
+    <Found params={params} />
+  </Suspense>
+);
 
 export default MediaPage;

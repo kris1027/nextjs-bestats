@@ -1,16 +1,17 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import type { JSX } from 'react';
+import { type JSX, Suspense } from 'react';
 
 import { MediaCard } from '@/components/media/media-card';
 import { MediaGrid } from '@/components/media/media-grid';
+import { MediaGridSkeleton } from '@/components/media/media-skeleton';
 import { LinkTabs } from '@/components/navigation/link-tabs';
 import { AbsentCard } from '@/components/watch/absent-card';
 import { viewer } from '@/lib/auth';
 import { formatNumber } from '@/lib/format';
 import { mediaItems } from '@/lib/media';
 import { signInAddress } from '@/lib/next-path';
-import { pageNumber } from '@/lib/search-params';
+import { pageNumber, type SearchParams } from '@/lib/search-params';
 import { cn, control } from '@/lib/utils';
 import {
   LISTS,
@@ -35,44 +36,94 @@ const EMPTY: Record<WatchState, string> = {
 };
 
 /**
- * One page of one of a Viewer's two lists — the Watchlist, or the Watched
- * list — shared by both routes, which differ only in the state they show.
- *
  * A Visitor is sent to sign in and back to this very address, `?page=`
- * included. The records and both tallies are one round trip each, issued
- * together; the Media behind the records is a TMDB request apiece, settled
- * apart, which is the cost `PAGE_SIZE` bounds. A record whose Media came
- * back Gone or Unanswered still renders, as an `AbsentCard`.
- *
- * Nothing moves after a mark here. A card pressed out of this list shows its
- * new state where it is, and the list catches up on the next navigation;
- * that keeps the undo one press away.
- * — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
+ * included. Both halves of the list check, since either may be the first to
+ * find out; the session is read once for both.
  */
-const WatchRecordList = async ({
-  state,
-  page: pageParam,
-}: {
-  state: WatchState;
-  page: string | string[] | undefined;
-}): Promise<JSX.Element> => {
-  const page = pageNumber(pageParam);
-  const here = pageAddress(state, page);
-
+const viewerOrSignIn = async (
+  state: WatchState,
+  page: number,
+): Promise<{ id: string }> => {
   const currentViewer = await viewer();
 
-  if (!currentViewer) redirect(signInAddress(here));
+  if (!currentViewer) redirect(signInAddress(pageAddress(state, page)));
 
-  const [{ records, total }, tallies] = await Promise.all([
-    watchRecordsPage(currentViewer.id, state, page),
-    watchTallies(currentViewer.id),
-  ]);
+  return currentViewer;
+};
+
+/** The two tabs, wearing both tallies once the database has answered. */
+const ListTabs = async ({
+  state,
+  searchParams,
+}: {
+  state: WatchState;
+  searchParams: Promise<SearchParams>;
+}): Promise<JSX.Element> => {
+  const page = pageNumber((await searchParams).page);
+  const currentViewer = await viewerOrSignIn(state, page);
+  const tallies = await watchTallies(currentViewer.id);
+
+  return <Tabs state={state} tallies={tallies} />;
+};
+
+/** The tabs themselves, with or without their tallies. */
+const Tabs = ({
+  state,
+  tallies,
+}: {
+  state: WatchState;
+  tallies?: Record<WatchState, number>;
+}): JSX.Element => (
+  <LinkTabs
+    label='Watchlist or watched'
+    tabs={WATCH_STATES.map((tab) => ({
+      href: LISTS[tab].path,
+      label: LISTS[tab].label,
+      selected: tab === state,
+      tally: tallies?.[tab],
+    }))}
+  />
+);
+
+/**
+ * One page of the list: the records are one round trip, and the Media
+ * behind them a TMDB request apiece, settled apart, which is the cost
+ * `PAGE_SIZE` bounds and the wait this boundary holds the grid's shape for.
+ * A record whose Media came back Gone or Unanswered still renders, as an
+ * `AbsentCard`.
+ */
+const ListPage = async ({
+  state,
+  searchParams,
+}: {
+  state: WatchState;
+  searchParams: Promise<SearchParams>;
+}): Promise<JSX.Element> => {
+  const page = pageNumber((await searchParams).page);
+  const currentViewer = await viewerOrSignIn(state, page);
+
+  const { records, total } = await watchRecordsPage(
+    currentViewer.id,
+    state,
+    page,
+  );
 
   // a page past the end is no address at all; page 1 of nothing is the empty
   // state below, since a list with nothing on it still exists
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   if (page > pages) notFound();
+
+  if (total === 0) {
+    return (
+      <>
+        <p className='opacity-60'>{EMPTY[state]}</p>
+        <Link href='/' className={cn(control, 'self-start')}>
+          Browse trending
+        </Link>
+      </>
+    );
+  }
 
   const refs = records.map(refOf);
   // in the refs' order, so an answer and its record share an index
@@ -81,81 +132,91 @@ const WatchRecordList = async ({
   const lookup = toLookup(records);
 
   return (
-    <main className='flex-1 p-4'>
-      <div className='mx-auto flex w-full max-w-5xl flex-col gap-6 py-4'>
-        {/* no Back here: the header and the tabs are the ways off a list,
-            and the empty state's "Browse trending" would only repeat one */}
-        <h1 className='font-black text-3xl leading-[1.05]'>
-          {LISTS[state].label}
-        </h1>
-        <LinkTabs
-          label='Watchlist or watched'
-          tabs={WATCH_STATES.map((tab) => ({
-            href: LISTS[tab].path,
-            label: LISTS[tab].label,
-            selected: tab === state,
-            tally: tallies[tab],
-          }))}
-        />
-        {total === 0 ? (
-          <>
-            <p className='opacity-60'>{EMPTY[state]}</p>
-            <Link href='/' className={cn(control, 'self-start')}>
-              Browse trending
+    <>
+      <MediaGrid>
+        {refs.map((ref, index) => {
+          const answer = answers[index];
+          const key = `${ref.kind}/${ref.id}`;
+
+          // the answers are one per ref, so this branch cannot run;
+          // it is here for the type rather than the reader
+          if (!answer) return null;
+
+          return answer.answer === 'item' ? (
+            <MediaCard key={key} item={answer.item} lookup={lookup} />
+          ) : (
+            <AbsentCard
+              key={key}
+              media={ref}
+              answer={answer.answer}
+              state={stateOf(lookup, ref)}
+            />
+          );
+        })}
+      </MediaGrid>
+      {pages > 1 ? (
+        <nav
+          aria-label='Pages'
+          className='flex items-center justify-between gap-4'
+        >
+          {page > 1 ? (
+            <Link href={pageAddress(state, page - 1)} className={control}>
+              Previous
             </Link>
-          </>
-        ) : (
-          <>
-            <MediaGrid>
-              {refs.map((ref, index) => {
-                const answer = answers[index];
-                const key = `${ref.kind}/${ref.id}`;
-
-                // the answers are one per ref, so this branch cannot run;
-                // it is here for the type rather than the reader
-                if (!answer) return null;
-
-                return answer.answer === 'item' ? (
-                  <MediaCard key={key} item={answer.item} lookup={lookup} />
-                ) : (
-                  <AbsentCard
-                    key={key}
-                    media={ref}
-                    answer={answer.answer}
-                    state={stateOf(lookup, ref)}
-                  />
-                );
-              })}
-            </MediaGrid>
-            {pages > 1 ? (
-              <nav
-                aria-label='Pages'
-                className='flex items-center justify-between gap-4'
-              >
-                {page > 1 ? (
-                  <Link href={pageAddress(state, page - 1)} className={control}>
-                    Previous
-                  </Link>
-                ) : (
-                  <span />
-                )}
-                <p className='text-sm opacity-60'>
-                  Page {formatNumber(page)} of {formatNumber(pages)}
-                </p>
-                {page < pages ? (
-                  <Link href={pageAddress(state, page + 1)} className={control}>
-                    Next
-                  </Link>
-                ) : (
-                  <span />
-                )}
-              </nav>
-            ) : null}
-          </>
-        )}
-      </div>
-    </main>
+          ) : (
+            <span />
+          )}
+          <p className='text-sm opacity-60'>
+            Page {formatNumber(page)} of {formatNumber(pages)}
+          </p>
+          {page < pages ? (
+            <Link href={pageAddress(state, page + 1)} className={control}>
+              Next
+            </Link>
+          ) : (
+            <span />
+          )}
+        </nav>
+      ) : null}
+    </>
   );
 };
+
+/**
+ * One page of one of a Viewer's two lists — the Watchlist, or the Watched
+ * list — shared by both routes, which differ only in the state they show.
+ *
+ * The heading and the tabs are the shell. The tallies stream into the tabs
+ * and the cards into the grid, each behind a boundary of its own, because
+ * the database answers in one round trip and TMDB in twenty.
+ *
+ * Nothing moves after a mark here. A card pressed out of this list shows its
+ * new state where it is, and the list catches up on the next navigation;
+ * that keeps the undo one press away.
+ * — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
+ */
+const WatchRecordList = ({
+  state,
+  searchParams,
+}: {
+  state: WatchState;
+  searchParams: Promise<SearchParams>;
+}): JSX.Element => (
+  <main className='flex-1 p-4'>
+    <div className='mx-auto flex w-full max-w-5xl flex-col gap-6 py-4'>
+      {/* no Back here: the header and the tabs are the ways off a list,
+          and the empty state's "Browse trending" would only repeat one */}
+      <h1 className='font-black text-3xl leading-[1.05]'>
+        {LISTS[state].label}
+      </h1>
+      <Suspense fallback={<Tabs state={state} />}>
+        <ListTabs state={state} searchParams={searchParams} />
+      </Suspense>
+      <Suspense fallback={<MediaGridSkeleton />}>
+        <ListPage state={state} searchParams={searchParams} />
+      </Suspense>
+    </div>
+  </main>
+);
 
 export { WatchRecordList };

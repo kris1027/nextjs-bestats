@@ -6,13 +6,15 @@ import { cn } from '@/lib/utils';
 
 /**
  * One tab: where it goes, the word it wears, whether it is the open one, and
- * the count beside the word — or `null` when that count is Unanswered.
+ * the count beside the word — `null` when that count is Unanswered, and left
+ * out while it is still being asked for, since the tabs are the fallback the
+ * counts stream into and a dash there would report waiting as a failure.
  */
 type LinkTab = {
   href: string;
   label: string;
   selected: boolean;
-  tally: number | null;
+  tally?: number | null;
 };
 
 /**
@@ -88,7 +90,7 @@ const LinkTabs = ({
         )}
       >
         {tab.label}
-        <Tally tally={tab.tally} />
+        {tab.tally !== undefined ? <Tally tally={tab.tally} /> : null}
       </Link>
     ))}
   </nav>

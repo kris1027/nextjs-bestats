@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers';
 import { cache } from 'react';
 
 import { createNeonAuth } from '@neondatabase/auth/next/server';
@@ -81,6 +82,13 @@ const logUnanswered = (reason: unknown): void => {
  * an answer about this request's cookie, and that answer is "a Visitor".
  */
 const askViewer = cache(async (): Promise<ViewerAnswer> => {
+  // Outside the try, and before Neon's wrapper reads the same cookies: while
+  // a route is being prerendered this promise hangs and then rejects, which
+  // is how the renderer learns to take the Suspense fallback here. Neon's
+  // wrapper catches that rejection itself and goes upstream instead, and a
+  // catch of ours would log a build as an outage.
+  await cookies();
+
   try {
     const { data: session, error } = await auth.getSession();
 

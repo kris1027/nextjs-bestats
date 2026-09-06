@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
-import type { JSX, ReactNode } from 'react';
+import { type JSX, Suspense } from 'react';
 
 import { MediaList } from '@/components/media/media-list';
+import { MediaGridSkeleton } from '@/components/media/media-skeleton';
 import { KindTabs } from '@/components/search/kind-tabs';
 import { SearchForm } from '@/components/search/search-form';
 import { BackButton } from '@/components/ui/back-button';
@@ -31,31 +32,6 @@ const defaultKind = (shows: Matches | null, movies: Matches | null): Kind => {
   return shows === null ? 'tv' : 'movie';
 };
 
-/**
- * The frame every state of this page shares: the back affordance and the
- * search form, wrapped around whatever that state has to say. An empty Query,
- * a Query nothing matched, a Query neither Kind answered and a Query with
- * Matches differ only in `children`, so the frame is written once here rather
- * than four times below.
- */
-const Shell = ({
-  query,
-  children,
-}: {
-  query: string;
-  children: ReactNode;
-}): JSX.Element => (
-  <main className='flex-1 p-4'>
-    <div className='mx-auto flex w-full max-w-5xl flex-col gap-6 py-4'>
-      <BackButton href='/' className='self-start'>
-        Back to trending
-      </BackButton>
-      <SearchForm query={query} />
-      {children}
-    </div>
-  </main>
-);
-
 export const generateMetadata = async ({
   searchParams,
 }: {
@@ -66,50 +42,31 @@ export const generateMetadata = async ({
   return { title: query ? `Search: ${query}` : 'Search' };
 };
 
-const SearchPage = async ({
-  searchParams,
+/**
+ * What a Query found, once TMDB has answered. Behind its own boundary, so
+ * the form and the heading stand while the two requests run; `kind` arrives
+ * as the address spelt it, since which tab opens depends on what answered.
+ */
+const MatchesFor = async ({
+  query,
+  kind,
 }: {
-  searchParams: Promise<SearchParams>;
+  query: string;
+  kind: string;
 }): Promise<JSX.Element> => {
-  const params = await searchParams;
-  const query = firstValue(params.q).trim();
-
-  // Nothing was asked, so there is nothing to ask TMDB. An empty query would
-  // return an empty page and be reported as "nothing matches" a query nobody
-  // typed.
-  if (!query) {
-    return (
-      <Shell query={query}>
-        <h1 className='font-black text-3xl leading-[1.05]'>Search</h1>
-        <p className='opacity-60'>
-          Find a show or a movie by name. Everything here comes from TMDB.
-        </p>
-      </Shell>
-    );
-  }
-
   const [search, asked] = await Promise.all([
     searchMedia(query),
     answeredViewer(),
   ]);
   const { tv: shows, movie: movies } = search;
 
-  const heading = (
-    <h1 className='font-black text-3xl leading-[1.05]'>
-      Matches for “{query}”
-    </h1>
-  );
-
   // Neither Kind answered, so the page cannot report what matched — and must
   // not report that nothing did. Still a 200, for the same reason as below.
   if (!shows && !movies) {
     return (
-      <Shell query={query}>
-        {heading}
-        <p className='opacity-60'>
-          TMDB did not answer. Try that search again in a moment.
-        </p>
-      </Shell>
+      <p className='opacity-60'>
+        TMDB did not answer. Try that search again in a moment.
+      </p>
     );
   }
 
@@ -124,19 +81,14 @@ const SearchPage = async ({
   // visitor needs next.
   if (matchedNothing(shows) && matchedNothing(movies)) {
     return (
-      <Shell query={query}>
-        {heading}
-        <p className='opacity-60'>
-          Nothing on TMDB matches that. Try fewer words, or a different
-          spelling.
-        </p>
-      </Shell>
+      <p className='opacity-60'>
+        Nothing on TMDB matches that. Try fewer words, or a different spelling.
+      </p>
     );
   }
 
   // The address names the tab. Absent, it opens on whichever Kind has
   // something to show — Shows when both do.
-  const kind = firstValue(params.kind);
   const selected: Kind = isKind(kind) ? kind : defaultKind(shows, movies);
   const matches = search[selected];
   const words = KIND_WORDS[selected];
@@ -152,8 +104,7 @@ const SearchPage = async ({
         );
 
   return (
-    <Shell query={query}>
-      {heading}
+    <>
       <KindTabs query={query} selected={selected} search={search} />
       {matches === null ? (
         <p className='opacity-60'>
@@ -172,8 +123,85 @@ const SearchPage = async ({
           No {words.other} match “{query}”.
         </p>
       )}
-    </Shell>
+    </>
   );
 };
+
+/**
+ * The page once the address has been read: the form with the Query in it,
+ * and under it either the intro or the heading and the Matches. Reading the
+ * address is a request-time read, so this sits behind the page's outer
+ * boundary; the Matches sit behind an inner one of their own, because the
+ * address answers at once and TMDB does not.
+ */
+const Asked = async ({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}): Promise<JSX.Element> => {
+  const params = await searchParams;
+  const query = firstValue(params.q).trim();
+
+  // Nothing was asked, so there is nothing to ask TMDB. An empty query would
+  // return an empty page and be reported as "nothing matches" a query nobody
+  // typed.
+  if (!query) {
+    return (
+      <>
+        <SearchForm query={query} />
+        <h1 className='font-black text-3xl leading-[1.05]'>Search</h1>
+        <p className='opacity-60'>
+          Find a show or a movie by name. Everything here comes from TMDB.
+        </p>
+      </>
+    );
+  }
+
+  const kind = firstValue(params.kind);
+
+  return (
+    <>
+      <SearchForm query={query} />
+      <h1 className='font-black text-3xl leading-[1.05]'>
+        Matches for “{query}”
+      </h1>
+      <Suspense
+        fallback={
+          <>
+            {/* real links with no counts yet; which tab is open is the
+                address's say until what answered can decide */}
+            <KindTabs query={query} selected={isKind(kind) ? kind : 'tv'} />
+            <MediaGridSkeleton />
+          </>
+        }
+      >
+        <MatchesFor query={query} kind={kind} />
+      </Suspense>
+    </>
+  );
+};
+
+/**
+ * The frame every state of this page shares — the back affordance, and the
+ * column the rest streams into — written once here. The form without its
+ * Query is the fallback: it is the same markup, and nothing the address
+ * says changes what it does.
+ */
+const SearchPage = ({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}): JSX.Element => (
+  <main className='flex-1 p-4'>
+    <div className='mx-auto flex w-full max-w-5xl flex-col gap-6 py-4'>
+      <BackButton href='/' className='self-start'>
+        Back to trending
+      </BackButton>
+      <Suspense fallback={<SearchForm />}>
+        <Asked searchParams={searchParams} />
+      </Suspense>
+    </div>
+  </main>
+);
 
 export default SearchPage;
