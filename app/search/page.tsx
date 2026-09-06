@@ -171,6 +171,9 @@ const Asked = async ({
             {/* real links with no counts yet; which tab is open is the
                 address's say until what answered can decide */}
             <KindTabs query={query} selected={isKind(kind) ? kind : 'tv'} />
+            {/* where "Showing the top 20 of…" will be, so the grid does not
+                move down when it arrives */}
+            <p className='text-sm opacity-60'>Searching TMDB</p>
             <MediaGridSkeleton />
           </>
         }

@@ -69,7 +69,10 @@ const MediaDetailSkeleton = (): JSX.Element => (
         <div className='aspect-2/3 animate-pulse bg-muted' />
       </div>
       <div className='flex flex-col gap-4 sm:pt-[calc(var(--backdrop-h)/3+1rem)]'>
-        <div className='h-9 w-2/3 animate-pulse bg-muted lg:h-10' />
+        {/* the heading's own type size, so the block is one line of it */}
+        <div className='w-2/3 animate-pulse bg-muted text-3xl leading-[1.05] lg:text-[40px]'>
+          &nbsp;
+        </div>
         <div className='h-7 w-1/2 animate-pulse bg-muted' />
         <div className='max-w-xs'>
           <MarkingControlSkeleton />
