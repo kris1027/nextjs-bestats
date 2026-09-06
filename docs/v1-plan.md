@@ -9,11 +9,10 @@ have watched" — and `docs/adr/0003` split the domain layer off from the TMDB
 client precisely so those records would have "a home that is not named after a
 third-party API". v1 is that home.
 
-This file is a plan, not a record of decisions. Steps 0 to 6 have landed, so
-for everything they covered `CONTEXT.md`, `docs/adr/` and the code are now the
-authority and the sections below defer to them rather than restating them.
-Step 7, the polish, is next and last, and its paragraph below is the
-decided shape of it.
+This file is a plan, not a record of decisions. All eight steps have landed,
+so for everything they covered `CONTEXT.md`, `docs/adr/` and the code are now
+the authority and the sections below defer to them rather than restating
+them.
 
 ## Language
 
@@ -343,8 +342,8 @@ is refused.
 One thing the plan did not foresee: the table's foreign key to the Viewer is
 the second migration written by hand, for the reason `0001` was the first.
 
-**7. Polish.** One branch, three things, in the order their dependencies
-run.
+**7. Polish.** _Done._ One branch, three things, in the order their
+dependencies run.
 
 The two sources fail apart, all the way. The plan's architecture section
 promised that the database being unreachable does not stop Trending
@@ -394,6 +393,18 @@ has no boundary to sit inside.
 The theme toggle was to land here and moves to v2 instead. `app/layout.tsx`
 has parked the light palette for it since `03173a8`, and the comment stays;
 the ADR above is what a v2 toggle reads first.
+
+Three things the plan did not foresee. Neon's wrapper reports an
+unreachable server as an `error` beside a null `data` rather than by
+throwing, so the outage the plan expected to take every page down was
+rendering every Viewer as a Visitor instead, which is worse; the helper
+reads the error, and a 5xx there is Unanswered. Base UI links a tab panel
+to its tab in an effect, so a panel that streams in after hydration renders
+a link the server did not; the home page's boundary sits inside each panel,
+and the two panels share one request through React's `cache`. And a
+`notFound()` inside a boundary answers 200 with the not-found page, since
+the shell's status is already sent — a bad id and a page past the end kept
+their page and lost their status, which `0010` records.
 
 No new tests. Trending's per-Kind settle is a fetcher, untested like the
 rest of `lib/media`'s; the auth helper's catch wraps a call every test of

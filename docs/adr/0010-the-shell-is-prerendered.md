@@ -45,6 +45,13 @@ boundaries doing nothing anyone asked for, and turning it back on means
 learning again what the build refuses. That is the reason this is written
 down.
 
+A 404 inside a boundary answers 200. A bad id on a detail page and a page
+past the end of a list render the not-found page as they did, but the
+shell's status has been sent by the time the boundary decides, so the
+response says 200; only an address no route serves is still a 404. The
+alternative, deciding before the shell, is the request-time read outside a
+boundary that the flag refuses.
+
 A Visitor sees the shell before the stream: a Viewer's list shows its
 heading and tabs for the moment before a Visitor is redirected to sign in,
 the way the header shows nothing in the Viewer control's place. That moment
