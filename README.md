@@ -7,10 +7,9 @@ Built with the Next.js App Router. Every page is server-rendered, every fact
 comes from TMDB, and there is no client-side data fetching anywhere in the
 app.
 
-> **Status:** a Viewer can sign in and mark any Show or Movie as Planned or
-> Watched, from a card or from its page. There is nowhere to see those
-> records yet — the `/watchlist` and `/watched` pages are what comes next.
-> See [Roadmap](#roadmap).
+> **Status:** a Viewer can sign in, mark any Show or Movie as Planned or
+> Watched, and see those records on `/watchlist` and `/watched`. Account
+> deletion and the polish pass are what comes next. See [Roadmap](#roadmap).
 
 ## What it does
 
@@ -25,6 +24,12 @@ the address so a search can be linked to.
 **Detail** (`/tv/1399`, `/movie/693134`) shows one piece of Media — its
 artwork, overview, rating, and its facts. Shows and Movies share a single
 route and a single page component.
+
+**Watchlist** (`/watchlist`) and **Watched** (`/watched`) are a Viewer's own
+lists, newest marking first, twenty to a page. A Watch Record stores nothing
+from TMDB, so every card on them is a fresh TMDB request — and a record whose
+Media TMDB no longer has still renders, as the one thing the app knows about
+it, with its control so it can be unmarked.
 
 Throughout, an absent fact is left out rather than rendered blank. TMDB
 supplies placeholders — `vote_average: 0` for something nobody has voted on,
@@ -290,15 +295,17 @@ v1 turns BeStats from a TMDB browser into something that is yours: a **Viewer**
 signs in and keeps **Watch Records** — Media they mean to watch, and Media they
 have watched.
 
-Sign-in works, and the schema that holds Watch Records is in place: Neon's
-Managed Better Auth over Google and GitHub, Neon Postgres with Drizzle, and a
-`watch_records` table whose primary key is the Viewer, the Kind and the TMDB
-id together, so the one-state-only invariant is the database's to keep.
-
-Still to come: the rules and Server Actions that write a Watch Record, the
-marking control on every card, and the `/watchlist` and `/watched` pages. A
-Watch Record stores no copy of TMDB's data, so every fact on the page keeps
+Most of it is here. Sign-in is Neon's Managed Better Auth over Google and
+GitHub; Watch Records live in Neon Postgres through Drizzle, in a table whose
+primary key is the Viewer, the Kind and the TMDB id together, so the
+one-state-only invariant is the database's to keep; every card carries the
+marking control; and `/watchlist` and `/watched` show the records. A Watch
+Record stores no copy of TMDB's data, so every fact on those pages keeps
 coming from TMDB.
+
+Still to come: `/settings` with account deletion, a rate limit on marking,
+and the polish pass — `loading.tsx` and `error.tsx` per route, and the
+static rendering that Suspense around the TMDB fetches unlocks.
 
 The full plan, its trade-offs and its build order are in
 [`docs/v1-plan.md`](docs/v1-plan.md).

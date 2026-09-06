@@ -9,9 +9,10 @@ import {
   isKind,
   isMediaId,
   type MediaDetails,
+  type MediaRef,
   mediaDetails,
 } from '@/lib/media';
-import { type MediaRef, stateOf } from '@/lib/watch';
+import { stateOf } from '@/lib/watch';
 import { answeredWatchLookup } from '@/lib/watch-queries';
 
 type RouteParams = { kind: string; id: string };

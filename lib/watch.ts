@@ -1,4 +1,4 @@
-import type { Kind } from '@/lib/media';
+import type { Kind, MediaRef } from '@/lib/media';
 
 /**
  * The rules that move a Watch Record between states, and nothing that touches
@@ -38,9 +38,6 @@ export type WatchRecord = {
   updatedAt: Date;
 };
 
-/** How a page names a piece of Media it wants a Watch Record for. */
-export type MediaRef = { kind: Kind; id: number };
-
 /**
  * What marking does. Pressing the state a Watch Record already has unmarks it
  * — `null`, no record — and pressing the other moves it. `null` in is a piece
@@ -56,6 +53,17 @@ export const marked = (
 ): WatchState | null => (current === pressed ? null : pressed);
 
 /**
+ * The two lists, one per state: where each lives and the word it wears. The
+ * Watchlist is the Planned list and the glossary's own word for it; the
+ * Watched list has no word but Watched. One row per state, like `KIND_WORDS`,
+ * so the header's links, the tabs and the routes cannot drift apart.
+ */
+export const LISTS: Record<WatchState, { path: string; label: string }> = {
+  planned: { path: '/watchlist', label: 'Watchlist' },
+  watched: { path: '/watched', label: 'Watched' },
+};
+
+/**
  * The key a page's lookup is built on: `tv/1399`, the spelling of the URL and
  * of the ADRs. Written once here because a TMDB id is unique only within a
  * Kind, and a lookup keyed on the id alone would let a Show answer for a
@@ -67,18 +75,22 @@ export const watchKey = ({ kind, id }: MediaRef): string => `${kind}/${id}`;
 export type WatchLookup = ReadonlyMap<string, WatchState>;
 
 /**
+ * The ref a Watch Record names: the same pair, spelled the way `lib/media`
+ * spells it. A record says `tmdbId` because the column does; everything that
+ * asks TMDB says `id`. Said once here rather than at every seam between them.
+ */
+export const refOf = (
+  record: Pick<WatchRecord, 'kind' | 'tmdbId'>,
+): MediaRef => ({ kind: record.kind, id: record.tmdbId });
+
+/**
  * Builds the lookup from one query's rows. A piece of Media with no row is
  * simply absent, which `stateOf` reads as `null`.
  */
 export const toLookup = (
   records: readonly Pick<WatchRecord, 'kind' | 'tmdbId' | 'state'>[],
 ): WatchLookup =>
-  new Map(
-    records.map((record) => [
-      watchKey({ kind: record.kind, id: record.tmdbId }),
-      record.state,
-    ]),
-  );
+  new Map(records.map((record) => [watchKey(refOf(record)), record.state]));
 
 /**
  * A piece of Media's state in a lookup, or `null` when the Viewer has said

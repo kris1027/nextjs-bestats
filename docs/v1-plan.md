@@ -9,10 +9,10 @@ have watched" — and `docs/adr/0003` split the domain layer off from the TMDB
 client precisely so those records would have "a home that is not named after a
 third-party API". v1 is that home.
 
-This file is a plan, not a record of decisions. Steps 0 to 4 have landed, so
+This file is a plan, not a record of decisions. Steps 0 to 5 have landed, so
 for everything they covered `CONTEXT.md`, `docs/adr/` and the code are now the
 authority and the sections below defer to them rather than restating them.
-Step 5, the lists, is next.
+Step 6, the account, is next.
 
 ## Language
 
@@ -42,6 +42,11 @@ the code — a Kind's Matches, a tab's screen-reader text, and now a Viewer's
 Watch Records a page could not read — and `docs/adr/0006` promised to reuse
 it rather than invent a third word. Reusing a distinction is easier once it
 has a name.
+
+A ninth arrived with step 5: Gone, for the other way TMDB can fail to answer
+for a Watch Record's Media. A 404 is an answer — TMDB had this and no longer
+does — where Unanswered is the absence of one, and a card has to say which,
+because one may change tomorrow and the other will not.
 
 ## The invariant
 
@@ -269,15 +274,42 @@ environment for one component is a decision for when there is a second. It
 was verified in a browser instead, signed out and in, including a forced
 write failure and a submission with the buttons' handlers absent.
 
-**5. The lists.** `/watchlist` and `/watched`, paginated, newest first, each
-with its own metadata and its own empty state. Switching between them is a
-pair of links styled as tabs — reuse `components/search/kind-tabs.tsx` rather
-than mirroring its styling a third time. This step also resolves a page of
-Watch Records to Media: `lib/media` gains a way to fetch one Media Item by
-Kind and id, the page settles twenty of them apart the way `searchMedia`
-does, and the entry type carries the two ways TMDB can fail to answer — a 404
-because the Media is gone, and no answer at all — because the plan's step 3
-listed that rule and `lib/watch` turned out to be the wrong home for it.
+**5. The lists.** _Done._ Two thin routes over one server component,
+`components/watch/watch-record-list.tsx`, which is "the page" CLAUDE.md
+says resolves Watch Records against TMDB. A Visitor is redirected to sign in
+and back to the same address, `?page=` included. `?page=` is read by
+`pageNumber`: anything that is not a page is page 1, a page past the end is
+a 404, and page 1 of nothing is the empty state. Previous and Next, "Page 2
+of 11" between them, and no "Showing…" line: `formatTally`'s "top 20 of" is a
+ranking's sentence, and a list is newest first.
+
+The resolution went where the boundaries pointed. `lib/media` gains
+`MediaRef` — it was `lib/watch`'s, and `lib/media` is the module both may
+read — and `mediaItems(refs)`, one `findTMDB` per ref settled apart the way
+`searchMedia` settles its Kinds, answering each with a Media Item, Gone or
+Unanswered. It never sees a Watch Record; the component pairs answers with
+records by index. Gone and Unanswered both render as an `AbsentCard`: the
+Kind and the id, which is all a record knows, a line saying which absence,
+no link, and the marking control, because unmarking from that card is the
+only way a Gone record ever leaves.
+
+The tabs were reused rather than mirrored, as the known friction demanded.
+`components/navigation/link-tabs.tsx` is `KindTabs` generalised — the one
+mirror of `TabsTrigger`, its long comment moved with it — and `KindTabs` is
+now a wrapper on it. The lists' tabs wear both counts through a grouped
+`watchTallies`, the way the search tabs wear both Kinds'. The header gains
+`Watchlist` and `Watched` for a Viewer, with `aria-current` on the open one.
+
+A card pressed out of its list stays where it is, showing its new state,
+and the list catches up on the next navigation. That is step 4's decision
+carried through: a refresh would pull a mis-pressed card out from under the
+pointer, and leaving it keeps the undo one press away.
+
+Tests: `watchTallies` in the integration project, `pageNumber` in the unit
+project. `mediaItems` is untested like the rest of `lib/media`'s fetchers.
+The pages were verified in a browser through the same temporary override as
+step 4, with a Gone id on the list, a page past the end, and a mark made from
+each list.
 
 **6. Account.** `/settings` with account deletion, cascading to Watch Records
 through the foreign key. Rate limiting on the marking action.
@@ -322,13 +354,17 @@ thing and differs on purpose, having no staging area to format against.
 
 There will be three tab treatments. Client tabs on `/`, hand-mirrored link
 tabs on `/search`, and now the lists. `docs/adr/0004` already warns that the
-first two drift; step 5 must reuse rather than mirror.
+first two drift; step 5 must reuse rather than mirror. _It did: there are
+two treatments, the client tabs and `LinkTabs`, and the second is mirrored
+once._
 
 A Watch Record whose Media TMDB will not answer for needs a rendering. The app
 already distinguishes an unanswered Kind from an empty one, and that
 distinction is reused rather than a third word invented for it. This one is
 sharpened rather than eased by `0006`: with no stored label, there is nothing
-to fall back on.
+to fall back on. _Rendered in step 5 as `AbsentCard`, and the distinction
+gained two names on the way, Unanswered and Gone, because a card has to say
+which it is._
 
 ## Deferred to v2
 

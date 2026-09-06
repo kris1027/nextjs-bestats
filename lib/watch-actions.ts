@@ -3,11 +3,10 @@
 import { redirect } from 'next/navigation';
 
 import { viewer } from '@/lib/auth';
-import { isKind, isMediaId } from '@/lib/media';
+import { isKind, isMediaId, type MediaRef } from '@/lib/media';
 import { nextPath } from '@/lib/next-path';
 import {
   isWatchState,
-  type MediaRef,
   marked,
   stateOf,
   type WatchState,

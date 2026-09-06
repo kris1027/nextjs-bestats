@@ -3,6 +3,8 @@ import type { JSX } from 'react';
 
 import { Search } from 'lucide-react';
 
+import { cn, control } from '@/lib/utils';
+
 /**
  * A GET form, so every search becomes an address of its own and its Matches
  * stay server-rendered. `next/form` renders a real `<form>` — the browser's
@@ -28,10 +30,7 @@ const SearchForm = ({ query }: { query?: string }): JSX.Element => {
           autoComplete='off'
           className='min-w-0 flex-1 border border-foreground/40 bg-transparent px-3.5 py-2 text-sm leading-[1.2] placeholder:text-foreground/40 focus-visible:border-ring focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring'
         />
-        <button
-          type='submit'
-          className='inline-flex shrink-0 items-center gap-2 border border-foreground/40 px-3.5 py-2 font-extrabold text-foreground text-sm leading-[1.2] transition-colors hover:bg-foreground/7 active:bg-foreground/14'
-        >
+        <button type='submit' className={cn(control, 'shrink-0')}>
           <Search size={18} />
           Search
         </button>

@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest';
 
 import {
+  capitalize,
   formatCount,
   formatDate,
   formatNumber,
@@ -68,4 +69,11 @@ test('formatNumber groups a large number and leaves a small one alone', () => {
   expect(formatNumber(1204)).toBe('1,204');
   expect(formatNumber(7)).toBe('7');
   expect(formatNumber(0)).toBe('0');
+});
+
+test('capitalize raises the first letter and leaves the rest', () => {
+  expect(capitalize('show')).toBe('Show');
+  expect(capitalize('movie')).toBe('Movie');
+  expect(capitalize('Show')).toBe('Show');
+  expect(capitalize('')).toBe('');
 });

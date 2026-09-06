@@ -3,6 +3,7 @@ import { expect, test } from 'vitest';
 import {
   isWatchState,
   marked,
+  refOf,
   stateOf,
   toLookup,
   WATCH_STATES,
@@ -62,4 +63,8 @@ test('toLookup has nothing for Media the Viewer has said nothing about', () => {
 
   expect(stateOf(lookup, { kind: 'tv', id: 66732 })).toBe(null);
   expect(stateOf(toLookup([]), { kind: 'tv', id: 1399 })).toBe(null);
+});
+
+test('refOf spells a Watch Record the way lib/media spells a ref', () => {
+  expect(refOf({ kind: 'tv', tmdbId: 1399 })).toEqual({ kind: 'tv', id: 1399 });
 });

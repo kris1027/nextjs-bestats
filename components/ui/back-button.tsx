@@ -12,7 +12,7 @@ import {
 
 import { ArrowLeft } from 'lucide-react';
 
-import { cn } from '@/lib/utils';
+import { cn, control } from '@/lib/utils';
 
 /**
  * Renders as a real link to `href` — that is the semantic destination, the
@@ -63,14 +63,7 @@ const BackButton = ({
   };
 
   return (
-    <Link
-      href={href}
-      onClick={handleClick}
-      className={cn(
-        'inline-flex items-center gap-2 border border-foreground/40 px-3.5 py-2 font-extrabold text-foreground text-sm leading-[1.2] transition-colors hover:bg-foreground/7 active:bg-foreground/14',
-        className,
-      )}
-    >
+    <Link href={href} onClick={handleClick} className={cn(control, className)}>
       <ArrowLeft size={18} />
       {children}
     </Link>

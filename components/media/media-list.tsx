@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 
 import { MediaCard } from '@/components/media/media-card';
+import { MediaGrid } from '@/components/media/media-grid';
 import type { MediaItem } from '@/lib/media';
 import type { WatchLookup } from '@/lib/watch';
 
@@ -13,11 +14,11 @@ const MediaList = ({
   lookup: WatchLookup | null;
 }): JSX.Element => {
   return (
-    <ul className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
+    <MediaGrid>
       {media.map((item) => (
         <MediaCard item={item} lookup={lookup} key={item.id} />
       ))}
-    </ul>
+    </MediaGrid>
   );
 };
 

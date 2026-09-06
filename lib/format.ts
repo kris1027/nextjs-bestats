@@ -80,3 +80,12 @@ export const formatTally = (
  */
 export const formatNumber = (value: number): string =>
   numberFormat.format(value);
+
+/**
+ * A word with its first letter raised, for the start of a label — "show"
+ * becomes "Show". In the text itself rather than through CSS `capitalize`,
+ * so what a screen reader gets and what the DOM holds is the word as
+ * written. Locale-aware, since the locale is decided here.
+ */
+export const capitalize = (word: string): string =>
+  word.charAt(0).toLocaleUpperCase(LOCALE) + word.slice(1);
