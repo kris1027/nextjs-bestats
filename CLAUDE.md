@@ -41,8 +41,14 @@ the one hand-written migration in there is held to the same rule as the rest.
   tell each other's files apart.
 - A helper shared by test files is a `lib/test-*.ts` file of its own, never
   an export from a test file: importing one test file from another runs its
-  tests twice. `lib/test-viewers.ts` makes the Viewers both integration files
-  need.
+  tests twice. `lib/test-viewers.ts` makes the Viewers every integration file
+  needs.
+- An action's test stands in for the session by mocking `lib/auth` so
+  `viewer()` answers with a disposable Viewer, as
+  `lib/watch-actions.integration.test.ts` does. Never by giving the action a
+  Viewer parameter: the action reads the Viewer from the session and from
+  nowhere else, and a parameter would be the client-supplied id it exists to
+  refuse.
 - `@/` resolves in tests, so an import in a test looks like an import anywhere
   else in the repo.
 - The integration project runs against a real Neon branch, never a local
