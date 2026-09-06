@@ -51,6 +51,27 @@ export const watchLookup = async (
 };
 
 /**
+ * `watchLookup` for a page, where the database failing is Unanswered rather
+ * than an error: the page hands its cards `null`, they render no control, and
+ * the TMDB half of the page renders as if nothing had happened — the two
+ * sources fail apart. The cause is logged here because nothing downstream
+ * carries it. The action keeps `watchLookup` itself, because it has a message
+ * of its own to return.
+ */
+export const answeredWatchLookup = async (
+  viewerId: string,
+  refs: readonly MediaRef[],
+): Promise<WatchLookup | null> => {
+  try {
+    return await watchLookup(viewerId, refs);
+  } catch (cause) {
+    console.error('Reading Watch Records failed:', cause);
+
+    return null;
+  }
+};
+
+/**
  * One page of a Viewer's list in one state — the Watchlist, or the Watched
  * list — newest marking first, with the size of the whole list beside it so
  * the page can say "20 of 214" the way it does for Matches. `page` counts

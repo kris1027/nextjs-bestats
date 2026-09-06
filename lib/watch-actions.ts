@@ -81,3 +81,13 @@ export const mark = async (formData: FormData): Promise<MarkResult> => {
     return { error: 'Could not mark that. Try again in a moment.' };
   }
 };
+
+/**
+ * `mark` for the form itself, before hydration: the browser posts, the page
+ * re-renders with the row as it now is, and there is nobody to hand a result
+ * to — which is also why React types a form's `action` as returning nothing.
+ * Once hydrated, the buttons' own handler calls `mark` and reads the result.
+ */
+export const markFromForm = async (formData: FormData): Promise<void> => {
+  await mark(formData);
+};

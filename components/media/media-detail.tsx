@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import type { JSX } from 'react';
+import type { JSX, ReactNode } from 'react';
 
 import { Star } from 'lucide-react';
 
@@ -9,7 +9,20 @@ import { Tag } from '@/components/ui/tag';
 import { formatCount } from '@/lib/format';
 import type { MediaDetails } from '@/lib/media';
 
-const MediaDetail = ({ media }: { media: MediaDetails }): JSX.Element => {
+/**
+ * `control` is a slot the page fills with the marking control for its own
+ * Kind and id, or leaves empty when the Viewer's Watch Records went
+ * Unanswered. A slot rather than a prop of `MediaDetails`, which carries no
+ * Kind or id on purpose: this component renders a piece of Media and never
+ * learns that Watch Records exist.
+ */
+const MediaDetail = ({
+  media,
+  control,
+}: {
+  media: MediaDetails;
+  control?: ReactNode;
+}): JSX.Element => {
   return (
     // --backdrop-h drives the backdrop height, the poster's overlap and the
     // text clearance below; changing it keeps all three in step
@@ -85,6 +98,8 @@ const MediaDetail = ({ media }: { media: MediaDetails }): JSX.Element => {
               <Tag key={fact}>{fact}</Tag>
             ))}
           </div>
+
+          {control ? <div className='max-w-xs'>{control}</div> : null}
 
           <div className='my-2 h-0.5 bg-foreground/40' />
 

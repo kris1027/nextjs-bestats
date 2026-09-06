@@ -39,3 +39,17 @@ export const nextPath = (value: string | string[] | undefined): string => {
 
   return path;
 };
+
+/**
+ * The address a Visitor is at, as the `?next=` a control on that page should
+ * carry: the pathname, and the query string when there is one. The query
+ * string matters — a press on `/search?q=dune&kind=movie` has to come back to
+ * that list, not to the empty search page. `search` is taken with or without
+ * its leading `?`, so `useSearchParams().toString()` and `location.search`
+ * both fit.
+ */
+export const address = (pathname: string, search: string): string => {
+  const query = search.startsWith('?') ? search.slice(1) : search;
+
+  return query ? `${pathname}?${query}` : pathname;
+};

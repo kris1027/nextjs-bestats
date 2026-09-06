@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { type JSX, Suspense } from 'react';
 
+import { SignInLink } from '@/components/layout/sign-in-link';
 import { viewer } from '@/lib/auth';
 import { signOut } from '@/lib/auth-actions';
 
@@ -18,15 +19,8 @@ const control =
 const ViewerControl = async (): Promise<JSX.Element> => {
   const currentViewer = await viewer();
 
-  if (!currentViewer) {
-    // no `?next=` here: a server component cannot read the current path, and
-    // the controls that can supply one arrive in step 4
-    return (
-      <Link href='/sign-in' className={control}>
-        Sign in
-      </Link>
-    );
-  }
+  // a client link, because only the client knows the address to come back to
+  if (!currentViewer) return <SignInLink className={control} />;
 
   return (
     <div className='flex items-center gap-3'>

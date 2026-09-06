@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 
-import { nextPath } from '@/lib/next-path';
+import { address, nextPath } from '@/lib/next-path';
 
 test('nextPath keeps a same-origin path', () => {
   expect(nextPath('/tv/1399')).toBe('/tv/1399');
@@ -40,4 +40,24 @@ test('nextPath refuses whitespace and control characters', () => {
 test('nextPath takes the first of a repeated parameter', () => {
   expect(nextPath(['/tv/1399', '/movie/603'])).toBe('/tv/1399');
   expect(nextPath(['//elsewhere.example', '/tv/1399'])).toBe('/');
+});
+
+test('address is the pathname alone when there is no query string', () => {
+  expect(address('/', '')).toBe('/');
+  expect(address('/tv/1399', '')).toBe('/tv/1399');
+});
+
+test('address keeps the query string, with or without its leading ?', () => {
+  expect(address('/search', 'q=dune&kind=movie')).toBe(
+    '/search?q=dune&kind=movie',
+  );
+  expect(address('/search', '?q=dune&kind=movie')).toBe(
+    '/search?q=dune&kind=movie',
+  );
+});
+
+test('what address builds, nextPath honours', () => {
+  const here = address('/search', 'q=dune&kind=movie');
+
+  expect(nextPath(here)).toBe(here);
 });
