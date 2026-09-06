@@ -3,13 +3,14 @@ import { notFound } from 'next/navigation';
 import type { JSX } from 'react';
 
 import { MediaDetail } from '@/components/media/media-detail';
-import { isKind, type MediaDetails, mediaDetails } from '@/lib/media';
+import {
+  isKind,
+  isMediaId,
+  type MediaDetails,
+  mediaDetails,
+} from '@/lib/media';
 
 type RouteParams = { kind: string; id: string };
-
-// TMDB ids are positive integers, so anything else cannot exist and is a 404
-// before a request is made.
-const ID_PATTERN = /^[1-9]\d{0,8}$/;
 
 /**
  * Resolves to `null` for any address TMDB cannot answer. Only the page turns
@@ -24,7 +25,8 @@ const findMedia = async (
 ): Promise<MediaDetails | null> => {
   const { kind, id } = await params;
 
-  if (!isKind(kind) || !ID_PATTERN.test(id)) return null;
+  // an id that cannot exist is a 404 before a request is made
+  if (!isKind(kind) || !isMediaId(id)) return null;
 
   return mediaDetails(kind, Number(id));
 };
