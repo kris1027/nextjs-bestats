@@ -106,6 +106,14 @@ export type Matches = {
 export type Search = Record<Kind, Matches | null>;
 
 /**
+ * What TMDB reports as Trending, one list per Kind. A Kind is `null` when its
+ * request went unanswered, the same distinction `Search` draws: the home page
+ * says so behind that tab and renders the other, rather than going down with
+ * the search form on it.
+ */
+export type Trending = Record<Kind, MediaItem[] | null>;
+
+/**
  * What a detail page renders. Shows and movies differ only in their facts,
  * which arrive already formatted — so the page never learns which kind it is
  * looking at, and this module stays the only one that knows `tv` means shows.
@@ -237,9 +245,22 @@ const trending = async <K extends Kind>(kind: K): Promise<MediaItem[]> => {
   return data.results.map((media) => toMediaItem(media, kind));
 };
 
-export const trendingShows = (): Promise<MediaItem[]> => trending('tv');
+/**
+ * Trending for both Kinds, issued together and settled apart the way
+ * `searchMedia` settles a Query: one Kind failing leaves the other's list
+ * intact.
+ */
+export const trendingMedia = async (): Promise<Trending> => {
+  const [shows, movies] = await Promise.allSettled([
+    trending('tv'),
+    trending('movie'),
+  ]);
 
-export const trendingMovies = (): Promise<MediaItem[]> => trending('movie');
+  return {
+    tv: answered(shows, 'trending for tv'),
+    movie: answered(movies, 'trending for movie'),
+  };
+};
 
 /**
  * The detail endpoints, unlike the trending ones, return no `media_type` — so
@@ -277,6 +298,23 @@ export const mediaDetails = async (
  */
 const logUnanswered = (what: string, reason: unknown): void => {
   console.error(`TMDB ${what} went Unanswered:`, reason);
+};
+
+/**
+ * A rejected request becomes `null` — an Unanswered Kind — rather than an
+ * empty answer, because TMDB failing and TMDB answering with nothing are
+ * different answers and the page has to be able to tell them apart. `what`
+ * is for the log, which is the only place the reason goes.
+ */
+const answered = <T>(
+  result: PromiseSettledResult<T>,
+  what: string,
+): T | null => {
+  if (result.status === 'fulfilled') return result.value;
+
+  logUnanswered(what, result.reason);
+
+  return null;
 };
 
 /**
@@ -332,22 +370,6 @@ const searchKind = async <K extends Kind>(
 };
 
 /**
- * A rejected search becomes `null` — an Unanswered Kind — rather than empty
- * Matches, because TMDB failing and TMDB matching nothing are different
- * answers and the page has to be able to tell them apart.
- */
-const answered = (
-  result: PromiseSettledResult<Matches>,
-  kind: Kind,
-): Matches | null => {
-  if (result.status === 'fulfilled') return result.value;
-
-  logUnanswered(`search for ${kind}`, result.reason);
-
-  return null;
-};
-
-/**
  * Runs the Query against both Kinds. The two are separate requests that need
  * nothing from each other, so they are issued together and settled apart: one
  * Kind failing leaves the other's Matches intact.
@@ -359,5 +381,8 @@ export const searchMedia = async (query: string): Promise<Search> => {
     searchKind('movie', query),
   ]);
 
-  return { tv: answered(shows, 'tv'), movie: answered(movies, 'movie') };
+  return {
+    tv: answered(shows, 'search for tv'),
+    movie: answered(movies, 'search for movie'),
+  };
 };

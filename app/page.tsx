@@ -4,20 +4,57 @@ import { MediaList } from '@/components/media/media-list';
 import { SearchForm } from '@/components/search/search-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { viewer } from '@/lib/auth';
-import { trendingMovies, trendingShows } from '@/lib/media';
+import {
+  KIND_WORDS,
+  KINDS,
+  type Kind,
+  type MediaItem,
+  trendingMedia,
+} from '@/lib/media';
+import type { WatchLookup } from '@/lib/watch';
 import { answeredWatchLookup } from '@/lib/watch-queries';
 
+/** What each tab opens on: the Kind's list, or the sentence for its absence. */
+const TrendingPanel = ({
+  kind,
+  media,
+  lookup,
+}: {
+  kind: Kind;
+  media: MediaItem[] | null;
+  lookup: WatchLookup | null;
+}): JSX.Element => {
+  const words = KIND_WORDS[kind];
+
+  return (
+    <TabsContent value={kind} className='w-full'>
+      {/* one h1 per page: Base UI unmounts the inactive panel, so only the
+          selected tab's heading is ever in the DOM */}
+      <h1 className='text-xl font-bold py-4'>
+        Trending {words.other} this week:
+      </h1>
+      {media === null ? (
+        // an Unanswered Kind, said the way the search page says it
+        <p className='opacity-60'>
+          TMDB did not answer for {words.other}. Try that again in a moment.
+        </p>
+      ) : (
+        <MediaList media={media} lookup={lookup} />
+      )}
+    </TabsContent>
+  );
+};
+
 const HomePage = async (): Promise<JSX.Element> => {
-  const [shows, movies, currentViewer] = await Promise.all([
-    trendingShows(),
-    trendingMovies(),
+  const [trending, currentViewer] = await Promise.all([
+    trendingMedia(),
     viewer(),
   ]);
 
   // one query for both tabs' cards
   const lookup = await answeredWatchLookup(currentViewer?.id ?? null, [
-    ...shows,
-    ...movies,
+    ...(trending.tv ?? []),
+    ...(trending.movie ?? []),
   ]);
 
   return (
@@ -25,24 +62,22 @@ const HomePage = async (): Promise<JSX.Element> => {
       <div className='mx-auto w-full max-w-5xl py-4'>
         <SearchForm />
       </div>
-      <Tabs
-        defaultValue='shows'
-        className='mx-auto w-full max-w-5xl items-center'
-      >
+      <Tabs defaultValue='tv' className='mx-auto w-full max-w-5xl items-center'>
         <TabsList>
-          <TabsTrigger value='shows'>Shows</TabsTrigger>
-          <TabsTrigger value='movies'>Movies</TabsTrigger>
+          {KINDS.map((kind) => (
+            <TabsTrigger key={kind} value={kind}>
+              {KIND_WORDS[kind].label}
+            </TabsTrigger>
+          ))}
         </TabsList>
-        <TabsContent value='shows' className='w-full'>
-          <h1 className='text-xl font-bold py-4'>Trending shows this week:</h1>
-          <MediaList media={shows} lookup={lookup} />
-        </TabsContent>
-        <TabsContent value='movies' className='w-full'>
-          {/* one h1 per page: Base UI unmounts the inactive panel, so only the
-              selected tab's heading is ever in the DOM */}
-          <h1 className='text-xl font-bold py-4'>Trending movies this week:</h1>
-          <MediaList media={movies} lookup={lookup} />
-        </TabsContent>
+        {KINDS.map((kind) => (
+          <TrendingPanel
+            key={kind}
+            kind={kind}
+            media={trending[kind]}
+            lookup={lookup}
+          />
+        ))}
       </Tabs>
     </main>
   );
