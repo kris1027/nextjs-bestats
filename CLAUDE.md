@@ -62,9 +62,17 @@ self-hosted Better Auth for Neon's managed one cost one module rather than the
 application.
 — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
 
-`lib/watch` will hold Watch Records and the rules that move them between
-states. It may read `lib/auth` for the current Viewer; `lib/media` may not read
-either. It does not exist yet — step 3 of `docs/v1-plan.md` writes it.
+`lib/watch` holds Watch Records and is three files, split by what each may
+import. `lib/watch.ts` is the pure half — the states, `marked`, the lookup a
+page hands its cards — and is the only one a client component may import, so
+it never touches `lib/db`, whose import throws without `DATABASE_URL`.
+`lib/watch-queries.ts` is the reads and writes over Drizzle; every function
+takes the Viewer's id and never decides who that is. `lib/watch-actions.ts` is
+the `mark` Server Action, which reads the Viewer from `lib/auth` and validates
+the form against `lib/media`'s guards. `lib/watch` reads `lib/media` for
+`Kind` and those guards and nothing else; `lib/media` reads neither `lib/watch`
+nor `lib/auth`. TMDB resolution for a list of Watch Records is the page's job,
+not this module's.
 
 ## Standing rules
 

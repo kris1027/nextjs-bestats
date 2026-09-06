@@ -111,3 +111,10 @@ _Avoid_: Seen, done, finished
 A Viewer's Planned Watch Records — the Media they mean to watch. Watched Media
 is not on it.
 _Avoid_: Queue, saved, list, favourites
+
+**Mark**:
+To give a piece of Media a Watch Record in a state, Planned or Watched,
+replacing whichever it had. Marking the state a Watch Record already has
+unmarks it, which deletes the record. The verb only: the thing it makes is a
+Watch Record, never "a mark".
+_Avoid_: Save, add, track, toggle, set
