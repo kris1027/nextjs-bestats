@@ -79,12 +79,12 @@ Viewers exist. That boundary is why swapping a self-hosted Better Auth for
 Neon's managed one cost one module rather than the application.
 — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
 
-`proxy.ts` is the one reader of `lib/auth` that is neither helper: it hands
-the instance's middleware the single route where a sign-in completes, which
-is the only place the verifier a provider returns with can be traded for a
-session cookie. It never reads a Viewer, and neither does the `/signed-in`
-handler it guards — by the time that handler runs the proxy has decided, and
-all that is left is the `?next=` the Visitor came with.
+`proxy.ts` mounts the instance's middleware the way `app/api/auth` mounts its
+handler, and reads a Viewer no more than that route does. What it mounts it
+on is one route: `/signed-in`, the only place the verifier a provider returns
+with can be traded for a session cookie. The handler there reads no Viewer
+either — by the time it runs the proxy has decided, and all that is left is
+the `?next=` the Visitor came with.
 — `docs/adr/0011-a-sign-in-completes-at-one-route.md`
 
 `lib/watch` holds Watch Records. `lib/watch.ts` is its pure half, so it never
