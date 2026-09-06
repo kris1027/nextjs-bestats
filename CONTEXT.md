@@ -72,6 +72,13 @@ shown as an empty list, a count of zero, or an absence, and whatever depended
 on the answer is left out rather than drawn as if the answer had been "none".
 _Avoid_: Failed, error, missing, empty
 
+**Gone**:
+Media TMDB once had and no longer has. Not the same as Unanswered, which may
+answer next time: Gone is TMDB's answer. A Watch Record for Gone Media still
+exists and still renders, since what survives is that the Viewer watched
+something.
+_Avoid_: Deleted, removed, missing, 404
+
 **Rating**:
 TMDB's average score for a piece of Media, out of ten. Media nobody has voted
 on has no Rating: TMDB reports a `0`, which is a placeholder standing in for
