@@ -2,6 +2,7 @@ import type { JSX } from 'react';
 
 import { MediaPlaceholder } from '@/components/media/media-placeholder';
 import { MarkingControl } from '@/components/watch/marking-control';
+import { capitalize } from '@/lib/format';
 import { type Absence, KIND_WORDS, type MediaRef } from '@/lib/media';
 import type { WatchState } from '@/lib/watch';
 
@@ -31,10 +32,10 @@ const AbsentCard = ({
   <li className='flex flex-col'>
     <MediaPlaceholder artwork='poster' />
     <div className='bg-primary px-2.5 py-1.5 text-primary-foreground'>
-      {/* "show 1399", capitalised: KIND_WORDS' one spelling of the word,
-          rather than a fourth spelling kept here */}
-      <h2 className='truncate font-extrabold text-[13px] capitalize leading-[1.2]'>
-        {KIND_WORDS[media.kind].one} {media.id}
+      {/* "Show 1399": KIND_WORDS' one spelling of the word, raised in the
+          text itself so a screen reader hears what the eye sees */}
+      <h2 className='truncate font-extrabold text-[13px] leading-[1.2]'>
+        {capitalize(KIND_WORDS[media.kind].one)} {media.id}
       </h2>
     </div>
     <p className='px-2.5 pt-2 text-muted-foreground text-xs'>{LINES[answer]}</p>
