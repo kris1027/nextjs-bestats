@@ -237,41 +237,39 @@ export const trendingMovies = (): Promise<MediaItem[]> => trending('movie');
 
 /**
  * The detail endpoints, unlike the trending ones, return no `media_type` — so
- * the kind is the caller's to supply rather than the payload's to declare.
+ * the Kind is the caller's to supply rather than the payload's to declare,
+ * and a ref carries it. Which wire shape comes back follows the Kind, so this
+ * is the one place the two endpoints are told apart; `null` is TMDB's 404.
+ */
+const findMedia = (
+  ref: MediaRef,
+): Promise<TmdbShowDetails | TmdbMovieDetails | null> =>
+  ref.kind === 'tv'
+    ? findTMDB<TmdbShowDetails>(`/tv/${ref.id}`)
+    : findTMDB<TmdbMovieDetails>(`/movie/${ref.id}`);
+
+/**
+ * What a detail page renders for one piece of Media. Which mapping applies
+ * follows the Kind the ref carries, not the payload, since the payload does
+ * not say.
  */
 export const mediaDetails = async (
   kind: Kind,
   id: number,
 ): Promise<MediaDetails | null> => {
-  if (kind === 'tv') {
-    const show = await findTMDB<TmdbShowDetails>(`/tv/${id}`);
+  const media = await findMedia({ kind, id });
 
-    return show && toShowDetails(show);
-  }
+  if (!media) return null;
 
-  const movie = await findTMDB<TmdbMovieDetails>(`/movie/${id}`);
-
-  return movie && toMovieDetails(movie);
+  return 'name' in media ? toShowDetails(media) : toMovieDetails(media);
 };
 
 /**
- * One piece of Media by ref, as a Media Item. The detail endpoints carry every
- * field a Media Item needs, so the list mapping serves; `null` is TMDB's 404.
- */
-const mediaItem = async (ref: MediaRef): Promise<MediaItem | null> => {
-  const media =
-    ref.kind === 'tv'
-      ? await findTMDB<TmdbShowDetails>(`/tv/${ref.id}`)
-      : await findTMDB<TmdbMovieDetails>(`/movie/${ref.id}`);
-
-  return media && toMediaItem(media, ref.kind);
-};
-
-/**
- * Resolves refs to Media, one request each, issued together and settled
+ * Resolves refs to Media Items, one request each, issued together and settled
  * apart the way `searchMedia` settles its two Kinds: one ref TMDB will not
- * answer for leaves the others' answers intact. Answers come back in the
- * refs' order, so a caller pairs them by index.
+ * answer for leaves the others' answers intact. The detail endpoints carry
+ * every field a Media Item needs, so the list mapping serves. Answers come
+ * back in the refs' order, so a caller pairs them by index.
  *
  * This is what a list of Watch Records costs, since a record stores nothing
  * from TMDB — which is why lists page at twenty.
@@ -280,14 +278,17 @@ const mediaItem = async (ref: MediaRef): Promise<MediaItem | null> => {
 export const mediaItems = async (
   refs: readonly MediaRef[],
 ): Promise<MediaAnswer[]> => {
-  const results = await Promise.allSettled(refs.map(mediaItem));
+  const results = await Promise.allSettled(refs.map(findMedia));
 
   return results.map((result, index) => {
-    if (result.status === 'rejected') {
-      const ref = refs[index];
+    const ref = refs[index];
 
+    // one result per ref, so `ref` is always there; this is for the type
+    if (!ref) return { answer: 'unanswered' };
+
+    if (result.status === 'rejected') {
       console.error(
-        `TMDB for ${ref?.kind}/${ref?.id} went Unanswered:`,
+        `TMDB for ${ref.kind}/${ref.id} went Unanswered:`,
         result.reason,
       );
 
@@ -295,7 +296,7 @@ export const mediaItems = async (
     }
 
     return result.value
-      ? { answer: 'item', item: result.value }
+      ? { answer: 'item', item: toMediaItem(result.value, ref.kind) }
       : { answer: 'gone' };
   });
 };
