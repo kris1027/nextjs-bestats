@@ -79,8 +79,14 @@ export type MediaItem = {
  */
 export type MediaAnswer =
   | { answer: 'item'; item: MediaItem }
-  | { answer: 'gone' }
-  | { answer: 'unanswered' };
+  | { answer: Absence };
+
+/**
+ * The two ways a ref comes back without a Media Item. Named on its own so a
+ * card that renders an absence can say it takes one, rather than spelling
+ * out "any answer but the item" each time.
+ */
+export type Absence = 'gone' | 'unanswered';
 
 /**
  * What a Query finds for one Kind. `total` counts everything TMDB matched,

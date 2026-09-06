@@ -2,11 +2,11 @@ import type { JSX } from 'react';
 
 import { MediaPlaceholder } from '@/components/media/media-placeholder';
 import { MarkingControl } from '@/components/watch/marking-control';
-import { KIND_WORDS, type MediaAnswer, type MediaRef } from '@/lib/media';
+import { type Absence, KIND_WORDS, type MediaRef } from '@/lib/media';
 import type { WatchState } from '@/lib/watch';
 
 /** What each absence says. Gone is TMDB's answer; Unanswered may change. */
-const LINES: Record<Exclude<MediaAnswer['answer'], 'item'>, string> = {
+const LINES: Record<Absence, string> = {
   gone: 'No longer on TMDB',
   unanswered: 'TMDB did not answer. Try again in a moment.',
 };
@@ -25,7 +25,7 @@ const AbsentCard = ({
   state,
 }: {
   media: MediaRef;
-  answer: Exclude<MediaAnswer['answer'], 'item'>;
+  answer: Absence;
   state: WatchState | null;
 }): JSX.Element => (
   <li className='flex flex-col'>
