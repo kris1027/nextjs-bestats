@@ -44,7 +44,7 @@ the hand-written migrations in there are held to the same rule as the rest.
   tests twice. `lib/test-viewers.ts` makes the Viewers every integration file
   needs.
 - An action's test stands in for the session by mocking `lib/auth` so
-  `viewer()` answers with a disposable Viewer, as
+  `answeredViewer()` answers with a disposable Viewer, as
   `lib/watch-actions.integration.test.ts` does. Never by giving the action a
   Viewer parameter: the action reads the Viewer from the session and from
   nowhere else, and a parameter would be the client-supplied id it exists to
@@ -84,10 +84,11 @@ imports `lib/db`, whose import throws without `DATABASE_URL`. A client
 component may import it, and `lib/watch-actions.ts` for the action a
 `'use server'` file exists to hand out, and nothing else in the module. The
 queries take a Viewer id and never decide whose it is; only the action reads
-`lib/auth`. A page reads `viewer()` itself and hands the id, or `null` for a
+`lib/auth`. A page reads the Viewer itself and hands the id, or `null` for a
 Visitor, to `answeredWatchLookup`, whose own `null` is Unanswered and means
-no controls. `lib/watch` reads `lib/media` for `Kind` and its guards, and
-`lib/media` reads neither `lib/watch` nor `lib/auth`.
+no controls — the same `null` a page passes without asking when the sign-in
+itself went Unanswered. `lib/watch` reads `lib/media` for `Kind` and its
+guards, and `lib/media` reads neither `lib/watch` nor `lib/auth`.
 
 `components/watch/` is what a Visitor sees of Watch Records, and it has two
 halves with different rights. The client half — the marking control and the
