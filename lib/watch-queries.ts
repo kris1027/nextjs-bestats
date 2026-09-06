@@ -155,20 +155,18 @@ export const watchTallies = async (
  * every other timestamp here.
  */
 export const tallyMarking = async (viewerId: string): Promise<number> => {
+  // both columns read the row as it was, so the window and the tally restart
+  // together or carry on together
+  const windowOver = sql`${markingTallies.windowStart} <= now() - interval '1 minute'`;
+
   const [row] = await db
     .insert(markingTallies)
     .values({ viewerId })
     .onConflictDoUpdate({
       target: markingTallies.viewerId,
       set: {
-        tally: sql`case
-          when ${markingTallies.windowStart} <= now() - interval '1 minute' then 1
-          else ${markingTallies.tally} + 1
-        end`,
-        windowStart: sql`case
-          when ${markingTallies.windowStart} <= now() - interval '1 minute' then now()
-          else ${markingTallies.windowStart}
-        end`,
+        tally: sql`case when ${windowOver} then 1 else ${markingTallies.tally} + 1 end`,
+        windowStart: sql`case when ${windowOver} then now() else ${markingTallies.windowStart} end`,
       },
     })
     .returning({ tally: markingTallies.tally });
