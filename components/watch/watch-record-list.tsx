@@ -14,6 +14,7 @@ import { pageNumber } from '@/lib/search-params';
 import {
   LISTS,
   PAGE_SIZE,
+  refOf,
   stateOf,
   toLookup,
   WATCH_STATES,
@@ -75,10 +76,7 @@ const WatchRecordList = async ({
 
   if (page > pages) notFound();
 
-  const refs = records.map((record) => ({
-    kind: record.kind,
-    id: record.tmdbId,
-  }));
+  const refs = records.map(refOf);
   // in the refs' order, so an answer and its record share an index
   const answers = await mediaItems(refs);
   // the page's own records are its lookup: every card on it has a state
