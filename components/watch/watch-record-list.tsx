@@ -11,6 +11,7 @@ import { viewer } from '@/lib/auth';
 import { formatNumber } from '@/lib/format';
 import { mediaItems } from '@/lib/media';
 import { pageNumber } from '@/lib/search-params';
+import { cn, control } from '@/lib/utils';
 import {
   LISTS,
   PAGE_SIZE,
@@ -32,9 +33,6 @@ const EMPTY: Record<WatchState, string> = {
   watched:
     'Nothing watched yet. Mark a show or movie Watched and it will appear here.',
 };
-
-const link =
-  'inline-flex items-center gap-2 border border-foreground/40 px-3.5 py-2 font-extrabold text-foreground text-sm leading-[1.2] transition-colors hover:bg-foreground/7 active:bg-foreground/14';
 
 /**
  * One page of one of a Viewer's two lists — the Watchlist, or the Watched
@@ -103,7 +101,7 @@ const WatchRecordList = async ({
         {total === 0 ? (
           <>
             <p className='opacity-60'>{EMPTY[state]}</p>
-            <Link href='/' className={`${link} self-start`}>
+            <Link href='/' className={cn(control, 'self-start')}>
               Browse trending
             </Link>
           </>
@@ -136,7 +134,7 @@ const WatchRecordList = async ({
                 className='flex items-center justify-between gap-4'
               >
                 {page > 1 ? (
-                  <Link href={pageAddress(state, page - 1)} className={link}>
+                  <Link href={pageAddress(state, page - 1)} className={control}>
                     Previous
                   </Link>
                 ) : (
@@ -146,7 +144,7 @@ const WatchRecordList = async ({
                   Page {formatNumber(page)} of {formatNumber(pages)}
                 </p>
                 {page < pages ? (
-                  <Link href={pageAddress(state, page + 1)} className={link}>
+                  <Link href={pageAddress(state, page + 1)} className={control}>
                     Next
                   </Link>
                 ) : (

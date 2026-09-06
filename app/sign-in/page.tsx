@@ -7,6 +7,7 @@ import { PROVIDERS, type Provider, viewer } from '@/lib/auth';
 import { signIn } from '@/lib/auth-actions';
 import { nextPath } from '@/lib/next-path';
 import type { SearchParams } from '@/lib/search-params';
+import { cn, control } from '@/lib/utils';
 
 export const metadata: Metadata = {
   title: 'Sign in',
@@ -55,7 +56,7 @@ const SignInPage = async ({
               <input type='hidden' name='next' value={next} />
               <button
                 type='submit'
-                className='inline-flex w-full items-center justify-center gap-2 border border-foreground/40 px-3.5 py-2 font-extrabold text-foreground text-sm leading-[1.2] transition-colors hover:bg-foreground/7 active:bg-foreground/14'
+                className={cn(control, 'w-full justify-center')}
               >
                 Continue with {PROVIDER_LABELS[provider]}
               </button>
