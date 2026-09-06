@@ -66,13 +66,17 @@ self-hosted Better Auth for Neon's managed one cost one module rather than the
 application.
 — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
 
-`lib/watch` holds Watch Records. `lib/watch.ts` is its pure half and the only
-file in it a client component may import, so it never imports `lib/db`, whose
-import throws without `DATABASE_URL`. The queries take a Viewer id and never
-decide whose it is; only the action reads `lib/auth`. `lib/watch` reads
-`lib/media` for `Kind` and its guards, and `lib/media` reads neither
-`lib/watch` nor `lib/auth`. Resolving a list of Watch Records against TMDB is
-the page's job, not this module's.
+`lib/watch` holds Watch Records. `lib/watch.ts` is its pure half, so it never
+imports `lib/db`, whose import throws without `DATABASE_URL`. A client
+component may import it, and `lib/watch-actions.ts` for the action a
+`'use server'` file exists to hand out, and nothing else in the module:
+`components/watch/` is the client half of marking and reads exactly those
+two. The queries take a Viewer id and never decide whose it is; only the
+action reads `lib/auth`. A page reads `viewer()` itself and hands the id to
+`answeredWatchLookup`, whose `null` is Unanswered and means no controls.
+`lib/watch` reads `lib/media` for `Kind` and its guards, and `lib/media`
+reads neither `lib/watch` nor `lib/auth`. Resolving a list of Watch Records
+against TMDB is the page's job, not this module's.
 
 ## Standing rules
 
@@ -129,6 +133,13 @@ the page's job, not this module's.
 - Server Actions live in `lib/<module>-actions.ts` beside their module, since
   a `'use server'` file may export only async functions and cannot share a
   file with the rules it calls.
+- A form that posts to a Server Action keeps that action as its `action` and
+  plain named submit buttons, so it posts before hydration. A client handler
+  that has to run first — an optimistic flip — goes on the button's `onClick`
+  and prevents the default, the way `next/form` and `BackButton` intercept.
+  Never on the button's `formAction`: React strips a button's `name` and
+  blocks it before hydration when its `formAction` is a client function, and
+  the server and client then disagree at hydration.
 
 ## Branch workflow
 

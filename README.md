@@ -7,10 +7,10 @@ Built with the Next.js App Router. Every page is server-rendered, every fact
 comes from TMDB, and there is no client-side data fetching anywhere in the
 app.
 
-> **Status:** a Viewer can sign in, and the database that will hold their
-> Watch Records exists. Nothing is recorded yet — the marking control and the
-> `/watchlist` and `/watched` pages are what comes next. See
-> [Roadmap](#roadmap).
+> **Status:** a Viewer can sign in and mark any Show or Movie as Planned or
+> Watched, from a card or from its page. There is nowhere to see those
+> records yet — the `/watchlist` and `/watched` pages are what comes next.
+> See [Roadmap](#roadmap).
 
 ## What it does
 
