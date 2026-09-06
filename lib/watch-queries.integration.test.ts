@@ -1,8 +1,9 @@
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { expect, test } from 'vitest';
 
 import { db } from '@/lib/db';
 import { markingTallies, watchRecords } from '@/lib/schema';
+import { expireMarkingWindow } from '@/lib/test-marking';
 import { disposableViewers } from '@/lib/test-viewers';
 import { PAGE_SIZE, stateOf } from '@/lib/watch';
 import {
@@ -227,10 +228,7 @@ test('a minute after the window started, counting starts over', async () => {
   await tallyMarking(viewerId);
   await tallyMarking(viewerId);
 
-  await db
-    .update(markingTallies)
-    .set({ windowStart: sql`now() - interval '61 seconds'` })
-    .where(eq(markingTallies.viewerId, viewerId));
+  await expireMarkingWindow(viewerId);
 
   expect(await tallyMarking(viewerId)).toBe(1);
 });

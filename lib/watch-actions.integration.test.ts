@@ -1,8 +1,9 @@
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { expect, test, vi } from 'vitest';
 
 import { db } from '@/lib/db';
 import { markingTallies, watchRecords } from '@/lib/schema';
+import { expireMarkingWindow } from '@/lib/test-marking';
 import { disposableViewers } from '@/lib/test-viewers';
 import { MARKS_PER_MINUTE } from '@/lib/watch';
 import { mark } from '@/lib/watch-actions';
@@ -110,10 +111,7 @@ test(`the press after ${MARKS_PER_MINUTE} in a minute is refused, and the one be
   expect(await rowsOf(currentViewer.id)).toHaveLength(1);
 
   // and a minute later the window restarts
-  await db
-    .update(markingTallies)
-    .set({ windowStart: sql`now() - interval '61 seconds'` })
-    .where(eq(markingTallies.viewerId, currentViewer.id));
+  await expireMarkingWindow(currentViewer.id);
 
   expect(await mark(press('tv', '1399', 'planned'))).toEqual({ state: null });
 });
