@@ -110,6 +110,14 @@ export const stateOf = (
  */
 export const PAGE_SIZE = 20;
 
+/**
+ * How many presses of a marking control one Viewer gets in a minute before
+ * the action refuses the next. A person pressing as fast as they can stays
+ * under it; a loop does not. It guards Neon's compute against a runaway
+ * client, so it is set where a false refusal on a real press cannot happen.
+ */
+export const MARKS_PER_MINUTE = 60;
+
 /** One page of a Viewer's list, and how many the list holds in all. */
 export type WatchRecordsPage = {
   records: WatchRecord[];

@@ -9,10 +9,10 @@ have watched" — and `docs/adr/0003` split the domain layer off from the TMDB
 client precisely so those records would have "a home that is not named after a
 third-party API". v1 is that home.
 
-This file is a plan, not a record of decisions. Steps 0 to 5 have landed, so
+This file is a plan, not a record of decisions. Steps 0 to 6 have landed, so
 for everything they covered `CONTEXT.md`, `docs/adr/` and the code are now the
 authority and the sections below defer to them rather than restating them.
-Step 6, the account, is next.
+Step 7, the polish, is next and last.
 
 ## Language
 
@@ -311,8 +311,36 @@ The pages were verified in a browser through the same temporary override as
 step 4, with a Gone id on the list, a page past the end, and a mark made from
 each list.
 
-**6. Account.** `/settings` with account deletion, cascading to Watch Records
-through the foreign key. Rate limiting on the marking action.
+**6. Account.** _Done._ `/settings` shows who is signed in and one section,
+"Leave BeStats", that says what goes — the sign-in and every Watch Record,
+with both counts — behind a required checkbox and a "Delete everything"
+button. The word "account" is on the glossary's avoid list, which is why the
+section is named for what a Viewer is doing rather than for what is deleted.
+The Viewer's name in the header is the way there.
+
+Deletion goes through Neon's own door, `auth.deleteUser()`, rather than a
+`delete` of ours on a table Neon owns; sessions, accounts, Watch Records and
+the marking tally all go with the row through their foreign keys. The door
+has a lock the plan did not mention: Better Auth refuses a session older
+than its freshness window, so a Viewer who signed in yesterday is told to
+sign in again first. The page reports that and any other refusal through
+`?error=`, which keeps it a server component that works before hydration.
+
+The rate limit is Postgres's, per Viewer: `marking_tallies`, one row each,
+upserted by `tallyMarking` in one statement that restarts the window a
+minute after it began and increments otherwise. `mark` counts the press
+after checking the Viewer and the input and before reading the row, and
+refuses past `MARKS_PER_MINUTE`, sixty, with "Slow down." Refused presses
+count too. Vercel's firewall could have done this by IP, but nothing in the
+repository would show it, nothing on a Neon branch would exercise it, and
+this is the step where the action was to earn its test. It did:
+`lib/watch-actions.integration.test.ts` stands in for the session by mocking
+`lib/auth`, and covers a press, an unmark, a move, malformed input, the
+signed-out redirect, and the sixtieth press passing where the sixty-first
+is refused.
+
+One thing the plan did not foresee: the table's foreign key to the Viewer is
+the second migration written by hand, for the reason `0001` was the first.
 
 **7. Polish.** `loading.tsx` and `error.tsx` per route, with Suspense around
 the TMDB fetches — worth more here than elsewhere, since a list of twenty Watch

@@ -73,5 +73,6 @@ Neon owns every table in `neon_auth`, so `drizzle.config.ts` narrows generation
 to `public` and `lib/schema.ts` does not declare them. A Drizzle `references()`
 across that line makes drizzle-kit try to *create* the table it is pointing at,
 so the foreign key is written by hand in
-`drizzle/0001_viewer_foreign_key.sql` instead. It is the one migration in this
-repository that is not generated, and it says so.
+`drizzle/0001_viewer_foreign_key.sql` instead. It was the first migration in
+this repository not to be generated, and it says so; every later table that
+belongs to a Viewer gets its foreign key the same way.

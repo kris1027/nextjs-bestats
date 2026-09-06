@@ -2,8 +2,8 @@
 
 import { redirect } from 'next/navigation';
 
-import { auth, isProvider } from '@/lib/auth';
-import { nextPath } from '@/lib/next-path';
+import { auth, type DeletionRefusal, isProvider, viewer } from '@/lib/auth';
+import { nextPath, signInAddress } from '@/lib/next-path';
 
 /**
  * Hands the Visitor to a provider and brings them back to `?next=`.
@@ -34,5 +34,42 @@ export const signIn = async (formData: FormData): Promise<void> => {
 export const signOut = async (): Promise<void> => {
   await auth.signOut();
 
+  redirect('/');
+};
+
+/** Back to the page, saying why. Not exported: a `'use server'` file may
+ * export only async functions. */
+const refused = (refusal: DeletionRefusal): string =>
+  `/settings?error=${refusal}`;
+
+/**
+ * Deletes the Viewer: the sign-in Neon holds, and through the foreign keys
+ * every Watch Record and the marking tally. Through Neon's own door rather
+ * than a `delete` of our own, because Neon owns the table — and its door has
+ * a lock: Better Auth refuses a session older than its freshness window, so
+ * a cookie taken yesterday cannot delete a Viewer today. That refusal is
+ * what `?error=stale` reports; anything else is `?error=failed`, with the
+ * cause in the server log.
+ * — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
+ *
+ * The confirmation is checked here as well as by the browser's `required`,
+ * because a form can be posted by anything.
+ */
+export const deleteViewer = async (formData: FormData): Promise<void> => {
+  if (!(await viewer())) redirect(signInAddress('/settings'));
+
+  if (formData.get('confirmed') !== 'yes') redirect('/settings');
+
+  const { error } = await auth.deleteUser();
+
+  if (error) {
+    console.error('Deleting a Viewer failed:', error);
+
+    // Neon's wrapper normalises Better Auth's SESSION_EXPIRED to this
+    // spelling before handing it back; the upper-case one never arrives
+    redirect(refused(error.code === 'session_expired' ? 'stale' : 'failed'));
+  }
+
+  // nothing to sign out of: the session went with the Viewer
   redirect('/');
 };

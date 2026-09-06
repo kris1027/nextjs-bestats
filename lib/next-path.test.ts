@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 
-import { address, nextPath } from '@/lib/next-path';
+import { address, nextPath, signInAddress } from '@/lib/next-path';
 
 test('nextPath keeps a same-origin path', () => {
   expect(nextPath('/tv/1399')).toBe('/tv/1399');
@@ -57,4 +57,13 @@ test('what address builds, nextPath honours', () => {
   const here = address('/search', 'q=dune&kind=movie');
 
   expect(nextPath(here)).toBe(here);
+});
+
+test('what signInAddress sends, nextPath brings back', () => {
+  expect(signInAddress('/watchlist?page=2')).toBe(
+    '/sign-in?next=%2Fwatchlist%3Fpage%3D2',
+  );
+  expect(nextPath(decodeURIComponent('%2Fwatchlist%3Fpage%3D2'))).toBe(
+    '/watchlist?page=2',
+  );
 });

@@ -15,6 +15,20 @@
       "when": 1788694473493,
       "tag": "0001_viewer_foreign_key",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788706576205,
+      "tag": "0002_marking_tallies",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788706576818,
+      "tag": "0003_marking_tallies_viewer_foreign_key",
+      "breakpoints": true
     }
   ]
 }

@@ -4,9 +4,10 @@ import { redirect } from 'next/navigation';
 
 import { viewer } from '@/lib/auth';
 import { isKind, isMediaId, type MediaRef } from '@/lib/media';
-import { nextPath } from '@/lib/next-path';
+import { nextPath, signInAddress } from '@/lib/next-path';
 import {
   isWatchState,
+  MARKS_PER_MINUTE,
   marked,
   stateOf,
   type WatchState,
@@ -14,6 +15,7 @@ import {
 } from '@/lib/watch';
 import {
   clearWatchRecord,
+  tallyMarking,
   watchLookup,
   writeWatchRecord,
 } from '@/lib/watch-queries';
@@ -37,7 +39,9 @@ export type MarkResult = { state: WatchState | null } | { error: string };
  * In this order on purpose: the Viewer first, so a signed-out Visitor with a
  * tampered form is sent to sign in rather than shown a stack trace; then the
  * input, which throws rather than returns because our own form cannot
- * produce it. Only the write itself is an outcome the Visitor is told about.
+ * produce it; then the press is counted, so a refused press costs one
+ * statement and no read or write. Only the count and the write itself are
+ * outcomes the Visitor is told about.
  *
  * The Viewer's id comes from the session and from nowhere else. The form does
  * not carry one, and this action would not read it if it did.
@@ -50,7 +54,7 @@ export const mark = async (formData: FormData): Promise<MarkResult> => {
     // the destination only: nothing is replayed once they are back
     const destination = nextPath(String(formData.get('next') ?? ''));
 
-    redirect(`/sign-in?next=${encodeURIComponent(destination)}`);
+    redirect(signInAddress(destination));
   }
 
   const kind = String(formData.get('kind') ?? '');
@@ -64,6 +68,10 @@ export const mark = async (formData: FormData): Promise<MarkResult> => {
   const ref: MediaRef = { kind, id: Number(id) };
 
   try {
+    if ((await tallyMarking(currentViewer.id)) > MARKS_PER_MINUTE) {
+      return { error: 'Slow down. Try again in a minute.' };
+    }
+
     const lookup = await watchLookup(currentViewer.id, [ref]);
     const state = marked(stateOf(lookup, ref), pressed);
 
