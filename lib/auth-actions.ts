@@ -42,7 +42,7 @@ export const signOut = async (): Promise<void> => {
  * every Watch Record and the marking tally. Through Neon's own door rather
  * than a `delete` of our own, because Neon owns the table — and its door has
  * a lock: Better Auth refuses a session older than its freshness window, so
- * a cookie taken yesterday cannot delete an account today. That refusal is
+ * a cookie taken yesterday cannot delete a Viewer today. That refusal is
  * what `?error=stale` reports; anything else is `?error=failed`, with the
  * cause in the server log.
  * — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
