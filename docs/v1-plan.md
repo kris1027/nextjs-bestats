@@ -9,11 +9,10 @@ have watched" — and `docs/adr/0003` split the domain layer off from the TMDB
 client precisely so those records would have "a home that is not named after a
 third-party API". v1 is that home.
 
-This file is a plan, not a record of decisions. Steps 0 to 3 have landed, so
+This file is a plan, not a record of decisions. Steps 0 to 4 have landed, so
 for everything they covered `CONTEXT.md`, `docs/adr/` and the code are now the
 authority and the sections below defer to them rather than restating them.
-Step 4, the control, is next: its Server Action exists, its client half does
-not.
+Step 5, the lists, is next.
 
 ## Language
 
@@ -36,6 +35,13 @@ A seventh arrived with step 3: Mark, the glossary's one verb. It was already
 load-bearing in two ADRs and this plan before it had a definition, and the
 definition is where the rule lives that marking the state a Watch Record
 already has unmarks it.
+
+An eighth arrived with step 4: Unanswered. The distinction between a source
+that answered "nothing" and a source that did not answer had three homes in
+the code — a Kind's Matches, a tab's screen-reader text, and now a Viewer's
+Watch Records a page could not read — and `docs/adr/0006` promised to reuse
+it rather than invent a third word. Reusing a distinction is easier once it
+has a name.
 
 ## The invariant
 
@@ -224,11 +230,44 @@ for an upsert, and stamping `new Date()` by hand put a move and an insert on
 two clocks that disagreed by more than the integration test's few
 milliseconds.
 
-**4. The control.** The first stateful client component in the app: a form
-whose action is the Server Action, wrapped in `useOptimistic` so it flips on
-click and reverts with a message if the write fails. Placed on `MediaCard`
-and on the detail page. A signed-out click leaves through `?next=` and comes
-back to a page where the Visitor clicks again; nothing is replayed for them.
+**4. The control.** _Done._ `components/watch/marking-control.tsx`: one form,
+two named submit buttons, Planned and Watched, `aria-pressed` on the one the
+Watch Record is in. `useOptimistic` flips it on the press and reverts it on a
+failed write, with the action's sentence shown in a live region under the
+buttons. On `MediaCard`, outside the link, and in a `control` slot on
+`MediaDetail`, so `MediaDetails` still carries no Kind or id. A signed-out
+press flashes the flip for the moment before the redirect lands; the control
+does not know which Visitor it renders for, and one rendering path was worth
+that moment. The header's "Sign in" carries `?next=` now too, through
+`components/layout/sign-in-link.tsx`.
+
+Each page makes one query for every card on it, both tabs on Trending and
+both Kinds on Search, through `answeredWatchLookup`, which turns the database
+failing into `null` — Unanswered — so the cards render no control rather than
+one claiming nothing is marked, and the TMDB half of the page renders as if
+nothing had happened. A Visitor's page makes no query at all and passes an
+empty lookup, which is a real absence.
+
+Nothing refreshes after a mark. The action's result is what the row now
+holds, no page shows a piece of Media twice, and Next refetches a dynamic page
+on the next navigation to it. What a moved item does on a list is step 5's.
+
+One thing the plan did not foresee: "still a real form, degrades without JS"
+and "instant on a grid" pull apart in React. A form posts before hydration
+only when its `action` is the Server Function itself, and a button whose
+`formAction` is a client function loses its `name`, is blocked before
+hydration, and mismatches on hydration. So the form's `action` is a Server
+Action whose result nobody reads — `markFromForm`, since React types a form's
+action as returning nothing — and the buttons' `onClick` takes over once
+hydrated, the same shape as `next/form` and `BackButton`: it stops the
+submit, flips, and calls `mark` with the same four fields. `CLAUDE.md` now
+says so, because the `formAction` version reads as the obvious one.
+
+The control itself has no test. Its rule is tested in `lib/watch.test.ts`, the
+address it carries is tested in `lib/next-path.test.ts`, and a DOM
+environment for one component is a decision for when there is a second. It
+was verified in a browser instead, signed out and in, including a forced
+write failure and a submission with the buttons' handlers absent.
 
 **5. The lists.** `/watchlist` and `/watched`, paginated, newest first, each
 with its own metadata and its own empty state. Switching between them is a

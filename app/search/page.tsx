@@ -5,6 +5,7 @@ import { MediaList } from '@/components/media/media-list';
 import { KindTabs } from '@/components/search/kind-tabs';
 import { SearchForm } from '@/components/search/search-form';
 import { BackButton } from '@/components/ui/back-button';
+import { viewer } from '@/lib/auth';
 import { formatTally } from '@/lib/format';
 import {
   hasMatches,
@@ -16,6 +17,7 @@ import {
   searchMedia,
 } from '@/lib/media';
 import { firstValue, type SearchParams } from '@/lib/search-params';
+import { answeredWatchLookup } from '@/lib/watch-queries';
 
 /**
  * Which tab opens when the address does not name one: a Kind with Matches
@@ -86,7 +88,10 @@ const SearchPage = async ({
     );
   }
 
-  const search = await searchMedia(query);
+  const [search, currentViewer] = await Promise.all([
+    searchMedia(query),
+    viewer(),
+  ]);
   const { tv: shows, movie: movies } = search;
 
   const heading = (
@@ -136,6 +141,12 @@ const SearchPage = async ({
   const matches = search[selected];
   const words = KIND_WORDS[selected];
 
+  // one query for both Kinds' cards: the closed tab is a link away
+  const lookup = await answeredWatchLookup(currentViewer?.id ?? null, [
+    ...(shows?.items ?? []),
+    ...(movies?.items ?? []),
+  ]);
+
   return (
     <Shell query={query}>
       {heading}
@@ -150,7 +161,7 @@ const SearchPage = async ({
           <p className='text-sm opacity-60'>
             Showing {formatTally(matches.items.length, matches.total, words)}
           </p>
-          <MediaList media={matches.items} />
+          <MediaList media={matches.items} lookup={lookup} />
         </>
       ) : (
         <p className='opacity-60'>

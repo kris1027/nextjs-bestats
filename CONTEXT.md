@@ -64,6 +64,14 @@ not the same as matching nothing and is never shown as an empty list or a
 count of zero.
 _Avoid_: Results, hits, search results
 
+**Unanswered**:
+What the app has when it asked a source a question and got no answer — a
+Kind TMDB did not answer for, a Viewer's Watch Records the database did not
+return. Not the same as an answer of nothing: an Unanswered question is never
+shown as an empty list, a count of zero, or an absence, and whatever depended
+on the answer is left out rather than drawn as if the answer had been "none".
+_Avoid_: Failed, error, missing, empty
+
 **Rating**:
 TMDB's average score for a piece of Media, out of ten. Media nobody has voted
 on has no Rating: TMDB reports a `0`, which is a placeholder standing in for

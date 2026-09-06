@@ -51,6 +51,34 @@ export const watchLookup = async (
 };
 
 /**
+ * `watchLookup` for a page. A database that does not answer is Unanswered
+ * rather than an exception: the page hands its cards `null`, they render no
+ * control, and the TMDB half of the page renders as if nothing had happened —
+ * the two sources fail apart. The cause is logged here because nothing
+ * downstream carries it. The action keeps `watchLookup` itself, because it
+ * has a message of its own to return.
+ *
+ * `viewerId` is `null` for a Visitor who has not signed in, and then nothing
+ * is asked: no Viewer means no Watch Record, which is an empty lookup — a
+ * real absence — and not an Unanswered one. Said here once rather than as a
+ * ternary on every page.
+ */
+export const answeredWatchLookup = async (
+  viewerId: string | null,
+  refs: readonly MediaRef[],
+): Promise<WatchLookup | null> => {
+  if (viewerId === null) return toLookup([]);
+
+  try {
+    return await watchLookup(viewerId, refs);
+  } catch (cause) {
+    console.error('Watch Records went Unanswered:', cause);
+
+    return null;
+  }
+};
+
+/**
  * One page of a Viewer's list in one state — the Watchlist, or the Watched
  * list — newest marking first, with the size of the whole list beside it so
  * the page can say "20 of 214" the way it does for Matches. `page` counts
