@@ -9,9 +9,9 @@ have watched" — and `docs/adr/0003` split the domain layer off from the TMDB
 client precisely so those records would have "a home that is not named after a
 third-party API". v1 is that home.
 
-This file is a plan, not a record of decisions. Step 0 has landed, so for
-everything it covered `CONTEXT.md` and `docs/adr/` are now the authority and
-the sections below defer to them rather than restating them.
+This file is a plan, not a record of decisions. Steps 0, 1 and 2 have landed,
+so for everything they covered `CONTEXT.md` and `docs/adr/` are now the
+authority and the sections below defer to them rather than restating them.
 
 ## Language
 
@@ -33,7 +33,7 @@ them" would have excluded a Viewer who has signed in and recorded nothing.
 ## The invariant
 
 Both halves of this are now recorded as decisions, and the schema that enforces
-them lands in step 1:
+them shipped in step 1:
 
 - `docs/adr/0007-watchlist-and-watched-are-one-record.md` — one row per Viewer
   per piece of Media, keyed `(viewerId, kind, tmdbId)`, state as a Postgres
@@ -121,7 +121,7 @@ section is rewritten for Vitest, its standing rules gain the exclusive-state
 invariant, and the paragraph documenting the pre-commit drift is deleted rather
 than amended, because step 1 fixes the drift. No code.
 
-**1. Foundation.** Migrate `lib/format.test.mts` to Vitest as
+**1. Foundation.** _Done._ Migrate `lib/format.test.mts` to Vitest as
 `lib/format.test.ts`, with `@/` path aliases working. Split the suite into
 unit and integration projects. Add the GitHub Actions workflow — lint,
 typecheck, unit, then integration against an ephemeral Neon branch. Reconcile
@@ -130,7 +130,14 @@ line `pnpm pre-commit`. Provision Neon, add Drizzle, write the schema and the
 first migration — Better Auth's four tables and `watch_records` together, so
 the integration project has the invariant itself to test on its first run.
 
-**2. Auth.** Better Auth with the Drizzle adapter. Google and GitHub
+Two things the plan did not foresee. `@better-auth/cli`'s latest release is
+1.4.21 against an installed 1.7.2, and it generates an `account` table missing
+`issuer` and its unique index; the schema is corrected by hand and checked
+against `getAuthTables` from `better-auth/db`. And `package.json` gains
+`"type": "module"`, without which the Vitest config raises an ESM-in-CJS
+warning on every run.
+
+**2. Auth.** _Done._ Better Auth with the Drizzle adapter. Google and GitHub
 providers, one app each, with `oAuthProxy` carrying localhost and previews
 through production's callback. `/sign-in` honouring a validated `?next=`.
 `lib/auth` owning the instance and exporting the `viewer()` helper that
@@ -138,6 +145,18 @@ through production's callback. `/sign-in` honouring a validated `?next=`.
 with sign-in and a sign-out driven by a Server Action, so step 4 keeps its
 claim to the first client component. New environment variables into
 `.env.example`.
+
+No `lib/auth-client.ts` was written. Better Auth builds the authorize URL
+server-side through `auth.api.signInSocial`, and sign-out goes through
+`auth.api.signOut`, so nothing in the app needs a client instance and an
+unused module is worse than an absent one. Step 4 can add one if the marking
+control turns out to want it, though a Server Action should serve it too.
+
+The header reads the session in the root layout, so every route is now
+server-rendered on demand where `/` used to prerender. The TMDB data cache is
+untouched — those fetches still carry `next: { revalidate }` — so what is lost
+is prerendered HTML rather than cached data. Step 7 is where Suspense and
+partial prerendering could win it back.
 
 **3. `lib/watch`.** Pure rules in one file and tested — the state transitions,
 building the lookup a page hands its cards, what an unanswered piece of Media
