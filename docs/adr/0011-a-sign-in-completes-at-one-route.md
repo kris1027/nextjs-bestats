@@ -2,10 +2,18 @@
 
 Neon Auth returns a Visitor from their provider with a verifier in the
 address, and something has to trade that verifier for the session cookie
-that makes them a Viewer. In this SDK only the middleware can: the exchange
-lives in `processAuthMiddleware`, and `auth.middleware()` is the one door to
-it. So BeStats has a `proxy.ts`, and the sign-in action sends the provider
-back to `/signed-in` rather than to wherever the Visitor was reading.
+that makes them a Viewer. In this SDK that trade lives in
+`processAuthMiddleware`, which runs in a middleware and nowhere else. So
+BeStats has a `proxy.ts`, and the sign-in action sends the provider back to
+`/signed-in` rather than to wherever the Visitor was reading.
+
+`processAuthMiddleware` is exported, and calling it ourselves was considered:
+it would have let the proxy act on the OAuth decision alone and pass
+everything else through, with no second route and no extra redirect. It was
+turned down because it makes `proxy.ts` a second reader of `NEON_AUTH_BASE_URL`
+and the cookie secret, and `lib/auth` owns Neon Auth's instance. Going through
+`auth.middleware()` is a choice, then, not the only way in — which matters if
+that boundary is ever revisited.
 
 The app went to production without one, which is worth saying plainly: every
 part of being a Viewer was written, reviewed and merged against a sign-in
@@ -41,7 +49,9 @@ back.
 route is protected, so an exchange that comes back with nothing leaves no
 session and the middleware redirects to `/sign-in` — carrying `next=` from
 the request, by the same parameter copying that made the list routes a bad
-fit. Naming the route `/auth/callback`, as Neon's own convention would, puts
+fit. Every parameter rides along, the spent verifier included, since it is
+only stripped on an exchange that worked; `/sign-in` reads `next` and ignores
+the rest. Naming the route `/auth/callback`, as Neon's own convention would, puts
 it on the skip list and lets a failed sign-in through to the destination,
 where the Visitor arrives to a "Sign in" button and no idea why.
 
