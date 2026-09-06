@@ -1,6 +1,6 @@
 {
-  "id": "291f0c47-c777-4e9d-a37d-652003ac0eb3",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "fef3b5c7-b2e5-43d1-a5d3-f7df87d25016",
+  "prevId": "291f0c47-c777-4e9d-a37d-652003ac0eb3",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -73,9 +73,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {},
@@ -104,10 +104,10 @@
     }
   },
   "schemas": {},
+  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
-  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},

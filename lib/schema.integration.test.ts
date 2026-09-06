@@ -1,9 +1,8 @@
-import { randomUUID } from 'node:crypto';
 import { and, eq, sql } from 'drizzle-orm';
-import { afterAll, beforeAll, expect, test } from 'vitest';
+import { afterAll, expect, test } from 'vitest';
 
 import { db } from '@/lib/db';
-import { user, watchRecords } from '@/lib/schema';
+import { watchRecords } from '@/lib/schema';
 
 /**
  * The invariant is the schema's to keep, not the writing code's, so these
@@ -11,27 +10,46 @@ import { user, watchRecords } from '@/lib/schema';
  * — `docs/adr/0007-watchlist-and-watched-are-one-record.md`
  */
 
+/**
+ * Viewers live in `neon_auth`, which Neon Auth owns and `lib/schema.ts`
+ * therefore does not declare, so they are made in raw SQL here.
+ */
 const newViewer = async (): Promise<string> => {
-  const id = `test-${randomUUID()}`;
+  const email = `itest-${crypto.randomUUID()}@example.test`;
 
-  await db
-    .insert(user)
-    .values({ id, name: 'Integration Viewer', email: `${id}@example.test` });
+  const { rows } = await db.execute<{ id: string }>(sql`
+    insert into neon_auth."user" (name, email, "emailVerified")
+    values ('Integration Viewer', ${email}, false)
+    returning id
+  `);
+
+  const id = rows[0]?.id;
+
+  if (!id) throw new Error('neon_auth."user" insert returned no id');
 
   return id;
 };
 
-let viewerId: string;
+const dropViewer = async (id: string): Promise<void> => {
+  await db.execute(sql`delete from neon_auth."user" where id = ${id}::uuid`);
+};
 
-beforeAll(async () => {
-  viewerId = await newViewer();
-});
+const viewers: string[] = [];
+
+const viewer = async (): Promise<string> => {
+  const id = await newViewer();
+  viewers.push(id);
+
+  return id;
+};
 
 afterAll(async () => {
-  await db.delete(user).where(eq(user.id, viewerId));
+  for (const id of viewers) await dropViewer(id);
 });
 
 test('a Viewer cannot record the same Media twice', async () => {
+  const viewerId = await viewer();
+
   await db
     .insert(watchRecords)
     .values({ viewerId, kind: 'tv', tmdbId: 1399, state: 'planned' });
@@ -44,9 +62,12 @@ test('a Viewer cannot record the same Media twice', async () => {
 });
 
 test('the same TMDB id in each Kind is two different Media', async () => {
-  await db
-    .insert(watchRecords)
-    .values({ viewerId, kind: 'movie', tmdbId: 1399, state: 'planned' });
+  const viewerId = await viewer();
+
+  await db.insert(watchRecords).values([
+    { viewerId, kind: 'tv', tmdbId: 1399, state: 'planned' },
+    { viewerId, kind: 'movie', tmdbId: 1399, state: 'planned' },
+  ]);
 
   const rows = await db
     .select()
@@ -59,27 +80,40 @@ test('the same TMDB id in each Kind is two different Media', async () => {
 });
 
 test('a state that is neither Planned nor Watched is refused', async () => {
+  const viewerId = await viewer();
+
   await expect(
     db.execute(sql`
       insert into watch_records (viewer_id, kind, tmdb_id, state)
-      values (${viewerId}, 'tv', 66732, 'abandoned')
+      values (${viewerId}::uuid, 'tv', 66732, 'abandoned')
     `),
   ).rejects.toThrow();
 });
 
+test('a Watch Record cannot belong to nobody', async () => {
+  await expect(
+    db.insert(watchRecords).values({
+      viewerId: '00000000-0000-0000-0000-000000000000',
+      kind: 'tv',
+      tmdbId: 1399,
+      state: 'planned',
+    }),
+  ).rejects.toThrow();
+});
+
 test('deleting a Viewer takes their Watch Records with it', async () => {
-  const doomed = await newViewer();
+  const viewerId = await newViewer();
 
   await db
     .insert(watchRecords)
-    .values({ viewerId: doomed, kind: 'tv', tmdbId: 1396, state: 'watched' });
+    .values({ viewerId, kind: 'tv', tmdbId: 1396, state: 'watched' });
 
-  await db.delete(user).where(eq(user.id, doomed));
+  await dropViewer(viewerId);
 
   const left = await db
     .select()
     .from(watchRecords)
-    .where(eq(watchRecords.viewerId, doomed));
+    .where(eq(watchRecords.viewerId, viewerId));
 
   expect(left).toEqual([]);
 });

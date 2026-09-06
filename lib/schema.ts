@@ -4,19 +4,16 @@ import {
   pgEnum,
   pgTable,
   primaryKey,
-  text,
   timestamp,
+  uuid,
 } from 'drizzle-orm/pg-core';
 
-import { user } from '@/lib/auth-schema';
 import type { Kind } from '@/lib/media';
 
-export * from '@/lib/auth-schema';
-
 /**
- * A Watch Record's two states. `import type` above is erased, so listing the
- * Kinds here does not drag `lib/media` into drizzle-kit at generate time,
- * while `satisfies` still fails the build if either word stops being a Kind.
+ * A Watch Record's two Kinds. `import type` above is erased, so listing them
+ * here does not drag `lib/media` into drizzle-kit at generate time, while
+ * `satisfies` still fails the build if either word stops being a Kind.
  */
 export const mediaKind = pgEnum('media_kind', [
   'tv',
@@ -42,9 +39,11 @@ export const watchState = pgEnum('watch_state', ['planned', 'watched']);
 export const watchRecords = pgTable(
   'watch_records',
   {
-    viewerId: text('viewer_id')
-      .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
+    // a `uuid` because that is what `neon_auth.user.id` is. The foreign key
+    // to it is declared in a migration of its own rather than here: Neon Auth
+    // owns that table, and a Drizzle `references()` makes drizzle-kit try to
+    // create it.
+    viewerId: uuid('viewer_id').notNull(),
     kind: mediaKind('kind').notNull(),
     tmdbId: integer('tmdb_id').notNull(),
     state: watchState('state').notNull(),

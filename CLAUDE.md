@@ -50,10 +50,12 @@ the config instead.
 two. `lib/tmdb` exports its wire types for `lib/media` alone.
 — `docs/adr/0003-tmdb-client-separate-from-domain.md`
 
-The same shape holds for auth. `lib/auth` owns the Better Auth instance and the
+The same shape holds for auth. `lib/auth` owns Neon Auth's instance and the
 `user`-shaped session it hands back; `app/` and `components/` read the current
 Viewer through its `viewer()` helper and never reach for a session themselves.
-`lib/media` never learns that Viewers exist.
+`lib/media` never learns that Viewers exist. That boundary is why swapping a
+self-hosted Better Auth for Neon's managed one cost one module rather than the
+application.
 — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
 
 ## Standing rules
@@ -82,6 +84,15 @@ Viewer through its `viewer()` helper and never reach for a session themselves.
   — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
 - Migrations are applied by running `pnpm db:migrate` on purpose, never from a
   build command, and CI never points at the production database.
+  — `docs/adr/0009-every-environment-is-a-neon-branch.md`
+- Neon owns every table in the `neon_auth` schema. `lib/schema.ts` declares
+  none of them and `drizzle.config.ts` narrows generation to `public`. A
+  Drizzle `references()` across that line makes drizzle-kit try to create the
+  table it points at, which is why the Viewer foreign key is the one migration
+  written by hand.
+  — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
+- Environment variables come from `neon checkout <branch>`, not from typing.
+  The exception is `NEON_AUTH_COOKIE_SECRET`, and `.env.example` says so.
   — `docs/adr/0009-every-environment-is-a-neon-branch.md`
 - Never edit or commit `.env.local`.
 

@@ -65,8 +65,8 @@ fail apart: the database being unreachable does not stop Trending rendering.
 | Host       | Vercel                        | Next 16's reference platform; `next: { revalidate }` relies on its data cache |
 | Database   | Neon Postgres                 | scales to zero, HTTP driver suits serverless, branch per preview, real enums |
 | ORM        | Drizzle                       | schema is TypeScript, so `tsconfig` strictness reaches it |
-| Auth       | Better Auth                   | the Viewer lives in our database, so a Watch Record has a real foreign key |
-| Sign-in    | Google and GitHub only        | removes email delivery, verification, reset and hashing from v1 entirely; one app per provider, proxied to every environment |
+| Auth       | Neon's Managed Better Auth    | the Viewer lives in our database, on the same branch, so a Watch Record has a real foreign key |
+| Sign-in    | Google and GitHub only        | removes email delivery, verification, reset and hashing from v1 entirely; Neon's development credentials until our own are registered |
 | Mutations  | Server Actions + `useOptimistic` | instant on a grid, still a real form, degrades without JS |
 | Tests      | Vitest, replacing `node --test` | unit on pre-commit, integration against real Postgres in CI |
 | CI         | GitHub Actions                | there is none today                                       |
@@ -130,27 +130,38 @@ line `pnpm pre-commit`. Provision Neon, add Drizzle, write the schema and the
 first migration — Better Auth's four tables and `watch_records` together, so
 the integration project has the invariant itself to test on its first run.
 
-Two things the plan did not foresee. `@better-auth/cli`'s latest release is
-1.4.21 against an installed 1.7.2, and it generates an `account` table missing
-`issuer` and its unique index; the schema is corrected by hand and checked
-against `getAuthTables` from `better-auth/db`. And `package.json` gains
-`"type": "module"`, without which the Vitest config raises an ESM-in-CJS
-warning on every run.
+One thing the plan did not foresee: `package.json` gains `"type": "module"`,
+without which the Vitest config raises an ESM-in-CJS warning on every run.
 
-**2. Auth.** _Done._ Better Auth with the Drizzle adapter. Google and GitHub
-providers, one app each, with `oAuthProxy` carrying localhost and previews
-through production's callback. `/sign-in` honouring a validated `?next=`.
-`lib/auth` owning the instance and exporting the `viewer()` helper that
-`lib/watch` and the pages both read. A site header — the app has none today —
-with sign-in and a sign-out driven by a Server Action, so step 4 keeps its
-claim to the first client component. New environment variables into
-`.env.example`.
+The schema this step wrote was replaced in step 2, when the auth decision was
+reversed. What survived is the shape — the enums, the triple as the primary
+key, the list index — and what changed is that `viewer_id` became a `uuid`
+pointing into a schema this repository does not own.
 
-No `lib/auth-client.ts` was written. Better Auth builds the authorize URL
-server-side through `auth.api.signInSocial`, and sign-out goes through
-`auth.api.signOut`, so nothing in the app needs a client instance and an
-unused module is worse than an absent one. Step 4 can add one if the marking
-control turns out to want it, though a Server Action should serve it too.
+**2. Auth.** _Done, and not as planned._ The step began with a self-hosted
+`better-auth` and ended on Neon's Managed Better Auth, which is the same
+library run by Neon with its tables in the `neon_auth` schema of the same
+database. `docs/adr/0005` records both the decision and what it costs: the
+version and the auth configuration become Neon's, it is Beta, and leaving Neon
+stops being a connection-string change. What bought it: localhost is a trusted
+origin already, previews are one wildcard entry rather than an impossible
+per-push callback, and Neon's development OAuth credentials mean sign-in works
+before any provider account exists. The whole `oAuthProxy` arrangement, its
+shared secret and six environment variables went away with it.
+
+The rest stood. `/sign-in` honours a validated `?next=`; `lib/auth` owns the
+instance and exports the `viewer()` helper that `lib/watch` and the pages both
+read; the site header — the app had none — carries sign-in and a sign-out
+driven by a Server Action, so step 4 keeps its claim to the first client
+component.
+
+No client auth instance was written, under either vendor. The authorize URL is
+built server-side, so nothing in the app needs one and an unused module is
+worse than an absent one.
+
+The reversal cost one module. `app/`, `components/` and the sign-in page did
+not change when the vendor underneath them did, which is `docs/adr/0003`'s
+boundary earning its keep on a decision it was not written for.
 
 The header reads the session in the root layout, so every route is now
 server-rendered on demand where `/` used to prerender. The TMDB data cache is
@@ -193,6 +204,7 @@ parked for since `03173a8`, and step 2's header is where it goes.
 - `docs/adr/0007-watchlist-and-watched-are-one-record.md`
 - `docs/adr/0008-vitest-replaces-the-node-test-runner.md`
 - `docs/adr/0009-every-environment-is-a-neon-branch.md`
+- `neon.ts` — which Neon services every branch carries
 - `CLAUDE.md` — Commands, Tests, module boundary, standing rules
 - `README.md` — a setup section, since a fresh clone now needs a database and
   two OAuth applications before it will run

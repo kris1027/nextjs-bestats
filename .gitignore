@@ -48,3 +48,6 @@ next-env.d.ts
 # Skills written for this repo are committed; the negation is how they opt in.
 /.claude/skills/*
 !/.claude/skills/branch-check/
+
+# Neon CLI's link file: which project and branch this workspace points at
+/.neon

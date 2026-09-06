@@ -12,5 +12,9 @@ export default defineConfig({
   dialect: 'postgresql',
   schema: './lib/schema.ts',
   out: './drizzle',
+  // Neon Auth owns `neon_auth`; drizzle-kit manages `public` and nothing else
+  schemaFilter: ['public'],
+  // the cross-schema foreign key lives in a custom migration, so leave the
+  // constraint alone rather than dropping what generation cannot see
   dbCredentials: { url },
 });

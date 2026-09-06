@@ -1,6 +1,5 @@
 'use server';
 
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { auth, isProvider } from '@/lib/auth';
@@ -9,9 +8,10 @@ import { nextPath } from '@/lib/next-path';
 /**
  * Hands the Visitor to a provider and brings them back to `?next=`.
  *
- * Better Auth builds the authorize URL server-side, so no client instance is
- * needed for this and none exists. `oAuthProxy` rewrites the `redirect_uri` to
- * production's callback whatever environment this runs in.
+ * Neon Auth builds the authorize URL server-side, so no client instance is
+ * needed for this and none exists. Localhost is a trusted origin already, and
+ * preview deployments are covered by a wildcard, so there is no proxying to
+ * arrange.
  * — `docs/adr/0009-every-environment-is-a-neon-branch.md`
  */
 export const signIn = async (formData: FormData): Promise<void> => {
@@ -21,24 +21,18 @@ export const signIn = async (formData: FormData): Promise<void> => {
 
   const callbackURL = nextPath(String(formData.get('next') ?? ''));
 
-  const { url } = await auth.api.signInSocial({
-    body: {
-      provider,
-      callbackURL,
-      errorCallbackURL: '/sign-in',
-    },
-    headers: await headers(),
-  });
+  const { data, error } = await auth.signIn.social({ provider, callbackURL });
 
-  if (!url) throw new Error(`No authorize URL from ${provider}`);
+  if (error) throw new Error(`${provider} sign-in failed: ${error.message}`);
+  if (!data?.url) throw new Error(`No authorize URL from ${provider}`);
 
   // outside any try: redirect signals by throwing
-  redirect(url);
+  redirect(data.url);
 };
 
 /** Ends the session and returns the Viewer to being a Visitor. */
 export const signOut = async (): Promise<void> => {
-  await auth.api.signOut({ headers: await headers() });
+  await auth.signOut();
 
   redirect('/');
 };

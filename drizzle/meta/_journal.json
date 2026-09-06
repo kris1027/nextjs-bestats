@@ -5,8 +5,15 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1788692322179,
-      "tag": "0000_viewers_and_watch_records",
+      "when": 1788694472892,
+      "tag": "0000_watch_records",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788694473493,
+      "tag": "0001_viewer_foreign_key",
       "breakpoints": true
     }
   ]

@@ -41,12 +41,11 @@ those as the absences they are rather than reporting them as measurements.
   here.
 - **A TMDB read access token.** Free — create an account, then generate one
   at <https://www.themoviedb.org/settings/api>.
-- **A Neon Postgres project.** Free, and scales to zero. Create a `dev`
-  branch alongside `main` and point your `DATABASE_URL` at `dev` — `main` is
-  production.
-- **A Google and a GitHub OAuth application**, if you want sign-in to work.
-  Browsing needs neither. Register the **production** callback only; see
-  [Environments](#environments) for why there is no localhost entry.
+- **A Neon Postgres project**, with Auth enabled. Free, and scales to zero.
+  `neon checkout dev` creates and selects a `dev` branch and writes its
+  connection details for you — `main` is production.
+- **No OAuth application.** Neon supplies development credentials for Google
+  and GitHub, so sign-in works before you register anything of your own.
 
 ### Setup
 
@@ -57,9 +56,14 @@ corepack enable
 pnpm install
 
 cp .env.example .env.local
-# open .env.local and fill in the blanks — see Environment below
+# paste your TMDB token; Neon fills in the rest below
 
-pnpm db:migrate   # creates the tables on whatever DATABASE_URL names
+npx neon@latest auth              # sign in to Neon
+npx neon@latest link              # pick this project, writes .neon
+npx neon@latest checkout dev      # creates the branch, writes its env vars
+echo "NEON_AUTH_COOKIE_SECRET=$(openssl rand -base64 32)" >> .env.local
+
+pnpm db:migrate   # creates watch_records on the dev branch
 pnpm dev
 ```
 
@@ -78,19 +82,16 @@ on the server — no token and no session ever reaches a browser.
 | `TMDB_API_URL`               | API base                                 | `https://api.themoviedb.org/3`     |
 | `TMDB_POSTER_PATH`           | Poster image base, sized `w780`          | `https://image.tmdb.org/t/p/w780`  |
 | `TMDB_BACKDROP_PATH`         | Backdrop image base, `w1280`             | `https://image.tmdb.org/t/p/w1280` |
-| `DATABASE_URL`               | A Neon branch — `dev` locally            | _yours to fill in_                 |
-| `BETTER_AUTH_SECRET`         | Signs sessions                           | _yours to fill in_                 |
-| `BETTER_AUTH_URL`            | This environment's own origin            | `http://localhost:3000`            |
-| `BETTER_AUTH_PRODUCTION_URL` | Where every OAuth callback lands         | the production origin              |
-| `OAUTH_PROXY_SECRET`         | Encrypts the profile in transit          | _yours to fill in_                 |
-| `GOOGLE_CLIENT_ID`           | Google OAuth application                 | _yours to fill in_                 |
-| `GOOGLE_CLIENT_SECRET`       | Google OAuth application                 | _yours to fill in_                 |
-| `GITHUB_CLIENT_ID`           | GitHub OAuth application                 | _yours to fill in_                 |
-| `GITHUB_CLIENT_SECRET`       | GitHub OAuth application                 | _yours to fill in_                 |
+| `DATABASE_URL`               | The Neon branch — `dev` locally          | _written by `neon checkout`_       |
+| `DATABASE_URL_UNPOOLED`      | The same branch, direct                  | _written by `neon checkout`_       |
+| `NEON_BRANCH`                | Which branch this is                     | _written by `neon checkout`_       |
+| `NEON_AUTH_BASE_URL`         | The branch's Auth server                 | _written by `neon checkout`_       |
+| `NEON_AUTH_JWKS_URL`         | Its signing keys                         | _written by `neon checkout`_       |
+| `NEON_AUTH_COOKIE_SECRET`    | Signs the session cookie                 | _yours: `openssl rand -base64 32`_ |
 
-Generate the two secrets with `openssl rand -base64 32`. `OAUTH_PROXY_SECRET`
-must be byte-identical in every environment; a mismatch surfaces as a
-decryption error rather than as a configuration one.
+Only two of these are yours to write: the TMDB token and the cookie secret.
+Everything else is `neon checkout <branch>`'s to fill in, and running it again
+is how you move between branches.
 
 `.env.local` is gitignored and must never be committed or edited by tooling.
 
@@ -103,15 +104,17 @@ The driver this app ships has no interactive transactions and a local Postgres
 does, so a test suite built on rolling back would be green about code that
 cannot run.
 
-Google and GitHub each have exactly one OAuth application, and its only
-registered redirect is on the production domain. Better Auth's `oAuthProxy`
-plugin points every environment's `redirect_uri` there, so signing in from
-`localhost:3000` reaches a callback on production and comes back. This reads
-as a misconfiguration and is not one — preview deployments get a new URL on
-every push and neither provider accepts a wildcard redirect. Production
-performs the token exchange and hands the encrypted profile back; it writes
-nothing to the production database, and a local sign-in creates its session in
-the local one.
+Auth branches with the database. Each branch carries its own `neon_auth`
+schema, so a CI run signs in against its own Viewers and drops them with the
+branch, and `dev` cannot reach production's.
+
+Sign-in redirects are restricted to a trusted-domain allowlist rather than to
+registered callback URLs. Localhost is pre-approved on any port, preview
+deployments are covered by a single wildcard entry, and Neon supplies
+development OAuth credentials until you register your own. The failure mode
+worth knowing: a domain that is not on the list fails with `invalid domain`,
+which reads like a bug in sign-in rather than a missing entry. Add one with
+`neon neon-auth domain add https://example.com`.
 
 Both are explained in
 [`docs/adr/0009`](docs/adr/0009-every-environment-is-a-neon-branch.md).
@@ -145,7 +148,7 @@ app/
   search/page.tsx        Search, both Kinds
   [kind]/[id]/page.tsx   One detail page serving Shows and Movies
   sign-in/page.tsx       Google and GitHub, honouring ?next=
-  api/auth/[...all]/     Better Auth's handler
+  api/auth/[...path]/    Neon Auth's handler
   layout.tsx             Fonts, metadata, theme, header
 components/
   media/                 Card, list, detail, placeholder artwork
@@ -156,13 +159,13 @@ lib/
   tmdb.ts                TMDB's wire vocabulary
   media.ts               The domain's vocabulary
   format.ts              Locale, plurals, dates, runtimes
-  auth.ts                Better Auth's instance, and viewer()
+  auth.ts                Neon Auth's instance, and viewer()
   auth-actions.ts        Sign in and sign out, as Server Actions
-  auth-schema.ts         Better Auth's four tables
-  schema.ts              Watch Records, and the tables above
+  schema.ts              Watch Records; neon_auth is Neon's, not ours
   db.ts                  The Drizzle client
   next-path.ts           Validates ?next=
-drizzle/                 Generated migrations — committed, never edited
+neon.ts                  Which Neon services every branch carries
+drizzle/                 Migrations — generated, except the foreign key
 docs/
   adr/                   Decisions, and why they were made
   v1-plan.md             What the first real release contains
