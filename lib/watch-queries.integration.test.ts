@@ -9,6 +9,7 @@ import {
   clearWatchRecord,
   watchLookup,
   watchRecordsPage,
+  watchTallies,
   writeWatchRecord,
 } from '@/lib/watch-queries';
 
@@ -187,4 +188,26 @@ test('a Viewer with nothing recorded has an empty list, not a missing one', asyn
     records: [],
     total: 0,
   });
+});
+
+test('the tallies count each state, and a state with nothing counts 0', async () => {
+  const viewerId = await viewer();
+
+  await writeWatchRecord(viewerId, GOT, 'planned');
+  await writeWatchRecord(viewerId, BREAKING_BAD, 'planned');
+  await writeWatchRecord(viewerId, HEAT, 'watched');
+
+  expect(await watchTallies(viewerId)).toEqual({ planned: 2, watched: 1 });
+
+  await clearWatchRecord(viewerId, HEAT);
+
+  expect(await watchTallies(viewerId)).toEqual({ planned: 2, watched: 0 });
+});
+
+test('the tallies are one Viewer’s and nobody else’s', async () => {
+  const [mine, theirs] = await Promise.all([viewer(), viewer()]);
+
+  await writeWatchRecord(theirs, GOT, 'watched');
+
+  expect(await watchTallies(mine)).toEqual({ planned: 0, watched: 0 });
 });

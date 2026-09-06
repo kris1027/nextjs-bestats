@@ -1,9 +1,9 @@
 import { and, count, desc, eq, or, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
+import type { MediaRef } from '@/lib/media';
 import { watchRecords } from '@/lib/schema';
 import {
-  type MediaRef,
   PAGE_SIZE,
   toLookup,
   type WatchLookup,
@@ -118,6 +118,28 @@ export const watchRecordsPage = async (
   ]);
 
   return { records, total: tally?.total ?? 0 };
+};
+
+/**
+ * How many Watch Records a Viewer holds in each state, in one grouped query:
+ * the counts the two lists' tabs wear, so the closed tab admits what waits
+ * behind it. A state with no rows is `0` here rather than absent, since a
+ * Viewer with an empty Watchlist has an empty Watchlist, not a missing one.
+ */
+export const watchTallies = async (
+  viewerId: string,
+): Promise<Record<WatchState, number>> => {
+  const rows = await db
+    .select({ state: watchRecords.state, total: count() })
+    .from(watchRecords)
+    .where(eq(watchRecords.viewerId, viewerId))
+    .groupBy(watchRecords.state);
+
+  const tallies: Record<WatchState, number> = { planned: 0, watched: 0 };
+
+  for (const row of rows) tallies[row.state] = row.total;
+
+  return tallies;
 };
 
 /**

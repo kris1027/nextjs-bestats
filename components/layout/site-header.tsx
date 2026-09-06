@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { type JSX, Suspense } from 'react';
 
+import { ListLinks } from '@/components/layout/list-links';
 import { SignInLink } from '@/components/layout/sign-in-link';
 import { viewer } from '@/lib/auth';
 import { signOut } from '@/lib/auth-actions';
@@ -23,7 +24,8 @@ const ViewerControl = async (): Promise<JSX.Element> => {
   if (!currentViewer) return <SignInLink className={control} />;
 
   return (
-    <div className='flex items-center gap-3'>
+    <div className='flex items-center gap-4'>
+      <ListLinks />
       {currentViewer.image ? (
         <Image
           src={currentViewer.image}

@@ -10,14 +10,10 @@ import {
 
 import { Bookmark, Check, type LucideIcon } from 'lucide-react';
 
+import type { MediaRef } from '@/lib/media';
 import { useAddress } from '@/lib/use-address';
 import { cn } from '@/lib/utils';
-import {
-  type MediaRef,
-  marked,
-  WATCH_STATES,
-  type WatchState,
-} from '@/lib/watch';
+import { marked, WATCH_STATES, type WatchState } from '@/lib/watch';
 import { mark, markFromForm } from '@/lib/watch-actions';
 
 /** The word and the icon each button wears: the glossary's two states. */

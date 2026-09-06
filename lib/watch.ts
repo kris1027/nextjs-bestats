@@ -1,4 +1,4 @@
-import type { Kind } from '@/lib/media';
+import type { Kind, MediaRef } from '@/lib/media';
 
 /**
  * The rules that move a Watch Record between states, and nothing that touches
@@ -38,9 +38,6 @@ export type WatchRecord = {
   updatedAt: Date;
 };
 
-/** How a page names a piece of Media it wants a Watch Record for. */
-export type MediaRef = { kind: Kind; id: number };
-
 /**
  * What marking does. Pressing the state a Watch Record already has unmarks it
  * — `null`, no record — and pressing the other moves it. `null` in is a piece
@@ -54,6 +51,17 @@ export const marked = (
   current: WatchState | null,
   pressed: WatchState,
 ): WatchState | null => (current === pressed ? null : pressed);
+
+/**
+ * The two lists, one per state: where each lives and the word it wears. The
+ * Watchlist is the Planned list and the glossary's own word for it; the
+ * Watched list has no word but Watched. One row per state, like `KIND_WORDS`,
+ * so the header's links, the tabs and the routes cannot drift apart.
+ */
+export const LISTS: Record<WatchState, { path: string; label: string }> = {
+  planned: { path: '/watchlist', label: 'Watchlist' },
+  watched: { path: '/watched', label: 'Watched' },
+};
 
 /**
  * The key a page's lookup is built on: `tv/1399`, the spelling of the URL and

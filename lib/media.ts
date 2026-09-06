@@ -48,6 +48,13 @@ export const KIND_WORDS: Record<Kind, NounForms & { label: string }> = {
 export type Artwork = 'poster' | 'backdrop';
 
 /**
+ * How a caller names one piece of Media: its Kind and its TMDB id, together,
+ * because a TMDB id is unique only within a Kind. A Media Item already is
+ * one, which is why a card can hand itself to anything that takes a ref.
+ */
+export type MediaRef = { kind: Kind; id: number };
+
+/**
  * Enough of a piece of Media to recognise it in a grid and follow it to its
  * page. `voteCount` is carried for the guard rather than the screen: nobody
  * having voted is the only thing that distinguishes an unrated piece of Media
@@ -61,6 +68,19 @@ export type MediaItem = {
   voteCount: number;
   kind: Kind;
 };
+
+/**
+ * What asking TMDB for one piece of Media by ref comes back as. Three answers,
+ * because there are two ways not to get a Media Item and they mean different
+ * things: Gone is TMDB's answer — it had this Media once and no longer does —
+ * and Unanswered is no answer at all, which may be different next time. A
+ * discriminant rather than `null` and `undefined`, so no reader has to
+ * remember which absence is which.
+ */
+export type MediaAnswer =
+  | { answer: 'item'; item: MediaItem }
+  | { answer: 'gone' }
+  | { answer: 'unanswered' };
 
 /**
  * What a Query finds for one Kind. `total` counts everything TMDB matched,
@@ -232,6 +252,52 @@ export const mediaDetails = async (
   const movie = await findTMDB<TmdbMovieDetails>(`/movie/${id}`);
 
   return movie && toMovieDetails(movie);
+};
+
+/**
+ * One piece of Media by ref, as a Media Item. The detail endpoints carry every
+ * field a Media Item needs, so the list mapping serves; `null` is TMDB's 404.
+ */
+const mediaItem = async (ref: MediaRef): Promise<MediaItem | null> => {
+  const media =
+    ref.kind === 'tv'
+      ? await findTMDB<TmdbShowDetails>(`/tv/${ref.id}`)
+      : await findTMDB<TmdbMovieDetails>(`/movie/${ref.id}`);
+
+  return media && toMediaItem(media, ref.kind);
+};
+
+/**
+ * Resolves refs to Media, one request each, issued together and settled
+ * apart the way `searchMedia` settles its two Kinds: one ref TMDB will not
+ * answer for leaves the others' answers intact. Answers come back in the
+ * refs' order, so a caller pairs them by index.
+ *
+ * This is what a list of Watch Records costs, since a record stores nothing
+ * from TMDB — which is why lists page at twenty.
+ * — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
+ */
+export const mediaItems = async (
+  refs: readonly MediaRef[],
+): Promise<MediaAnswer[]> => {
+  const results = await Promise.allSettled(refs.map(mediaItem));
+
+  return results.map((result, index) => {
+    if (result.status === 'rejected') {
+      const ref = refs[index];
+
+      console.error(
+        `TMDB for ${ref?.kind}/${ref?.id} went Unanswered:`,
+        result.reason,
+      );
+
+      return { answer: 'unanswered' };
+    }
+
+    return result.value
+      ? { answer: 'item', item: result.value }
+      : { answer: 'gone' };
+  });
 };
 
 /** Runs the Query against one Kind's endpoint. */
