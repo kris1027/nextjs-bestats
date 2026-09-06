@@ -6,8 +6,7 @@ import { BackButton } from '@/components/ui/back-button';
 import { PROVIDERS, type Provider, viewer } from '@/lib/auth';
 import { signIn } from '@/lib/auth-actions';
 import { nextPath } from '@/lib/next-path';
-
-type SearchParams = { [key: string]: string | string[] | undefined };
+import type { SearchParams } from '@/lib/search-params';
 
 export const metadata: Metadata = {
   title: 'Sign in',

@@ -29,9 +29,11 @@ Against that, it needs an OAuth application per provider registered by hand, a
 proxy plugin and a shared secret to make preview deployments work at all, and
 its own copy of the four auth tables in our migrations.
 
-Managed Better Auth removes all of that. Localhost is a trusted origin already,
-preview deployments are covered by one wildcard, and Neon supplies development
-OAuth credentials, so sign-in works before any provider account exists.
+Managed Better Auth removes most of that. Localhost is a trusted origin
+already, and Neon supplies development OAuth credentials, so sign-in works
+before any provider account exists. Preview deployments are the part it does
+not fix — see `docs/adr/0009` — but they were never going to work under the
+proxy either.
 
 What it costs is worth naming, because none of it is visible in the code:
 

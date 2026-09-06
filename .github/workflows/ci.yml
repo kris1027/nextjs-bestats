@@ -37,6 +37,9 @@ jobs:
   integration:
     name: Integration
     runs-on: ubuntu-latest
+    # the cheap checks gate the expensive one: no Neon branch is provisioned
+    # for a run that lint or typecheck was going to fail anyway
+    needs: check
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6

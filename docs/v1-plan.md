@@ -144,9 +144,10 @@ library run by Neon with its tables in the `neon_auth` schema of the same
 database. `docs/adr/0005` records both the decision and what it costs: the
 version and the auth configuration become Neon's, it is Beta, and leaving Neon
 stops being a connection-string change. What bought it: localhost is a trusted
-origin already, previews are one wildcard entry rather than an impossible
-per-push callback, and Neon's development OAuth credentials mean sign-in works
-before any provider account exists. The whole `oAuthProxy` arrangement, its
+origin already, and Neon's development OAuth credentials mean sign-in works
+before any provider account exists. Previews still cannot sign in without
+their URL being registered by hand, which is no worse than the proxy managed
+and is recorded in `docs/adr/0009`. The whole `oAuthProxy` arrangement, its
 shared secret and six environment variables went away with it.
 
 The rest stood. `/sign-in` honours a validated `?next=`; `lib/auth` owns the
@@ -163,11 +164,19 @@ The reversal cost one module. `app/`, `components/` and the sign-in page did
 not change when the vendor underneath them did, which is `docs/adr/0003`'s
 boundary earning its keep on a decision it was not written for.
 
-The header reads the session in the root layout, so every route is now
-server-rendered on demand where `/` used to prerender. The TMDB data cache is
-untouched — those fetches still carry `next: { revalidate }` — so what is lost
-is prerendered HTML rather than cached data. Step 7 is where Suspense and
-partial prerendering could win it back.
+The header reads the session, so every route is now server-rendered on demand
+where `/` used to prerender. The TMDB data cache is untouched — those fetches
+still carry `next: { revalidate }` — so what is lost is prerendered HTML rather
+than cached data.
+
+The Viewer control sits behind its own Suspense boundary, which is the seam
+partial prerendering needs, but the boundary alone does not restore static
+rendering: without PPR a cookie read anywhere in the tree makes the whole route
+dynamic. Enabling it was tried and reverted. In Next 16 the flag is
+`cacheComponents`, not `experimental.ppr`, and it refuses to build until every
+uncached read is inside Suspense — including the TMDB fetches on every page.
+That is step 7's own description of itself, so it waits for step 7 rather than
+arriving early and half-done.
 
 **3. `lib/watch`.** Pure rules in one file and tested — the state transitions,
 building the lookup a page hands its cards, what an unanswered piece of Media
@@ -192,7 +201,9 @@ through the foreign key. Rate limiting on the marking action.
 
 **7. Polish.** `loading.tsx` and `error.tsx` per route, with Suspense around
 the TMDB fetches — worth more here than elsewhere, since a list of twenty Watch
-Records is twenty TMDB requests. The theme toggle `app/layout.tsx` has been
+Records is twenty TMDB requests. Doing that is also what unblocks
+`cacheComponents`, and with it the static rendering the header cost step 2;
+the header's Suspense boundary is already in place waiting for it. The theme toggle `app/layout.tsx` has been
 parked for since `03173a8`, and step 2's header is where it goes.
 
 ## Documents this produces

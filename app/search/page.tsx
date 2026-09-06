@@ -15,12 +15,7 @@ import {
   matchedNothing,
   searchMedia,
 } from '@/lib/media';
-
-type SearchParams = { [key: string]: string | string[] | undefined };
-
-/** A query parameter can repeat — `?q=a&q=b` — so the first one wins. */
-const firstValue = (value: string | string[] | undefined): string =>
-  (Array.isArray(value) ? value[0] : value) ?? '';
+import { firstValue, type SearchParams } from '@/lib/search-params';
 
 /**
  * Which tab opens when the address does not name one: a Kind with Matches

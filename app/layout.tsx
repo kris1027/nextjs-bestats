@@ -9,9 +9,6 @@ import { cn } from '@/lib/utils';
 
 const sans = Montserrat({ subsets: ['latin'], variable: '--font-sans' });
 
-// the header reads the session, which depends on cookies
-export const dynamic = 'force-dynamic';
-
 export const metadata: Metadata = {
   title: {
     default: 'BeStats',

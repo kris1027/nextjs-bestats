@@ -1,12 +1,7 @@
+import { firstValue } from '@/lib/search-params';
+
 /** Where a Visitor is sent when `?next=` names nowhere it is willing to go. */
 const HOME = '/';
-
-/**
- * A query parameter can repeat — `?next=a&next=b` — so the first one wins,
- * as it does for `?q=` on the search page.
- */
-const firstValue = (value: string | string[] | undefined): string =>
-  (Array.isArray(value) ? value[0] : value) ?? '';
 
 /**
  * Reads the `?next=` parameter `/sign-in` carries: the address a Visitor

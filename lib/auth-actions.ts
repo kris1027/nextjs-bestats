@@ -9,9 +9,9 @@ import { nextPath } from '@/lib/next-path';
  * Hands the Visitor to a provider and brings them back to `?next=`.
  *
  * Neon Auth builds the authorize URL server-side, so no client instance is
- * needed for this and none exists. Localhost is a trusted origin already, and
- * preview deployments are covered by a wildcard, so there is no proxying to
- * arrange.
+ * needed for this and none exists. Localhost is a trusted origin already, so
+ * there is no proxying to arrange for development; a preview deployment needs
+ * its URL added to the branch's trusted domains by hand.
  * — `docs/adr/0009-every-environment-is-a-neon-branch.md`
  */
 export const signIn = async (formData: FormData): Promise<void> => {
