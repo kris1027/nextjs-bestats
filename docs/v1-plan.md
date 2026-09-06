@@ -9,9 +9,11 @@ have watched" — and `docs/adr/0003` split the domain layer off from the TMDB
 client precisely so those records would have "a home that is not named after a
 third-party API". v1 is that home.
 
-This file is a plan, not a record of decisions. Steps 0, 1 and 2 have landed,
-so for everything they covered `CONTEXT.md` and `docs/adr/` are now the
+This file is a plan, not a record of decisions. Steps 0 to 3 have landed, so
+for everything they covered `CONTEXT.md`, `docs/adr/` and the code are now the
 authority and the sections below defer to them rather than restating them.
+Step 4, the control, is next: its Server Action exists, its client half does
+not.
 
 ## Language
 

@@ -38,6 +38,10 @@ the one hand-written migration in there is held to the same rule as the rest.
 - A test sits beside its source: `lib/format.ts` → `lib/format.test.ts`. An
   integration test takes `.integration.test.ts`, which is how the two projects
   tell each other's files apart.
+- A helper shared by test files is a `lib/test-*.ts` file of its own, never
+  an export from a test file: importing one test file from another runs its
+  tests twice. `lib/test-viewers.ts` makes the Viewers both integration files
+  need.
 - `@/` resolves in tests, so an import in a test looks like an import anywhere
   else in the repo.
 - The integration project runs against a real Neon branch, never a local
@@ -62,17 +66,13 @@ self-hosted Better Auth for Neon's managed one cost one module rather than the
 application.
 — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
 
-`lib/watch` holds Watch Records and is three files, split by what each may
-import. `lib/watch.ts` is the pure half — the states, `marked`, the lookup a
-page hands its cards — and is the only one a client component may import, so
-it never touches `lib/db`, whose import throws without `DATABASE_URL`.
-`lib/watch-queries.ts` is the reads and writes over Drizzle; every function
-takes the Viewer's id and never decides who that is. `lib/watch-actions.ts` is
-the `mark` Server Action, which reads the Viewer from `lib/auth` and validates
-the form against `lib/media`'s guards. `lib/watch` reads `lib/media` for
-`Kind` and those guards and nothing else; `lib/media` reads neither `lib/watch`
-nor `lib/auth`. TMDB resolution for a list of Watch Records is the page's job,
-not this module's.
+`lib/watch` holds Watch Records. `lib/watch.ts` is its pure half and the only
+file in it a client component may import, so it never imports `lib/db`, whose
+import throws without `DATABASE_URL`. The queries take a Viewer id and never
+decide whose it is; only the action reads `lib/auth`. `lib/watch` reads
+`lib/media` for `Kind` and its guards, and `lib/media` reads neither
+`lib/watch` nor `lib/auth`. Resolving a list of Watch Records against TMDB is
+the page's job, not this module's.
 
 ## Standing rules
 
@@ -126,6 +126,9 @@ not this module's.
 - A form that navigates uses `next/form`, not `<form>`. A native GET form is a
   browser navigation, so a plain `<form action='/search'>` reloads the
   document; `next/form` renders the same markup and intercepts the submit.
+- Server Actions live in `lib/<module>-actions.ts` beside their module, since
+  a `'use server'` file may export only async functions and cannot share a
+  file with the rules it calls.
 
 ## Branch workflow
 
