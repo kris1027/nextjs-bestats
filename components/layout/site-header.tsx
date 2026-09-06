@@ -58,9 +58,15 @@ const ViewerControl = async (): Promise<JSX.Element> => {
  * The app had no header until a Viewer existed to put in one. It reads the
  * Viewer through `lib/auth`'s helper and never a session of its own.
  * — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
+ *
+ * The height is fixed rather than left to the content. The Viewer control
+ * streams in after the first paint, and a header sized by its children grows
+ * by the difference between the fallback and the control when it lands —
+ * two pixels, under the threshold the Layout Instability API reports, and
+ * enough to move every card on the page.
  */
 const SiteHeader = (): JSX.Element => (
-  <header className='flex items-center justify-between gap-4 border-foreground/20 border-b px-4 py-3'>
+  <header className='flex h-14 items-center justify-between gap-4 border-foreground/20 border-b px-4'>
     <Link
       href='/'
       className='font-extrabold text-base leading-none tracking-tight'
@@ -68,7 +74,8 @@ const SiteHeader = (): JSX.Element => (
       BeStats
     </Link>
 
-    <Suspense fallback={<span className='h-[26px]' />}>
+    {/* nothing to hold the space: the header's height does not depend on it */}
+    <Suspense fallback={null}>
       <ViewerControl />
     </Suspense>
   </header>
