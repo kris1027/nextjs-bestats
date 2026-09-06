@@ -98,6 +98,16 @@ export type MediaDetails = {
 export const isKind = (value: string): value is Kind =>
   KINDS.some((kind) => kind === value);
 
+// TMDB ids are positive integers, so anything else cannot exist
+const ID_PATTERN = /^[1-9]\d{0,8}$/;
+
+/**
+ * Guards a TMDB id that arrives as an opaque string — a route segment, a form
+ * field. Said here once so the detail page and the marking action agree on
+ * what cannot exist before either makes a request or a query.
+ */
+export const isMediaId = (value: string): boolean => ID_PATTERN.test(value);
+
 /**
  * Whether a Kind has Media to put on a page. Not the same question as whether
  * its entry is present: `null` and empty `items` both leave nothing to render,

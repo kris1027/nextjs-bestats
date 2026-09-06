@@ -38,6 +38,10 @@ the one hand-written migration in there is held to the same rule as the rest.
 - A test sits beside its source: `lib/format.ts` → `lib/format.test.ts`. An
   integration test takes `.integration.test.ts`, which is how the two projects
   tell each other's files apart.
+- A helper shared by test files is a `lib/test-*.ts` file of its own, never
+  an export from a test file: importing one test file from another runs its
+  tests twice. `lib/test-viewers.ts` makes the Viewers both integration files
+  need.
 - `@/` resolves in tests, so an import in a test looks like an import anywhere
   else in the repo.
 - The integration project runs against a real Neon branch, never a local
@@ -62,9 +66,13 @@ self-hosted Better Auth for Neon's managed one cost one module rather than the
 application.
 — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
 
-`lib/watch` will hold Watch Records and the rules that move them between
-states. It may read `lib/auth` for the current Viewer; `lib/media` may not read
-either. It does not exist yet — step 3 of `docs/v1-plan.md` writes it.
+`lib/watch` holds Watch Records. `lib/watch.ts` is its pure half and the only
+file in it a client component may import, so it never imports `lib/db`, whose
+import throws without `DATABASE_URL`. The queries take a Viewer id and never
+decide whose it is; only the action reads `lib/auth`. `lib/watch` reads
+`lib/media` for `Kind` and its guards, and `lib/media` reads neither
+`lib/watch` nor `lib/auth`. Resolving a list of Watch Records against TMDB is
+the page's job, not this module's.
 
 ## Standing rules
 
@@ -118,6 +126,9 @@ either. It does not exist yet — step 3 of `docs/v1-plan.md` writes it.
 - A form that navigates uses `next/form`, not `<form>`. A native GET form is a
   browser navigation, so a plain `<form action='/search'>` reloads the
   document; `next/form` renders the same markup and intercepts the submit.
+- Server Actions live in `lib/<module>-actions.ts` beside their module, since
+  a `'use server'` file may export only async functions and cannot share a
+  file with the rules it calls.
 
 ## Branch workflow
 

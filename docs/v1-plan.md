@@ -9,9 +9,11 @@ have watched" — and `docs/adr/0003` split the domain layer off from the TMDB
 client precisely so those records would have "a home that is not named after a
 third-party API". v1 is that home.
 
-This file is a plan, not a record of decisions. Steps 0, 1 and 2 have landed,
-so for everything they covered `CONTEXT.md` and `docs/adr/` are now the
+This file is a plan, not a record of decisions. Steps 0 to 3 have landed, so
+for everything they covered `CONTEXT.md`, `docs/adr/` and the code are now the
 authority and the sections below defer to them rather than restating them.
+Step 4, the control, is next: its Server Action exists, its client half does
+not.
 
 ## Language
 
@@ -29,6 +31,11 @@ standing to a Watch Record as Show and Movie stand to Kind, which also gives
 
 Viewer lost its second sentence. "The word the reader's own watching earns
 them" would have excluded a Viewer who has signed in and recorded nothing.
+
+A seventh arrived with step 3: Mark, the glossary's one verb. It was already
+load-bearing in two ADRs and this plan before it had a definition, and the
+definition is where the rule lives that marking the state a Watch Record
+already has unmarks it.
 
 ## The invariant
 
@@ -178,12 +185,44 @@ uncached read is inside Suspense — including the TMDB fetches on every page.
 That is step 7's own description of itself, so it waits for step 7 rather than
 arriving early and half-done.
 
-**3. `lib/watch`.** Pure rules in one file and tested — the state transitions,
-building the lookup a page hands its cards, what an unanswered piece of Media
-looks like in a list. Thin query functions beside them, covered by the
-integration project. The Server Actions that set and clear a Watch Record,
-authorised against the session and never against a client-supplied Viewer id.
-The schema and its migration already exist, so this step is logic only.
+**3. `lib/watch`.** _Done._ Three flat files, split by what each may import:
+`lib/watch.ts` for the pure rules, which a client component will import in
+step 4 and which therefore never touches `lib/db`; `lib/watch-queries.ts` for
+the reads and writes, covered by the integration project; and
+`lib/watch-actions.ts` for the one Server Action, `mark`, authorised against
+the session and never against a client-supplied Viewer id. The pair mirrors
+`lib/auth.ts` and `lib/auth-actions.ts`.
+
+The rule turned out to be one line. A card carries two controls, Planned and
+Watched, and pressing the state a Watch Record already has unmarks it — Mark
+entered `CONTEXT.md` as a verb to say so. The form carries what was pressed,
+never the outcome, so the action reads the row as it really is and applies
+the rule there; a page that fell behind another tab cannot carry a delete
+instruction in a hidden field. The same rule runs on the client for the
+optimistic flip, which is why it is pure.
+
+The action returns a result rather than throwing — `{ state }` or
+`{ error }` — because the control has to show a message and there is no
+`error.tsx` until step 7. Malformed input still throws: our own form cannot
+produce it. A signed-out submission redirects to `/sign-in?next=` through
+`nextPath`, and the action calls no `revalidatePath`, since a layout-wide one
+would purge the TMDB fetch cache on every click; how the page refreshes is
+step 4's decision. The action itself is untested for now — its pieces are —
+and step 6's rate limit is the moment it earns a test.
+
+The page's query is keyed by the Media on the page rather than fetching the
+Viewer's whole history, so its cost belongs to the page and not to how much
+the Viewer has watched. The list query landed here too, since the index was
+built for it. What moved down a step is the third rule this step originally
+listed: what an unanswered piece of Media looks like in a list is step 5's,
+because deciding its type means deciding whether `lib/watch` calls TMDB, and
+it does not.
+
+One thing the plan did not foresee: `updated_at` on the upsert has to come
+from Postgres's clock, not the process's. Drizzle's `$onUpdate` does not fire
+for an upsert, and stamping `new Date()` by hand put a move and an insert on
+two clocks that disagreed by more than the integration test's few
+milliseconds.
 
 **4. The control.** The first stateful client component in the app: a form
 whose action is the Server Action, wrapped in `useOptimistic` so it flips on
@@ -194,7 +233,12 @@ back to a page where the Visitor clicks again; nothing is replayed for them.
 **5. The lists.** `/watchlist` and `/watched`, paginated, newest first, each
 with its own metadata and its own empty state. Switching between them is a
 pair of links styled as tabs — reuse `components/search/kind-tabs.tsx` rather
-than mirroring its styling a third time.
+than mirroring its styling a third time. This step also resolves a page of
+Watch Records to Media: `lib/media` gains a way to fetch one Media Item by
+Kind and id, the page settles twenty of them apart the way `searchMedia`
+does, and the entry type carries the two ways TMDB can fail to answer — a 404
+because the Media is gone, and no answer at all — because the plan's step 3
+listed that rule and `lib/watch` turned out to be the wrong home for it.
 
 **6. Account.** `/settings` with account deletion, cascading to Watch Records
 through the foreign key. Rate limiting on the marking action.
@@ -209,7 +253,7 @@ parked for since `03173a8`, and step 2's header is where it goes.
 ## Documents this produces
 
 - `CONTEXT.md` — Visitor, Viewer, Watch Record, Planned, Watched, Watchlist,
-  and a vendor-vocabulary exception that now names Better Auth
+  Mark, and a vendor-vocabulary exception that now names Better Auth
 - `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
 - `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
 - `docs/adr/0007-watchlist-and-watched-are-one-record.md`

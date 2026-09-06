@@ -1,8 +1,9 @@
 import { and, eq, sql } from 'drizzle-orm';
-import { afterAll, expect, test } from 'vitest';
+import { expect, test } from 'vitest';
 
 import { db } from '@/lib/db';
 import { watchRecords } from '@/lib/schema';
+import { disposableViewers, dropViewer, newViewer } from '@/lib/test-viewers';
 
 /**
  * The invariant is the schema's to keep, not the writing code's, so these
@@ -10,42 +11,7 @@ import { watchRecords } from '@/lib/schema';
  * — `docs/adr/0007-watchlist-and-watched-are-one-record.md`
  */
 
-/**
- * Viewers live in `neon_auth`, which Neon Auth owns and `lib/schema.ts`
- * therefore does not declare, so they are made in raw SQL here.
- */
-const newViewer = async (): Promise<string> => {
-  const email = `itest-${crypto.randomUUID()}@example.test`;
-
-  const { rows } = await db.execute<{ id: string }>(sql`
-    insert into neon_auth."user" (name, email, "emailVerified")
-    values ('Integration Viewer', ${email}, false)
-    returning id
-  `);
-
-  const id = rows[0]?.id;
-
-  if (!id) throw new Error('neon_auth."user" insert returned no id');
-
-  return id;
-};
-
-const dropViewer = async (id: string): Promise<void> => {
-  await db.execute(sql`delete from neon_auth."user" where id = ${id}::uuid`);
-};
-
-const viewers: string[] = [];
-
-const viewer = async (): Promise<string> => {
-  const id = await newViewer();
-  viewers.push(id);
-
-  return id;
-};
-
-afterAll(async () => {
-  for (const id of viewers) await dropViewer(id);
-});
+const viewer = disposableViewers();
 
 test('a Viewer cannot record the same Media twice', async () => {
   const viewerId = await viewer();

@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import {
   index,
   integer,
@@ -9,6 +10,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import type { Kind } from '@/lib/media';
+import type { WatchState } from '@/lib/watch';
 
 /**
  * A Watch Record's two Kinds. `import type` above is erased, so listing them
@@ -20,8 +22,14 @@ export const mediaKind = pgEnum('media_kind', [
   'movie',
 ] as const satisfies readonly Kind[]);
 
-/** Planned or Watched, and never a third thing. */
-export const watchState = pgEnum('watch_state', ['planned', 'watched']);
+/**
+ * Planned or Watched, and never a third thing. The same trick as `mediaKind`:
+ * the list is `lib/watch`'s, and this enum has to keep satisfying it.
+ */
+export const watchState = pgEnum('watch_state', [
+  'planned',
+  'watched',
+] as const satisfies readonly WatchState[]);
 
 /**
  * One Viewer's recorded relationship to one piece of Media.
@@ -48,10 +56,12 @@ export const watchRecords = pgTable(
     tmdbId: integer('tmdb_id').notNull(),
     state: watchState('state').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
-    // the moment of the last marking, which is what the lists order by
+    // the moment of the last marking, which is what the lists order by — from
+    // Postgres's clock, like the default and the upsert, so no two rows are
+    // ever ordered across two clocks
     updatedAt: timestamp('updated_at')
       .defaultNow()
-      .$onUpdate(() => new Date())
+      .$onUpdate(() => sql`now()`)
       .notNull(),
   },
   (table) => [
