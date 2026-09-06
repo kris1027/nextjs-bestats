@@ -3,6 +3,7 @@ import { Montserrat } from 'next/font/google';
 import './globals.css';
 import type { JSX } from 'react';
 
+import { SiteHeader } from '@/components/layout/site-header';
 import { LOCALE } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -34,7 +35,10 @@ export default function RootLayout({
         sans.variable,
       )}
     >
-      <body className='min-h-full flex flex-col'>{children}</body>
+      <body className='min-h-full flex flex-col'>
+        <SiteHeader />
+        {children}
+      </body>
     </html>
   );
 }

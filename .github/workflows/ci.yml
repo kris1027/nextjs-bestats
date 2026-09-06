@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # the branch this run owns, named so a cancelled run is still identifiable
+  NEON_BRANCH: ci-${{ github.run_id }}-${{ github.run_attempt }}
+
+jobs:
+  # What `pnpm pre-commit` runs, minus the staging area CI does not have: it
+  # lints the whole repo rather than the files a commit happened to touch.
+  check:
+    name: Lint, types, unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test:unit
+
+  # A Neon branch of its own, so the suite is free to insert rows and cascade
+  # deletes, and so it never points at production.
+  # — docs/adr/0009-every-environment-is-a-neon-branch.md
+  integration:
+    name: Integration
+    runs-on: ubuntu-latest
+    # the cheap checks gate the expensive one: no Neon branch is provisioned
+    # for a run that lint or typecheck was going to fail anyway
+    needs: check
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Branch the database
+        id: neon
+        uses: neondatabase/create-branch-action@6.3.1
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch_name: ${{ env.NEON_BRANCH }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      # migrating the branch is also how every migration gets tested
+      - run: pnpm db:migrate
+        env:
+          DATABASE_URL: ${{ steps.neon.outputs.db_url_pooled }}
+
+      - run: pnpm test:integration
+        env:
+          DATABASE_URL: ${{ steps.neon.outputs.db_url_pooled }}
+
+      - name: Drop the branch
+        if: always()
+        uses: neondatabase/delete-branch-action@v3.2.1
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch: ${{ env.NEON_BRANCH }}
+          api_key: ${{ secrets.NEON_API_KEY }}

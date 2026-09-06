@@ -1,14 +1,16 @@
 # BeStats
 
-A place to browse what is popular on TMDB and, in time, to record what you have
-watched. Every fact the app shows about a title comes from TMDB; nothing about
-a viewer exists yet.
+A place to browse what is popular on TMDB and to record what you have watched.
+Every fact the app shows about a title comes from TMDB; what a Viewer records
+about that title is the app's own.
 
 ## Language
 
 These words bind code as much as prose — types, functions, route segments,
-filenames. The exception is TMDB's own vocabulary (`tv`, `movie`, the
-snake_case fields of its payloads), which stays spelled as TMDB spells it.
+filenames. The exceptions are the vendors' own vocabularies — TMDB's (`tv`,
+`movie`, the snake_case fields of its payloads) and Neon Auth's (`user`,
+`session`, `account`, in the `neon_auth` schema) — which stay spelled as those
+vendors spell them.
 
 **Media**:
 A thing that can be watched — a Show or a Movie. The word for whichever of the
@@ -77,3 +79,35 @@ _Avoid_: Image, art, kind
 What TMDB reports as most popular over the past week. It is the only Media the
 home page shows, and the ranking is TMDB's, not the app's.
 _Avoid_: Popular, top, featured
+
+**Visitor**:
+Anyone using BeStats. Everything the app shows is shown to a Visitor, signed in
+or not; signing in is what makes one a Viewer.
+_Avoid_: User, guest, anonymous
+
+**Viewer**:
+A Visitor who has signed in. Spelled `user` where Neon Auth spells it, for
+the same reason a Show is spelled `tv`; Viewer is the word the reader sees, and
+the only thing a Watch Record can belong to.
+_Avoid_: User, account, member, profile
+
+**Watch Record**:
+One Viewer's recorded relationship to one piece of Media. It is in exactly one
+state — Planned or Watched — and a piece of Media a Viewer has said nothing
+about has no Watch Record at all, which is not a third state.
+_Avoid_: Entry, mark, status, tracking
+
+**Planned**:
+The state of a Watch Record for Media a Viewer means to watch.
+_Avoid_: Todo, saved, wishlist, want
+
+**Watched**:
+The state of a Watch Record for Media a Viewer has watched. It replaces Planned
+rather than joining it, because you no longer mean to watch what you have
+watched.
+_Avoid_: Seen, done, finished
+
+**Watchlist**:
+A Viewer's Planned Watch Records — the Media they mean to watch. Watched Media
+is not on it.
+_Avoid_: Queue, saved, list, favourites
