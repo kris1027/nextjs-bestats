@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import type { JSX } from 'react';
 
+import { ViewerAvatar } from '@/components/layout/viewer-avatar';
 import { type DeletionRefusal, isDeletionRefusal, viewer } from '@/lib/auth';
 import { deleteViewer } from '@/lib/auth-actions';
 import { formatCount } from '@/lib/format';
@@ -47,16 +47,7 @@ const SettingsPage = async ({
         <h1 className='font-black text-3xl leading-[1.05]'>Settings</h1>
 
         <div className='flex items-center gap-3'>
-          {currentViewer.image ? (
-            <Image
-              src={currentViewer.image}
-              // decorative: the name sits beside it
-              alt=''
-              width={40}
-              height={40}
-              className='rounded-full'
-            />
-          ) : null}
+          <ViewerAvatar viewer={currentViewer} size={40} />
           <div className='flex flex-col'>
             <span className='text-muted-foreground text-xs'>Signed in as</span>
             <span className='font-extrabold'>{currentViewer.name}</span>

@@ -1,10 +1,10 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { type JSX, Suspense } from 'react';
 
 import { ListLinks } from '@/components/layout/list-links';
 import { SettingsLink } from '@/components/layout/settings-link';
 import { SignInLink } from '@/components/layout/sign-in-link';
+import { ViewerAvatar } from '@/components/layout/viewer-avatar';
 import { viewer } from '@/lib/auth';
 import { signOut } from '@/lib/auth-actions';
 
@@ -30,16 +30,7 @@ const ViewerControl = async (): Promise<JSX.Element> => {
       {/* the name is the way to /settings: the one conventional destination
           behind a name, and it spares the header a third text link */}
       <SettingsLink>
-        {currentViewer.image ? (
-          <Image
-            src={currentViewer.image}
-            // decorative: the name sits beside it
-            alt=''
-            width={24}
-            height={24}
-            className='rounded-full'
-          />
-        ) : null}
+        <ViewerAvatar viewer={currentViewer} size={24} />
         <span className='max-w-[14ch] truncate font-extrabold text-sm sm:max-w-none'>
           {currentViewer.name}
         </span>
