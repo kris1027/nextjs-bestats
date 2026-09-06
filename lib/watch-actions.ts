@@ -15,7 +15,7 @@ import {
 } from '@/lib/watch';
 import {
   clearWatchRecord,
-  countMarking,
+  tallyMarking,
   watchLookup,
   writeWatchRecord,
 } from '@/lib/watch-queries';
@@ -68,7 +68,7 @@ export const mark = async (formData: FormData): Promise<MarkResult> => {
   const ref: MediaRef = { kind, id: Number(id) };
 
   try {
-    if ((await countMarking(currentViewer.id)) > MARKS_PER_MINUTE) {
+    if ((await tallyMarking(currentViewer.id)) > MARKS_PER_MINUTE) {
       return { error: 'Slow down. Try again in a minute.' };
     }
 

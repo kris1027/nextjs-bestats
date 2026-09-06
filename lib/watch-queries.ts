@@ -143,17 +143,18 @@ export const watchTallies = async (
 };
 
 /**
- * Counts one press of a marking control and says how many this Viewer has
- * made in the current minute, this one included. One statement: the row is
- * inserted on the first press, and on conflict the window either restarts
- * — a minute or more has passed, so the tally is 1 again — or carries on
- * with one more. The action compares the answer to `MARKS_PER_MINUTE`.
+ * Tallies one press of a marking control — records it, and says how many
+ * this Viewer has made in the current minute, this one included. A verb
+ * because it writes: the row is inserted on the first press, and on
+ * conflict the window either restarts — a minute or more has passed, so the
+ * tally is 1 again — or carries on with one more. One statement either way.
+ * The action compares the answer to `MARKS_PER_MINUTE`.
  *
  * Every press counts, refused ones too, so a client that keeps hammering
  * stays refused until it stops for a minute. The clock is Postgres's, like
  * every other timestamp here.
  */
-export const countMarking = async (viewerId: string): Promise<number> => {
+export const tallyMarking = async (viewerId: string): Promise<number> => {
   const [row] = await db
     .insert(markingTallies)
     .values({ viewerId })

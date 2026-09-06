@@ -327,7 +327,7 @@ sign in again first. The page reports that and any other refusal through
 `?error=`, which keeps it a server component that works before hydration.
 
 The rate limit is Postgres's, per Viewer: `marking_tallies`, one row each,
-upserted by `countMarking` in one statement that restarts the window a
+upserted by `tallyMarking` in one statement that restarts the window a
 minute after it began and increments otherwise. `mark` counts the press
 after checking the Viewer and the input and before reading the row, and
 refuses past `MARKS_PER_MINUTE`, sixty, with "Slow down." Refused presses
