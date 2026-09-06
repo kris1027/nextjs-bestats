@@ -4,7 +4,7 @@ import type { JSX } from 'react';
 
 import { MediaDetail } from '@/components/media/media-detail';
 import { MarkingControl } from '@/components/watch/marking-control';
-import { viewer } from '@/lib/auth';
+import { answeredViewer } from '@/lib/auth';
 import {
   isKind,
   isMediaId,
@@ -64,16 +64,23 @@ const MediaPage = async ({
 }: {
   params: Promise<RouteParams>;
 }): Promise<JSX.Element> => {
-  const [found, currentViewer] = await Promise.all([
+  const [found, asked] = await Promise.all([
     findMedia(params),
-    viewer(),
+    answeredViewer(),
   ]);
 
   if (!found) notFound();
 
   const { media, ref } = found;
 
-  const lookup = await answeredWatchLookup(currentViewer?.id ?? null, [ref]);
+  // no lookup when the sign-in went Unanswered, as on the home page
+  const lookup =
+    asked.answer === 'unanswered'
+      ? null
+      : await answeredWatchLookup(
+          asked.answer === 'viewer' ? asked.viewer.id : null,
+          [ref],
+        );
 
   return (
     <MediaDetail

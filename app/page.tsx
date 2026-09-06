@@ -3,7 +3,7 @@ import type { JSX } from 'react';
 import { MediaList } from '@/components/media/media-list';
 import { SearchForm } from '@/components/search/search-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { viewer } from '@/lib/auth';
+import { answeredViewer } from '@/lib/auth';
 import {
   KIND_WORDS,
   KINDS,
@@ -46,16 +46,20 @@ const TrendingPanel = ({
 };
 
 const HomePage = async (): Promise<JSX.Element> => {
-  const [trending, currentViewer] = await Promise.all([
+  const [trending, asked] = await Promise.all([
     trendingMedia(),
-    viewer(),
+    answeredViewer(),
   ]);
 
-  // one query for both tabs' cards
-  const lookup = await answeredWatchLookup(currentViewer?.id ?? null, [
-    ...(trending.tv ?? []),
-    ...(trending.movie ?? []),
-  ]);
+  // one query for both tabs' cards — and none when the sign-in went
+  // Unanswered, which the cards render as they render an Unanswered lookup
+  const lookup =
+    asked.answer === 'unanswered'
+      ? null
+      : await answeredWatchLookup(
+          asked.answer === 'viewer' ? asked.viewer.id : null,
+          [...(trending.tv ?? []), ...(trending.movie ?? [])],
+        );
 
   return (
     <main className='flex-1 p-4'>

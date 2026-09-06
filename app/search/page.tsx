@@ -5,7 +5,7 @@ import { MediaList } from '@/components/media/media-list';
 import { KindTabs } from '@/components/search/kind-tabs';
 import { SearchForm } from '@/components/search/search-form';
 import { BackButton } from '@/components/ui/back-button';
-import { viewer } from '@/lib/auth';
+import { answeredViewer } from '@/lib/auth';
 import { formatTally } from '@/lib/format';
 import {
   hasMatches,
@@ -88,9 +88,9 @@ const SearchPage = async ({
     );
   }
 
-  const [search, currentViewer] = await Promise.all([
+  const [search, asked] = await Promise.all([
     searchMedia(query),
-    viewer(),
+    answeredViewer(),
   ]);
   const { tv: shows, movie: movies } = search;
 
@@ -141,11 +141,15 @@ const SearchPage = async ({
   const matches = search[selected];
   const words = KIND_WORDS[selected];
 
-  // one query for both Kinds' cards: the closed tab is a link away
-  const lookup = await answeredWatchLookup(currentViewer?.id ?? null, [
-    ...(shows?.items ?? []),
-    ...(movies?.items ?? []),
-  ]);
+  // one query for both Kinds' cards, the closed tab being a link away — and
+  // none when the sign-in went Unanswered, as on the home page
+  const lookup =
+    asked.answer === 'unanswered'
+      ? null
+      : await answeredWatchLookup(
+          asked.answer === 'viewer' ? asked.viewer.id : null,
+          [...(shows?.items ?? []), ...(movies?.items ?? [])],
+        );
 
   return (
     <Shell query={query}>
