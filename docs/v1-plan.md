@@ -46,7 +46,7 @@ them shipped in step 1:
 ```
 lib/tmdb   TMDB's wire vocabulary                     unchanged
 lib/media  the glossary's words, TMDB-shaped          unchanged
-lib/auth   Better Auth's instance, and the Viewer     step 2
+lib/auth   Neon Auth's instance, and the Viewer       step 2
 lib/watch  Watch Records, from our own database       step 3
 ```
 
@@ -206,10 +206,11 @@ parked for since `03173a8`, and step 2's header is where it goes.
 - `docs/adr/0009-every-environment-is-a-neon-branch.md`
 - `neon.ts` — which Neon services every branch carries
 - `CLAUDE.md` — Commands, Tests, module boundary, standing rules
-- `README.md` — a setup section, since a fresh clone now needs a database and
-  two OAuth applications before it will run
-- `.env.example` — the database URL, Better Auth's secrets and four provider
-  credentials
+- `README.md` — a setup section, since a fresh clone now needs a Neon project
+  before it will run. No OAuth application: Neon supplies development
+  credentials.
+- `.env.example` — what `neon checkout <branch>` writes, plus the one secret
+  it does not supply
 
 `0008` mattered most of those. `CLAUDE.md` said Vitest "should not be added",
 so replacing the runner overturned a written rule and had to be recorded as

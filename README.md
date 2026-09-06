@@ -58,14 +58,19 @@ pnpm install
 cp .env.example .env.local
 # paste your TMDB token; Neon fills in the rest below
 
-npx neon@latest auth              # sign in to Neon
-npx neon@latest link              # pick this project, writes .neon
-npx neon@latest checkout dev      # creates the branch, writes its env vars
+npx neon@latest auth                                     # sign in to Neon
+npx neon@latest link                                     # pick the project, writes .neon
+npx neon@latest branches create --name dev --parent main # once per project
+npx neon@latest checkout dev                             # pins it, writes its env vars
 echo "NEON_AUTH_COOKIE_SECRET=$(openssl rand -base64 32)" >> .env.local
 
 pnpm db:migrate   # creates watch_records on the dev branch
 pnpm dev
 ```
+
+`checkout` pins an existing branch and pulls its environment variables; it does
+not create one, which is why `branches create` comes first. Skip that line if
+`dev` already exists.
 
 The app is then at <http://localhost:3000>. Next 16 uses Turbopack by default
 for both `dev` and `build`, so there are no bundler flags to pass.
@@ -192,10 +197,14 @@ The two change for different reasons: one when TMDB's API moves, the other
 when the words on the page do. Keeping them apart is what let Watch Records
 live somewhere that is not named after a third-party API.
 
-`lib/auth.ts` has the same shape for the same reason. It owns Better Auth's
+`lib/auth.ts` has the same shape for the same reason. It owns Neon Auth's
 instance and the `user`-shaped session it returns, and exports `viewer()`;
 `app/` and `components/` read the current Viewer through that and never reach
 for a session themselves. `lib/media` never learns that Viewers exist.
+
+That boundary has already been tested once. v1 began on a self-hosted Better
+Auth and moved to Neon's managed one mid-branch; `app/`, `components/` and the
+sign-in page did not change, because `viewer()` absorbed it.
 
 See [`docs/adr/0003`](docs/adr/0003-tmdb-client-separate-from-domain.md) and
 [`docs/adr/0005`](docs/adr/0005-the-viewer-lives-beside-the-domain.md).
@@ -214,8 +223,8 @@ signed in. The distinction is load-bearing, because the marking controls
 render for everyone and only the recording needs an account.
 
 The exceptions are the vendors' own vocabularies. A Show is spelled `tv` in
-code, in URLs and on the wire, because that is TMDB's word; Better Auth's
-tables are `user`, `session` and `account` for the same reason. "Show" and
+code, in URLs and on the wire, because that is TMDB's word; a Viewer is a row
+in `neon_auth.user` because that is what Neon Auth calls it. "Show" and
 "Viewer" are the words the reader sees.
 
 Read `CONTEXT.md` before naming anything.
@@ -281,10 +290,10 @@ v1 turns BeStats from a TMDB browser into something that is yours: a **Viewer**
 signs in and keeps **Watch Records** — Media they mean to watch, and Media they
 have watched.
 
-Sign-in works, and the schema that holds Watch Records is in place: Better
-Auth over Google and GitHub, Neon Postgres with Drizzle, and a `watch_records`
-table whose primary key is the Viewer, the Kind and the TMDB id together, so
-the one-state-only invariant is the database's to keep.
+Sign-in works, and the schema that holds Watch Records is in place: Neon's
+Managed Better Auth over Google and GitHub, Neon Postgres with Drizzle, and a
+`watch_records` table whose primary key is the Viewer, the Kind and the TMDB
+id together, so the one-state-only invariant is the database's to keep.
 
 Still to come: the rules and Server Actions that write a Watch Record, the
 marking control on every card, and the `/watchlist` and `/watched` pages. A

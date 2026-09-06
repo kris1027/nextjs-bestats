@@ -8,8 +8,9 @@ about that title is the app's own.
 
 These words bind code as much as prose — types, functions, route segments,
 filenames. The exceptions are the vendors' own vocabularies — TMDB's (`tv`,
-`movie`, the snake_case fields of its payloads) and Better Auth's (`user`,
-`session`, `account`) — which stay spelled as those vendors spell them.
+`movie`, the snake_case fields of its payloads) and Neon Auth's (`user`,
+`session`, `account`, in the `neon_auth` schema) — which stay spelled as those
+vendors spell them.
 
 **Media**:
 A thing that can be watched — a Show or a Movie. The word for whichever of the
@@ -85,7 +86,7 @@ or not; signing in is what makes one a Viewer.
 _Avoid_: User, guest, anonymous
 
 **Viewer**:
-A Visitor who has signed in. Spelled `user` where Better Auth spells it, for
+A Visitor who has signed in. Spelled `user` where Neon Auth spells it, for
 the same reason a Show is spelled `tv`; Viewer is the word the reader sees, and
 the only thing a Watch Record can belong to.
 _Avoid_: User, account, member, profile
