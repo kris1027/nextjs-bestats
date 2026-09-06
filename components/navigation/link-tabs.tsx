@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
  * One tab: where it goes, the word it wears, whether it is the open one, and
  * the count beside the word — or `null` when that count is Unanswered.
  */
-export type LinkTab = {
+type LinkTab = {
   href: string;
   label: string;
   selected: boolean;
@@ -95,3 +95,4 @@ const LinkTabs = ({
 );
 
 export { LinkTabs };
+export type { LinkTab };
