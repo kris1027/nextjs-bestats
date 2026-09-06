@@ -1,10 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
 import type { JSX } from 'react';
 
-import { address } from '@/lib/next-path';
+import { useAddress } from '@/lib/use-address';
 
 /**
  * The header's way in for a Visitor, carrying `?next=` so they come back to
@@ -12,9 +11,7 @@ import { address } from '@/lib/next-path';
  * component cannot read its own address; it renders the same link either way.
  */
 const SignInLink = ({ className }: { className?: string }): JSX.Element => {
-  const pathname = usePathname();
-  const search = useSearchParams();
-  const next = address(pathname, search.toString());
+  const next = useAddress();
 
   return (
     <Link

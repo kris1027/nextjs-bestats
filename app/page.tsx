@@ -5,7 +5,6 @@ import { SearchForm } from '@/components/search/search-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { viewer } from '@/lib/auth';
 import { trendingMovies, trendingShows } from '@/lib/media';
-import { toLookup } from '@/lib/watch';
 import { answeredWatchLookup } from '@/lib/watch-queries';
 
 const HomePage = async (): Promise<JSX.Element> => {
@@ -15,11 +14,11 @@ const HomePage = async (): Promise<JSX.Element> => {
     viewer(),
   ]);
 
-  // one query for both tabs' cards, and none for a Visitor: no Viewer means
-  // no Watch Record, which is an empty lookup rather than an Unanswered one
-  const lookup = currentViewer
-    ? await answeredWatchLookup(currentViewer.id, [...shows, ...movies])
-    : toLookup([]);
+  // one query for both tabs' cards
+  const lookup = await answeredWatchLookup(currentViewer?.id ?? null, [
+    ...shows,
+    ...movies,
+  ]);
 
   return (
     <main className='flex-1 p-4'>

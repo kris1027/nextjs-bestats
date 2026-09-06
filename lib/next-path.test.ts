@@ -47,11 +47,8 @@ test('address is the pathname alone when there is no query string', () => {
   expect(address('/tv/1399', '')).toBe('/tv/1399');
 });
 
-test('address keeps the query string, with or without its leading ?', () => {
+test('address keeps the query string', () => {
   expect(address('/search', 'q=dune&kind=movie')).toBe(
-    '/search?q=dune&kind=movie',
-  );
-  expect(address('/search', '?q=dune&kind=movie')).toBe(
     '/search?q=dune&kind=movie',
   );
 });

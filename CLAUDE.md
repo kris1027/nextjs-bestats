@@ -73,8 +73,9 @@ component may import it, and `lib/watch-actions.ts` for the action a
 `'use server'` file exists to hand out, and nothing else in the module:
 `components/watch/` is the client half of marking and reads exactly those
 two. The queries take a Viewer id and never decide whose it is; only the
-action reads `lib/auth`. A page reads `viewer()` itself and hands the id to
-`answeredWatchLookup`, whose `null` is Unanswered and means no controls.
+action reads `lib/auth`. A page reads `viewer()` itself and hands the id, or
+`null` for a Visitor, to `answeredWatchLookup`, whose own `null` is
+Unanswered and means no controls.
 `lib/watch` reads `lib/media` for `Kind` and its guards, and `lib/media`
 reads neither `lib/watch` nor `lib/auth`. Resolving a list of Watch Records
 against TMDB is the page's job, not this module's.

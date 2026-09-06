@@ -17,7 +17,6 @@ import {
   searchMedia,
 } from '@/lib/media';
 import { firstValue, type SearchParams } from '@/lib/search-params';
-import { toLookup, type WatchLookup } from '@/lib/watch';
 import { answeredWatchLookup } from '@/lib/watch-queries';
 
 /**
@@ -142,14 +141,11 @@ const SearchPage = async ({
   const matches = search[selected];
   const words = KIND_WORDS[selected];
 
-  // one query for both Kinds' cards — the closed tab is a link away — and
-  // none for a Visitor, whose empty lookup is a real absence
-  const lookup: WatchLookup | null = currentViewer
-    ? await answeredWatchLookup(currentViewer.id, [
-        ...(shows?.items ?? []),
-        ...(movies?.items ?? []),
-      ])
-    : toLookup([]);
+  // one query for both Kinds' cards: the closed tab is a link away
+  const lookup = await answeredWatchLookup(currentViewer?.id ?? null, [
+    ...(shows?.items ?? []),
+    ...(movies?.items ?? []),
+  ]);
 
   return (
     <Shell query={query}>

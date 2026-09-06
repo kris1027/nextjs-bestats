@@ -11,7 +11,7 @@ import {
   type MediaDetails,
   mediaDetails,
 } from '@/lib/media';
-import { type MediaRef, stateOf, toLookup } from '@/lib/watch';
+import { type MediaRef, stateOf } from '@/lib/watch';
 import { answeredWatchLookup } from '@/lib/watch-queries';
 
 type RouteParams = { kind: string; id: string };
@@ -72,9 +72,7 @@ const MediaPage = async ({
 
   const { media, ref } = found;
 
-  const lookup = currentViewer
-    ? await answeredWatchLookup(currentViewer.id, [ref])
-    : toLookup([]);
+  const lookup = await answeredWatchLookup(currentViewer?.id ?? null, [ref]);
 
   return (
     <MediaDetail

@@ -1,6 +1,5 @@
 'use client';
 
-import { usePathname, useSearchParams } from 'next/navigation';
 import {
   type JSX,
   type MouseEvent,
@@ -11,7 +10,7 @@ import {
 
 import { Bookmark, Check, type LucideIcon } from 'lucide-react';
 
-import { address } from '@/lib/next-path';
+import { useAddress } from '@/lib/use-address';
 import { cn } from '@/lib/utils';
 import {
   type MediaRef,
@@ -59,36 +58,38 @@ const MarkingControl = ({
   media: MediaRef;
   state: WatchState | null;
 }): JSX.Element => {
-  const pathname = usePathname();
-  const search = useSearchParams();
+  const next = useAddress();
 
   // the state as the last completed action left it; the prop only seeds it
   const [state, setState] = useState(initial);
   const [error, setError] = useState<string | null>(null);
-  // reverts to `state` on its own when the action settles, which is how a
-  // failed write undoes the flip without a line of code here
-  const [shown, flip] = useOptimistic(state);
-
-  const next = address(pathname, search.toString());
+  // `marked` is the reducer, so a press flips from whatever is shown — a
+  // second press while the first is in flight unmarks on screen the way it
+  // will on the server — and the value falls back to `state` on its own when
+  // the actions settle, which is how a failed write undoes the flip
+  const [shown, flip] = useOptimistic(state, marked);
 
   const press =
     (pressed: WatchState) =>
     (event: MouseEvent<HTMLButtonElement>): void => {
+      const { form } = event.currentTarget;
+
+      // a submit button always has one; let the browser have it otherwise
+      if (!form) return;
+
       event.preventDefault();
       setError(null);
 
       // an async transition, which is what lets the optimistic value stand
       // until `mark` settles and then revert or be replaced
       startTransition(async () => {
-        flip(marked(state, pressed));
+        flip(pressed);
 
-        // the same four fields the form would post, built rather than read
-        // off the form so the two paths cannot disagree about what they carry
-        const formData = new FormData();
-        formData.set('kind', media.kind);
-        formData.set('id', String(media.id));
+        // read off the form, so the fields the browser would post and the
+        // fields this handler posts are the same markup; only the pressed
+        // button is added, since the submitter is what a click supplies
+        const formData = new FormData(form);
         formData.set('state', pressed);
-        formData.set('next', next);
 
         // not wrapped in try/catch: a signed-out press makes `mark` redirect,
         // which reaches the client as a rejection the router's boundary handles
