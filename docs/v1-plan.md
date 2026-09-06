@@ -435,6 +435,7 @@ routes prerender a shell where every route was dynamic before.
 - `docs/adr/0007-watchlist-and-watched-are-one-record.md`
 - `docs/adr/0008-vitest-replaces-the-node-test-runner.md`
 - `docs/adr/0009-every-environment-is-a-neon-branch.md`
+- `docs/adr/0010-the-shell-is-prerendered.md`
 - `docs/adr/0011-a-sign-in-completes-at-one-route.md`
 - `neon.ts` — which Neon services every branch carries
 - `CLAUDE.md` — Commands, Tests, module boundary, standing rules
