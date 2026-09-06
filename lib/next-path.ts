@@ -59,3 +59,14 @@ export const address = (pathname: string, query: string): string =>
  */
 export const signInAddress = (next: string): string =>
   `/sign-in?next=${encodeURIComponent(next)}`;
+
+/**
+ * Where a provider returns a Visitor, carrying the address to go on to. They
+ * are still a Visitor when they arrive — the exchange that happens here is
+ * what makes them a Viewer. A sign-in completes at this address and no other:
+ * it is the one route `proxy.ts` matches, because exchanging the verifier
+ * Neon sends back is the only thing that proxy is there to do.
+ * — `docs/adr/0011-a-sign-in-completes-at-one-route.md`
+ */
+export const signedInAddress = (next: string): string =>
+  `/signed-in?next=${encodeURIComponent(next)}`;

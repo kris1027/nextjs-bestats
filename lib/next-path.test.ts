@@ -1,6 +1,15 @@
 import { expect, test } from 'vitest';
 
-import { address, nextPath, signInAddress } from '@/lib/next-path';
+import {
+  address,
+  nextPath,
+  signedInAddress,
+  signInAddress,
+} from '@/lib/next-path';
+
+/** The `?next=` on an address, as the handler at that address reads it. */
+const nextOn = (at: string): string =>
+  new URL(at, 'https://bestats.example').searchParams.get('next') ?? '';
 
 test('nextPath keeps a same-origin path', () => {
   expect(nextPath('/tv/1399')).toBe('/tv/1399');
@@ -65,5 +74,19 @@ test('what signInAddress sends, nextPath brings back', () => {
   );
   expect(nextPath(decodeURIComponent('%2Fwatchlist%3Fpage%3D2'))).toBe(
     '/watchlist?page=2',
+  );
+});
+
+test('what signedInAddress sends, nextPath brings back', () => {
+  expect(signedInAddress('/tv/1399')).toBe('/signed-in?next=%2Ftv%2F1399');
+  expect(nextOn(signedInAddress('/search?q=dune'))).toBe('/search?q=dune');
+});
+
+// this address is reached from off-site and can be typed by anyone, so the
+// handler reads the parameter back the way the sign-in page does
+test('what signedInAddress carries, nextPath still refuses', () => {
+  expect(nextPath(nextOn(signedInAddress('//elsewhere.example')))).toBe('/');
+  expect(nextPath(nextOn(signedInAddress('https://elsewhere.example')))).toBe(
+    '/',
   );
 });

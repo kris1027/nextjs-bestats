@@ -103,6 +103,7 @@ of `docs/adr/0009-every-environment-is-a-neon-branch.md`.
 | `/watchlist`, `/watched`  | new; paginated at 20, newest first, `?page=` in the address |
 | `/sign-in`                | new; Google and GitHub, honours `?next=`           |
 | `/settings`               | new; delete account, cascading to Watch Records    |
+| `/signed-in`              | unplanned; a sign-in completes here and nowhere else |
 
 Every new top-level segment is static, so `docs/adr/0001` holds.
 
@@ -195,6 +196,17 @@ dynamic. Enabling it was tried and reverted. In Next 16 the flag is
 uncached read is inside Suspense — including the TMDB fetches on every page.
 That is step 7's own description of itself, so it waits for step 7 rather than
 arriving early and half-done.
+
+What the step missed, and nothing caught until every step after it was done: a
+sign-in could not complete. Neon returns a Visitor from their provider with a
+verifier in the address, and only a middleware trades that verifier for the
+session cookie; the step shipped none, so `getSession()` answered Visitor to
+every request and went on answering it through steps 3 to 7. Everything built
+on top of a Viewer was correct and none of it could be reached — which is why
+the step's own passage above still reads as though sign-in worked. `proxy.ts`
+and `/signed-in` are the repair, and
+`docs/adr/0011-a-sign-in-completes-at-one-route.md` says why that proxy
+watches one route rather than the app.
 
 **3. `lib/watch`.** _Done._ Three flat files, split by what each may import:
 `lib/watch.ts` for the pure rules, which a client component will import in
@@ -423,6 +435,8 @@ routes prerender a shell where every route was dynamic before.
 - `docs/adr/0007-watchlist-and-watched-are-one-record.md`
 - `docs/adr/0008-vitest-replaces-the-node-test-runner.md`
 - `docs/adr/0009-every-environment-is-a-neon-branch.md`
+- `docs/adr/0010-the-shell-is-prerendered.md`
+- `docs/adr/0011-a-sign-in-completes-at-one-route.md`
 - `neon.ts` — which Neon services every branch carries
 - `CLAUDE.md` — Commands, Tests, module boundary, standing rules
 - `README.md` — a setup section, since a fresh clone now needs a Neon project

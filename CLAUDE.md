@@ -79,6 +79,14 @@ Viewers exist. That boundary is why swapping a self-hosted Better Auth for
 Neon's managed one cost one module rather than the application.
 — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
 
+`proxy.ts` mounts the instance's middleware the way `app/api/auth` mounts its
+handler, and reads a Viewer no more than that route does. What it mounts it
+on is one route: `/signed-in`, the only place the verifier a provider returns
+with can be traded for a session cookie. The handler there reads no Viewer
+either — by the time it runs the proxy has decided, and all that is left is
+the `?next=` the Visitor came with.
+— `docs/adr/0011-a-sign-in-completes-at-one-route.md`
+
 `lib/watch` holds Watch Records. `lib/watch.ts` is its pure half, so it never
 imports `lib/db`, whose import throws without `DATABASE_URL`. A client
 component may import it, and `lib/watch-actions.ts` for the action a
@@ -139,6 +147,13 @@ routes share it.
   The exception is `NEON_AUTH_COOKIE_SECRET`, and `.env.example` says so.
   — `docs/adr/0009-every-environment-is-a-neon-branch.md`
 - Never edit or commit `.env.local`.
+- `proxy.ts` matches `/signed-in` and nothing else. Widening the matcher
+  makes every page private: Neon's middleware protects each route it sees
+  that is not on a skip list hardcoded in the package, so a Visitor reading
+  Trending, search or a detail page would be sent to sign in. The lists and
+  settings stay off it too, since the middleware's own redirect drops the
+  `?next=` they compose themselves.
+  — `docs/adr/0011-a-sign-in-completes-at-one-route.md`
 - `cacheComponents` is on, so a page's request-time reads — `cookies()`,
   `params`, `searchParams`, a database query — sit inside a Suspense boundary
   the page draws itself, with a skeleton the height of what replaces it as
