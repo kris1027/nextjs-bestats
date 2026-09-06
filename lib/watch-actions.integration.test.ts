@@ -96,11 +96,14 @@ test(`the press after ${MARKS_PER_MINUTE} in a minute is refused, and the one be
   currentViewer.id = await viewer();
 
   // one short of the limit through the query itself — its first insert and
-  // its increments — rather than a row written by hand; the last two presses
-  // then go through the action
-  for (let press = 1; press < MARKS_PER_MINUTE; press += 1) {
-    await tallyMarking(currentViewer.id);
-  }
+  // its increments — rather than a row written by hand, and all at once,
+  // which is what a runaway client looks like and what the upsert has to
+  // serialise; the last two presses then go through the action
+  await Promise.all(
+    Array.from({ length: MARKS_PER_MINUTE - 1 }, () =>
+      tallyMarking(currentViewer.id as string),
+    ),
+  );
 
   expect(await mark(press('tv', '1399', 'planned'))).toEqual({
     state: 'planned',
@@ -116,4 +119,5 @@ test(`the press after ${MARKS_PER_MINUTE} in a minute is refused, and the one be
   await expireMarkingWindow(currentViewer.id);
 
   expect(await mark(press('tv', '1399', 'planned'))).toEqual({ state: null });
-});
+  // sixty round trips to Neon from a CI runner outrun the 5s default
+}, 30_000);
