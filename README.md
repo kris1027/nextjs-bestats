@@ -109,12 +109,20 @@ schema, so a CI run signs in against its own Viewers and drops them with the
 branch, and `dev` cannot reach production's.
 
 Sign-in redirects are restricted to a trusted-domain allowlist rather than to
-registered callback URLs. Localhost is pre-approved on any port, preview
-deployments are covered by a single wildcard entry, and Neon supplies
-development OAuth credentials until you register your own. The failure mode
-worth knowing: a domain that is not on the list fails with `invalid domain`,
-which reads like a bug in sign-in rather than a missing entry. Add one with
-`neon neon-auth domain add https://example.com`.
+registered callback URLs. Localhost is pre-approved on any port, and Neon
+supplies development OAuth credentials until you register your own.
+
+The list is per branch, so production's domain is trusted on `main` and a
+preview's on `dev`. Vercel's preview hostnames have no subdomain label to
+wildcard, so a preview that needs sign-in has its URL added by hand; previews
+that only serve the public pages need nothing. A domain that is not on the
+list fails with `invalid domain`, which reads like a bug in sign-in rather
+than a missing entry.
+
+```bash
+neon neon-auth domain add https://example.com --branch main
+neon neon-auth domain list --branch main
+```
 
 Both are explained in
 [`docs/adr/0009`](docs/adr/0009-every-environment-is-a-neon-branch.md).

@@ -43,20 +43,30 @@ Managed Better Auth restricts OAuth redirects to a trusted-domain allowlist,
 and that list does the work an OAuth proxy would otherwise have done:
 
 - **Localhost is pre-approved**, on any port. Nothing to register.
-- **Preview deployments are one wildcard entry**, rather than a hostname per
-  push that no provider would accept as a redirect URI anyway.
 - **Neon supplies development OAuth credentials**, so sign-in works before a
   Google or GitHub application exists. Replacing them with our own is on the
   production checklist, not on the path to running the app.
 
-The consequence to remember is the failure mode. A domain that is not on the
-list fails with `invalid domain`, which reads as a bug in sign-in rather than
-as a missing entry. Any new origin — a custom domain, a renamed project — has
-to be added before anyone is pointed at it:
+The list is **per branch**, which follows from auth branching with the data:
+production's domain is trusted on `main`, and a preview's is trusted on `dev`.
+Adding one to the branch you happen to have checked out is the easy mistake.
+
+**Preview deployments are not solved by a wildcard, and this was assumed
+before it was checked.** Neon requires the `*` to be the leftmost subdomain
+label — `https://*.example.vercel.app`. Vercel's preview hostnames are
+`project-hash-scope.vercel.app`: one label under `vercel.app`, with no
+subdomain to replace. The only matching pattern would be `https://*.vercel.app`,
+which trusts every application Vercel hosts. So a preview that needs sign-in
+has its URL added by hand, and previews that only need the public pages need
+nothing.
+
+The failure mode to recognise: a domain that is not on the list fails with
+`invalid domain`, which reads as a bug in sign-in rather than as a missing
+entry.
 
 ```
-neon neon-auth domain add https://example.com
-neon neon-auth domain list
+neon neon-auth domain add https://example.com --branch main
+neon neon-auth domain list --branch main
 ```
 
 ## Consequences
