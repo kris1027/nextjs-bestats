@@ -91,11 +91,11 @@ const WatchRecordList = async ({
         </h1>
         <LinkTabs
           label='Watchlist or watched'
-          tabs={WATCH_STATES.map((each) => ({
-            href: LISTS[each].path,
-            label: LISTS[each].label,
-            selected: each === state,
-            tally: tallies[each],
+          tabs={WATCH_STATES.map((tab) => ({
+            href: LISTS[tab].path,
+            label: LISTS[tab].label,
+            selected: tab === state,
+            tally: tallies[tab],
           }))}
         />
         {total === 0 ? (
