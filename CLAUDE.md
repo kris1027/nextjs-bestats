@@ -119,8 +119,10 @@ routes share it.
 - Neon owns every table in the `neon_auth` schema. `lib/schema.ts` declares
   none of them and `drizzle.config.ts` narrows generation to `public`. A
   Drizzle `references()` across that line makes drizzle-kit try to create the
-  table it points at, which is why the Viewer foreign key is the one migration
-  written by hand.
+  table it points at, which is why every foreign key to a Viewer is a
+  migration written by hand: `0001` for Watch Records, `0003` for the marking
+  tally. A new table that belongs to a Viewer gets one the same way, through
+  `drizzle-kit generate --custom`.
   — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
 - Environment variables come from `neon checkout <branch>`, not from typing.
   The exception is `NEON_AUTH_COOKIE_SECRET`, and `.env.example` says so.

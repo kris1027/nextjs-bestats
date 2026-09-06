@@ -8,8 +8,9 @@ comes from TMDB, and there is no client-side data fetching anywhere in the
 app.
 
 > **Status:** a Viewer can sign in, mark any Show or Movie as Planned or
-> Watched, and see those records on `/watchlist` and `/watched`. Account
-> deletion and the polish pass are what comes next. See [Roadmap](#roadmap).
+> Watched, see those records on `/watchlist` and `/watched`, and leave
+> through `/settings`, taking everything with them. The polish pass is what
+> comes next. See [Roadmap](#roadmap).
 
 ## What it does
 
@@ -303,9 +304,12 @@ marking control; and `/watchlist` and `/watched` show the records. A Watch
 Record stores no copy of TMDB's data, so every fact on those pages keeps
 coming from TMDB.
 
-Still to come: `/settings` with account deletion, a rate limit on marking,
-and the polish pass — `loading.tsx` and `error.tsx` per route, and the
-static rendering that Suspense around the TMDB fetches unlocks.
+`/settings` lets a Viewer leave: their sign-in and every Watch Record go
+together, through the database's own foreign keys. Marking is rate-limited
+per Viewer, in Postgres, so every Neon branch enforces the same rule.
+
+Still to come: the polish pass — `loading.tsx` and `error.tsx` per route,
+and the static rendering that Suspense around the TMDB fetches unlocks.
 
 The full plan, its trade-offs and its build order are in
 [`docs/v1-plan.md`](docs/v1-plan.md).
