@@ -27,15 +27,10 @@ const trendingAndLookup = cache(
       answeredViewer(),
     ]);
 
-    // none when the sign-in went Unanswered, which the cards render as they
-    // render an Unanswered lookup
-    const lookup =
-      asked.answer === 'unanswered'
-        ? null
-        : await answeredWatchLookup(
-            asked.answer === 'viewer' ? asked.viewer.id : null,
-            [...(trending.tv ?? []), ...(trending.movie ?? [])],
-          );
+    const lookup = await answeredWatchLookup(asked, [
+      ...(trending.tv ?? []),
+      ...(trending.movie ?? []),
+    ]);
 
     return { trending, lookup };
   },

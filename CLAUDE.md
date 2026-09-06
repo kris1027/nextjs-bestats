@@ -84,11 +84,12 @@ imports `lib/db`, whose import throws without `DATABASE_URL`. A client
 component may import it, and `lib/watch-actions.ts` for the action a
 `'use server'` file exists to hand out, and nothing else in the module. The
 queries take a Viewer id and never decide whose it is; only the action reads
-`lib/auth`. A page reads the Viewer itself and hands the id, or `null` for a
-Visitor, to `answeredWatchLookup`, whose own `null` is Unanswered and means
-no controls — the same `null` a page passes without asking when the sign-in
-itself went Unanswered. `lib/watch` reads `lib/media` for `Kind` and its
-guards, and `lib/media` reads neither `lib/watch` nor `lib/auth`.
+`lib/auth`, and the page lookup takes what `answeredViewer()` answered as a
+type alone: a page reads the Viewer itself and hands the answer to
+`answeredWatchLookup`, whose `null` is Unanswered and means no controls,
+whether the database or the sign-in was what did not answer. `lib/watch`
+reads `lib/media` for `Kind` and its guards, and `lib/media` reads neither
+`lib/watch` nor `lib/auth`.
 
 `components/watch/` is what a Visitor sees of Watch Records, and it has two
 halves with different rights. The client half — the marking control and the

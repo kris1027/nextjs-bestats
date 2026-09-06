@@ -93,15 +93,11 @@ const MatchesFor = async ({
   const matches = search[selected];
   const words = KIND_WORDS[selected];
 
-  // one query for both Kinds' cards, the closed tab being a link away — and
-  // none when the sign-in went Unanswered, as on the home page
-  const lookup =
-    asked.answer === 'unanswered'
-      ? null
-      : await answeredWatchLookup(
-          asked.answer === 'viewer' ? asked.viewer.id : null,
-          [...(shows?.items ?? []), ...(movies?.items ?? [])],
-        );
+  // one query for both Kinds' cards: the closed tab is a link away
+  const lookup = await answeredWatchLookup(asked, [
+    ...(shows?.items ?? []),
+    ...(movies?.items ?? []),
+  ]);
 
   return (
     <>

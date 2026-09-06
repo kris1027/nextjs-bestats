@@ -71,16 +71,7 @@ const Control = async ({
 }: {
   media: MediaRef;
 }): Promise<JSX.Element | null> => {
-  const asked = await answeredViewer();
-
-  // no lookup when the sign-in went Unanswered, as on the home page
-  const lookup =
-    asked.answer === 'unanswered'
-      ? null
-      : await answeredWatchLookup(
-          asked.answer === 'viewer' ? asked.viewer.id : null,
-          [media],
-        );
+  const lookup = await answeredWatchLookup(await answeredViewer(), [media]);
 
   if (lookup === null) return null;
 
