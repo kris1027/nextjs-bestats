@@ -73,17 +73,21 @@ application.
 `lib/watch` holds Watch Records. `lib/watch.ts` is its pure half, so it never
 imports `lib/db`, whose import throws without `DATABASE_URL`. A client
 component may import it, and `lib/watch-actions.ts` for the action a
-`'use server'` file exists to hand out, and nothing else in the module:
-`components/watch/` is the client half of marking and reads exactly those
-two. The queries take a Viewer id and never decide whose it is; only the
-action reads `lib/auth`. A page reads `viewer()` itself and hands the id, or
-`null` for a Visitor, to `answeredWatchLookup`, whose own `null` is
-Unanswered and means no controls.
-`lib/watch` reads `lib/media` for `Kind` and its guards, and `lib/media`
-reads neither `lib/watch` nor `lib/auth`. Resolving a list of Watch Records
-against TMDB is the page's job, not this module's: `components/watch/
-watch-record-list.tsx` is that page for both lists, and it pairs
-`lib/watch`'s records with `lib/media`'s answers.
+`'use server'` file exists to hand out, and nothing else in the module. The
+queries take a Viewer id and never decide whose it is; only the action reads
+`lib/auth`. A page reads `viewer()` itself and hands the id, or `null` for a
+Visitor, to `answeredWatchLookup`, whose own `null` is Unanswered and means
+no controls. `lib/watch` reads `lib/media` for `Kind` and its guards, and
+`lib/media` reads neither `lib/watch` nor `lib/auth`.
+
+`components/watch/` is what a Visitor sees of Watch Records, and it has two
+halves with different rights. The client half — the marking control and the
+absent card — reads `lib/watch.ts` and the action, as above. The server half
+is `watch-record-list.tsx`, the body of both list routes: it reads
+`viewer()`, the queries and `lib/media` the way any page does, because
+resolving a list of Watch Records against TMDB is the page's job and not
+`lib/watch`'s, and it lives here rather than under `app/` only because two
+routes share it.
 
 ## Standing rules
 
