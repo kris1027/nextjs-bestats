@@ -12,7 +12,8 @@ third-party API". v1 is that home.
 This file is a plan, not a record of decisions. Steps 0 to 6 have landed, so
 for everything they covered `CONTEXT.md`, `docs/adr/` and the code are now the
 authority and the sections below defer to them rather than restating them.
-Step 7, the polish, is next and last.
+Step 7, the polish, is next and last, and its paragraph below is the
+decided shape of it.
 
 ## Language
 
@@ -342,12 +343,65 @@ is refused.
 One thing the plan did not foresee: the table's foreign key to the Viewer is
 the second migration written by hand, for the reason `0001` was the first.
 
-**7. Polish.** `loading.tsx` and `error.tsx` per route, with Suspense around
-the TMDB fetches — worth more here than elsewhere, since a list of twenty Watch
-Records is twenty TMDB requests. Doing that is also what unblocks
-`cacheComponents`, and with it the static rendering the header cost step 2;
-the header's Suspense boundary is already in place waiting for it. The theme toggle `app/layout.tsx` has been
-parked for since `03173a8`, and step 2's header is where it goes.
+**7. Polish.** One branch, three things, in the order their dependencies
+run.
+
+The two sources fail apart, all the way. The plan's architecture section
+promised that the database being unreachable does not stop Trending
+rendering, and step 4 kept half of it through `answeredWatchLookup`. Two
+gaps remain. Trending still throws when TMDB does not answer, so an outage
+takes the home page down, search form and all, where Search already renders
+the Kind that answered; it goes Unanswered per Kind the same way, and the
+tab says so. And `viewer()` still throws when Neon Auth does not answer,
+from the header, so it takes every route down — the public ones included,
+which the comment in `lib/auth.ts` says it was written leniently to protect.
+A second helper beside `viewer()` answers Viewer, Visitor or Unanswered, and
+the header and the three public routes read that one: no Viewer control, no
+marking controls, which is what a card already does when the lookup went
+Unanswered. The lists, `/settings` and `/sign-in` can neither redirect nor
+render without the answer, so they keep `viewer()` and let it throw. That
+gives `error.tsx` its job: one at the root, a sentence and a "Try again"
+that calls `reset`, for what nobody anticipated rather than for outages the
+glossary has a word for.
+
+Then the boundaries. Explicit `Suspense` in each page rather than a
+`loading.tsx` per route, because what sits outside a boundary is what stays
+in the first paint: the search form and the tab list on `/`, the back
+button, the form and the heading on `/search`, the heading and the tabs on
+the lists, and the marking control's slot alone on a detail page, so the
+TMDB fetch there stops waiting on the session. The lists' boundary is the
+grid — twenty Watch Records is twenty TMDB requests, the wait this step was
+written for. `/settings` and `/sign-in` get a `loading.tsx` each, since
+everything on them follows the redirect check. Every fallback is a
+skeleton: a grid of twenty poster-shaped blocks, `aria-busy` and one
+screen-reader "Loading", the same height as what replaces it, for the reason
+the header's height was fixed in step 2. Nothing spins.
+
+Then `cacheComponents`, which the boundaries unblock. The flag ignores a
+fetch's `next: { revalidate }`, so the TMDB cache moves to `use cache` with
+`cacheLife('hours')` on `fetchTMDB` and `findTMDB`, where the fetch option
+sits today; `lib/media` and `app/` never learn a request is cached. A 404
+gets cached too, which is fine: Gone Media stops being asked for every
+render. A thrown request never reaches the cache, so Unanswered stays a
+per-request answer. If the build wants `params` on the detail page inside a
+boundary as well, the page gets one with a backdrop-and-poster skeleton
+rather than a `loading.tsx`, so its frame still prerenders. One ADR, short,
+`docs/adr/0010`, for what the code cannot say: the build enforces the
+boundaries, the cache is a directive because the option is ignored, and a
+theme preference can no longer be a cookie, since a cookie read on `<html>`
+has no boundary to sit inside.
+
+The theme toggle was to land here and moves to v2 instead. `app/layout.tsx`
+has parked the light palette for it since `03173a8`, and the comment stays;
+the ADR above is what a v2 toggle reads first.
+
+No new tests. Trending's per-Kind settle is a fetcher, untested like the
+rest of `lib/media`'s; the auth helper's catch wraps a call every test of
+`lib/auth` mocks away; `error.tsx` and the skeletons are components, and a
+DOM environment still waits for a second one that needs it. The PR carries a
+browser list instead: a bad TMDB token, a bad Neon Auth URL, a throttled
+connection for the skeletons, and the build's route table showing the public
+routes prerender a shell where every route was dynamic before.
 
 ## Documents this produces
 
@@ -400,4 +454,5 @@ Ratings and reviews of a Viewer's own. Per-episode or per-season records for a
 Show — v1 marks a Show as a whole. Following other Viewers. Recommendations.
 Watch dates other than the moment of marking. Email as a sign-in method, and
 the provider it would require. Search or filtering within a Viewer's own
-lists.
+lists. The theme toggle, with the light palette `app/layout.tsx` has kept for
+it.
