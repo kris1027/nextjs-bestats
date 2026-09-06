@@ -60,8 +60,10 @@ export const deleteViewer = async (formData: FormData): Promise<void> => {
   if (error) {
     console.error('Deleting a Viewer failed:', error);
 
+    // Neon's wrapper normalises Better Auth's SESSION_EXPIRED to this
+    // spelling before handing it back; the upper-case one never arrives
     redirect(
-      error.code === 'SESSION_EXPIRED'
+      error.code === 'session_expired'
         ? '/settings?error=stale'
         : '/settings?error=failed',
     );
