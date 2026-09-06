@@ -19,8 +19,8 @@ import {
  * — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
  */
 
-/** `(kind, tmdb_id) = (…)` for one piece of Media. */
-const isMedia = (ref: MediaRef) =>
+/** The `where` clause that names one piece of Media: `(kind, tmdb_id) = (…)`. */
+const whereMedia = (ref: MediaRef) =>
   and(eq(watchRecords.kind, ref.kind), eq(watchRecords.tmdbId, ref.id));
 
 /**
@@ -43,7 +43,9 @@ export const watchLookup = async (
       state: watchRecords.state,
     })
     .from(watchRecords)
-    .where(and(eq(watchRecords.viewerId, viewerId), or(...refs.map(isMedia))));
+    .where(
+      and(eq(watchRecords.viewerId, viewerId), or(...refs.map(whereMedia))),
+    );
 
   return toLookup(rows);
 };
@@ -52,14 +54,20 @@ export const watchLookup = async (
  * One page of a Viewer's list in one state — the Watchlist, or the Watched
  * list — newest marking first, with the size of the whole list beside it so
  * the page can say "20 of 214" the way it does for Matches. `page` counts
- * from 1, the way the address bar does. The two queries are issued together
- * because neither needs the other.
+ * from 1, the way the address bar does, and anything else is refused here
+ * rather than handed to Postgres as a negative offset: `?page=` is the
+ * page's to validate, and this is where forgetting to would surface. The two
+ * queries are issued together because neither needs the other.
  */
 export const watchRecordsPage = async (
   viewerId: string,
   state: WatchState,
   page: number,
 ): Promise<WatchRecordsPage> => {
+  if (!Number.isInteger(page) || page < 1) {
+    throw new RangeError(`A list page counts from 1, not ${page}`);
+  }
+
   const inState = and(
     eq(watchRecords.viewerId, viewerId),
     eq(watchRecords.state, state),
@@ -85,15 +93,16 @@ export const watchRecordsPage = async (
 };
 
 /**
- * Gives a piece of Media a Watch Record in `state`, replacing whichever it
- * had. One statement: the primary key is the triple, so a second marking is
+ * The write half of marking: the Watch Record for a piece of Media, in
+ * `state`, whether or not one existed. One statement: the primary key is the
+ * triple, so a second marking is
  * a conflict that becomes the move. `updated_at` is set here by hand, because
  * Drizzle's `$onUpdate` fires for `update` and not for an upsert — and set
  * from Postgres's clock, not this process's, so a move and an insert are
  * ordered by the one clock the lists sort on.
  * — `docs/adr/0007-watchlist-and-watched-are-one-record.md`
  */
-export const setWatchRecord = async (
+export const writeWatchRecord = async (
   viewerId: string,
   ref: MediaRef,
   state: WatchState,
@@ -114,5 +123,5 @@ export const clearWatchRecord = async (
 ): Promise<void> => {
   await db
     .delete(watchRecords)
-    .where(and(eq(watchRecords.viewerId, viewerId), isMedia(ref)));
+    .where(and(eq(watchRecords.viewerId, viewerId), whereMedia(ref)));
 };

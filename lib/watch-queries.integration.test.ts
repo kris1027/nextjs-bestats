@@ -4,12 +4,12 @@ import { expect, test } from 'vitest';
 import { db } from '@/lib/db';
 import { watchRecords } from '@/lib/schema';
 import { disposableViewers } from '@/lib/test-viewers';
-import { PAGE_SIZE, watchKey } from '@/lib/watch';
+import { PAGE_SIZE, stateOf } from '@/lib/watch';
 import {
   clearWatchRecord,
-  setWatchRecord,
   watchLookup,
   watchRecordsPage,
+  writeWatchRecord,
 } from '@/lib/watch-queries';
 
 const viewer = disposableViewers();
@@ -18,21 +18,21 @@ const GOT = { kind: 'tv', id: 1399 } as const;
 const BREAKING_BAD = { kind: 'tv', id: 1396 } as const;
 const HEAT = { kind: 'movie', id: 949 } as const;
 
-test('setting a Watch Record creates it', async () => {
+test('writing a Watch Record creates it', async () => {
   const viewerId = await viewer();
 
-  await setWatchRecord(viewerId, GOT, 'planned');
+  await writeWatchRecord(viewerId, GOT, 'planned');
 
   const lookup = await watchLookup(viewerId, [GOT]);
 
-  expect(lookup.get(watchKey(GOT.kind, GOT.id))).toBe('planned');
+  expect(stateOf(lookup, GOT)).toBe('planned');
 });
 
-test('setting the other state moves the Watch Record rather than adding one', async () => {
+test('writing the other state moves the Watch Record rather than adding one', async () => {
   const viewerId = await viewer();
 
-  await setWatchRecord(viewerId, GOT, 'planned');
-  await setWatchRecord(viewerId, GOT, 'watched');
+  await writeWatchRecord(viewerId, GOT, 'planned');
+  await writeWatchRecord(viewerId, GOT, 'watched');
 
   const rows = await db
     .select()
@@ -46,10 +46,10 @@ test('setting the other state moves the Watch Record rather than adding one', as
 test('moving a Watch Record makes it the newest marking', async () => {
   const viewerId = await viewer();
 
-  await setWatchRecord(viewerId, GOT, 'watched');
-  await setWatchRecord(viewerId, BREAKING_BAD, 'watched');
-  await setWatchRecord(viewerId, GOT, 'planned');
-  await setWatchRecord(viewerId, GOT, 'watched');
+  await writeWatchRecord(viewerId, GOT, 'watched');
+  await writeWatchRecord(viewerId, BREAKING_BAD, 'watched');
+  await writeWatchRecord(viewerId, GOT, 'planned');
+  await writeWatchRecord(viewerId, GOT, 'watched');
 
   const { records } = await watchRecordsPage(viewerId, 'watched', 1);
 
@@ -62,12 +62,12 @@ test('moving a Watch Record makes it the newest marking', async () => {
 test('clearing a Watch Record deletes it', async () => {
   const viewerId = await viewer();
 
-  await setWatchRecord(viewerId, GOT, 'watched');
+  await writeWatchRecord(viewerId, GOT, 'watched');
   await clearWatchRecord(viewerId, GOT);
 
   const lookup = await watchLookup(viewerId, [GOT]);
 
-  expect(lookup.get(watchKey(GOT.kind, GOT.id)) ?? null).toBe(null);
+  expect(stateOf(lookup, GOT)).toBe(null);
 });
 
 test('clearing Media with no Watch Record is not an error', async () => {
@@ -79,9 +79,9 @@ test('clearing Media with no Watch Record is not an error', async () => {
 test('the lookup answers for the Media it was asked about and no other', async () => {
   const viewerId = await viewer();
 
-  await setWatchRecord(viewerId, GOT, 'planned');
-  await setWatchRecord(viewerId, BREAKING_BAD, 'watched');
-  await setWatchRecord(viewerId, HEAT, 'watched');
+  await writeWatchRecord(viewerId, GOT, 'planned');
+  await writeWatchRecord(viewerId, BREAKING_BAD, 'watched');
+  await writeWatchRecord(viewerId, HEAT, 'watched');
 
   const lookup = await watchLookup(viewerId, [GOT, HEAT, { ...HEAT, id: 1 }]);
 
@@ -94,8 +94,8 @@ test('the lookup answers for the Media it was asked about and no other', async (
 test('the lookup keeps the same TMDB id in each Kind apart', async () => {
   const viewerId = await viewer();
 
-  await setWatchRecord(viewerId, GOT, 'planned');
-  await setWatchRecord(viewerId, { kind: 'movie', id: GOT.id }, 'watched');
+  await writeWatchRecord(viewerId, GOT, 'planned');
+  await writeWatchRecord(viewerId, { kind: 'movie', id: GOT.id }, 'watched');
 
   const lookup = await watchLookup(viewerId, [
     GOT,
@@ -109,7 +109,7 @@ test('the lookup keeps the same TMDB id in each Kind apart', async () => {
 test('the lookup is one Viewer’s and nobody else’s', async () => {
   const [one, other] = await Promise.all([viewer(), viewer()]);
 
-  await setWatchRecord(one, GOT, 'watched');
+  await writeWatchRecord(one, GOT, 'watched');
 
   const lookup = await watchLookup(other, [GOT]);
 
@@ -127,9 +127,9 @@ test('an empty page of Media asks nothing and gets nothing', async () => {
 test('a list holds one state and counts the whole of it', async () => {
   const viewerId = await viewer();
 
-  await setWatchRecord(viewerId, GOT, 'planned');
-  await setWatchRecord(viewerId, BREAKING_BAD, 'watched');
-  await setWatchRecord(viewerId, HEAT, 'watched');
+  await writeWatchRecord(viewerId, GOT, 'planned');
+  await writeWatchRecord(viewerId, BREAKING_BAD, 'watched');
+  await writeWatchRecord(viewerId, HEAT, 'watched');
 
   const watched = await watchRecordsPage(viewerId, 'watched', 1);
   const planned = await watchRecordsPage(viewerId, 'planned', 1);
@@ -149,7 +149,7 @@ test('a list pages at PAGE_SIZE, newest marking first', async () => {
 
   // one at a time, so every `updated_at` is later than the one before
   for (const id of ids) {
-    await setWatchRecord(viewerId, { kind: 'movie', id }, 'watched');
+    await writeWatchRecord(viewerId, { kind: 'movie', id }, 'watched');
   }
 
   const first = await watchRecordsPage(viewerId, 'watched', 1);
@@ -164,6 +164,20 @@ test('a list pages at PAGE_SIZE, newest marking first', async () => {
   );
   expect(beyond.records).toEqual([]);
   expect(beyond.total).toBe(ids.length);
+});
+
+test('a list page that does not count from 1 is refused before Postgres sees it', async () => {
+  const viewerId = await viewer();
+
+  await expect(watchRecordsPage(viewerId, 'watched', 0)).rejects.toThrow(
+    RangeError,
+  );
+  await expect(watchRecordsPage(viewerId, 'watched', -1)).rejects.toThrow(
+    RangeError,
+  );
+  await expect(watchRecordsPage(viewerId, 'watched', 1.5)).rejects.toThrow(
+    RangeError,
+  );
 });
 
 test('a Viewer with nothing recorded has an empty list, not a missing one', async () => {

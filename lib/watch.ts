@@ -59,26 +59,36 @@ export const marked = (
  * The key a page's lookup is built on: `tv/1399`, the spelling of the URL and
  * of the ADRs. Written once here because a TMDB id is unique only within a
  * Kind, and a lookup keyed on the id alone would let a Show answer for a
- * Movie.
+ * Movie. Takes a `MediaRef`, which a Media Item already is.
  */
-export const watchKey = (kind: Kind, id: number): string => `${kind}/${id}`;
+export const watchKey = ({ kind, id }: MediaRef): string => `${kind}/${id}`;
 
 /** What a page hands its cards: each piece of Media's state, by `watchKey`. */
 export type WatchLookup = ReadonlyMap<string, WatchState>;
 
 /**
  * Builds the lookup from one query's rows. A piece of Media with no row is
- * simply absent, so a card reads `lookup.get(watchKey(kind, id)) ?? null`.
+ * simply absent, which `stateOf` reads as `null`.
  */
 export const toLookup = (
   records: readonly Pick<WatchRecord, 'kind' | 'tmdbId' | 'state'>[],
 ): WatchLookup =>
   new Map(
     records.map((record) => [
-      watchKey(record.kind, record.tmdbId),
+      watchKey({ kind: record.kind, id: record.tmdbId }),
       record.state,
     ]),
   );
+
+/**
+ * A piece of Media's state in a lookup, or `null` when the Viewer has said
+ * nothing about it — the glossary's "no Watch Record at all", not a third
+ * state. Said here once so no caller has to remember the `?? null`.
+ */
+export const stateOf = (
+  lookup: WatchLookup,
+  ref: MediaRef,
+): WatchState | null => lookup.get(watchKey(ref)) ?? null;
 
 /**
  * How many Watch Records a list page shows. Each one costs a TMDB request, so

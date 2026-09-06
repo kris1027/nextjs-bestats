@@ -9,13 +9,14 @@ import {
   isWatchState,
   type MediaRef,
   marked,
+  stateOf,
   type WatchState,
   watchKey,
 } from '@/lib/watch';
 import {
   clearWatchRecord,
-  setWatchRecord,
   watchLookup,
+  writeWatchRecord,
 } from '@/lib/watch-queries';
 
 /**
@@ -65,21 +66,18 @@ export const mark = async (formData: FormData): Promise<MarkResult> => {
 
   try {
     const lookup = await watchLookup(currentViewer.id, [ref]);
-    const state = marked(
-      lookup.get(watchKey(ref.kind, ref.id)) ?? null,
-      pressed,
-    );
+    const state = marked(stateOf(lookup, ref), pressed);
 
     if (state) {
-      await setWatchRecord(currentViewer.id, ref, state);
+      await writeWatchRecord(currentViewer.id, ref, state);
     } else {
       await clearWatchRecord(currentViewer.id, ref);
     }
 
     return { state };
   } catch (cause) {
-    console.error(`Marking ${watchKey(ref.kind, ref.id)} failed:`, cause);
+    console.error(`Marking ${watchKey(ref)} failed:`, cause);
 
-    return { error: 'Could not save that. Try again in a moment.' };
+    return { error: 'Could not mark that. Try again in a moment.' };
   }
 };

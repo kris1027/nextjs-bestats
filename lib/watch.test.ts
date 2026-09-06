@@ -3,6 +3,7 @@ import { expect, test } from 'vitest';
 import {
   isWatchState,
   marked,
+  stateOf,
   toLookup,
   WATCH_STATES,
   watchKey,
@@ -42,8 +43,8 @@ test('isWatchState admits the two states and nothing else', () => {
 });
 
 test('watchKey spells a piece of Media the way its URL does', () => {
-  expect(watchKey('tv', 1399)).toBe('tv/1399');
-  expect(watchKey('movie', 1399)).toBe('movie/1399');
+  expect(watchKey({ kind: 'tv', id: 1399 })).toBe('tv/1399');
+  expect(watchKey({ kind: 'movie', id: 1399 })).toBe('movie/1399');
 });
 
 test('toLookup keeps the same TMDB id in each Kind apart', () => {
@@ -52,13 +53,13 @@ test('toLookup keeps the same TMDB id in each Kind apart', () => {
     { kind: 'movie', tmdbId: 1399, state: 'planned' },
   ]);
 
-  expect(lookup.get(watchKey('tv', 1399))).toBe('watched');
-  expect(lookup.get(watchKey('movie', 1399))).toBe('planned');
+  expect(stateOf(lookup, { kind: 'tv', id: 1399 })).toBe('watched');
+  expect(stateOf(lookup, { kind: 'movie', id: 1399 })).toBe('planned');
 });
 
 test('toLookup has nothing for Media the Viewer has said nothing about', () => {
   const lookup = toLookup([{ kind: 'tv', tmdbId: 1399, state: 'planned' }]);
 
-  expect(lookup.get(watchKey('tv', 66732)) ?? null).toBe(null);
-  expect(toLookup([]).size).toBe(0);
+  expect(stateOf(lookup, { kind: 'tv', id: 66732 })).toBe(null);
+  expect(stateOf(toLookup([]), { kind: 'tv', id: 1399 })).toBe(null);
 });

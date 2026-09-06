@@ -34,7 +34,8 @@ them" would have excluded a Viewer who has signed in and recorded nothing.
 
 A seventh arrived with step 3: Mark, the glossary's one verb. It was already
 load-bearing in two ADRs and this plan before it had a definition, and the
-definition is where the rule that a card's control is a toggle lives.
+definition is where the rule lives that marking the state a Watch Record
+already has unmarks it.
 
 ## The invariant
 
