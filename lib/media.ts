@@ -265,6 +265,15 @@ export const mediaDetails = async (
 };
 
 /**
+ * Where an Unanswered request's reason goes. Nothing downstream carries it:
+ * a page can say a Kind or a ref went Unanswered, but only the server log can
+ * say why. Said once here for the two places a settled request is read.
+ */
+const logUnanswered = (what: string, reason: unknown): void => {
+  console.error(`TMDB ${what} went Unanswered:`, reason);
+};
+
+/**
  * Resolves refs to Media Items, one request each, issued together and settled
  * apart the way `searchMedia` settles its two Kinds: one ref TMDB will not
  * answer for leaves the others' answers intact. The detail endpoints carry
@@ -287,10 +296,7 @@ export const mediaItems = async (
     if (!ref) return { answer: 'unanswered' };
 
     if (result.status === 'rejected') {
-      console.error(
-        `TMDB for ${ref.kind}/${ref.id} went Unanswered:`,
-        result.reason,
-      );
+      logUnanswered(`${ref.kind}/${ref.id}`, result.reason);
 
       return { answer: 'unanswered' };
     }
@@ -320,12 +326,9 @@ const searchKind = async <K extends Kind>(
 };
 
 /**
- * A rejected search becomes `null` — an unanswered Kind — rather than empty
+ * A rejected search becomes `null` — an Unanswered Kind — rather than empty
  * Matches, because TMDB failing and TMDB matching nothing are different
  * answers and the page has to be able to tell them apart.
- *
- * The reason is logged here because nothing downstream carries it: the page
- * can say a Kind went unanswered, but only the server log can say why.
  */
 const answered = (
   result: PromiseSettledResult<Matches>,
@@ -333,7 +336,7 @@ const answered = (
 ): Matches | null => {
   if (result.status === 'fulfilled') return result.value;
 
-  console.error(`TMDB search for ${kind} failed:`, result.reason);
+  logUnanswered(`search for ${kind}`, result.reason);
 
   return null;
 };
