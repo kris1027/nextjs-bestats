@@ -2,7 +2,7 @@ import { and, count, desc, eq, or, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import type { MediaRef } from '@/lib/media';
-import { watchRecords } from '@/lib/schema';
+import { markingTallies, watchRecords } from '@/lib/schema';
 import {
   PAGE_SIZE,
   toLookup,
@@ -140,6 +140,41 @@ export const watchTallies = async (
   for (const row of rows) tallies[row.state] = row.total;
 
   return tallies;
+};
+
+/**
+ * Counts one press of a marking control and says how many this Viewer has
+ * made in the current minute, this one included. One statement: the row is
+ * inserted on the first press, and on conflict the window either restarts
+ * — a minute or more has passed, so the tally is 1 again — or carries on
+ * with one more. The action compares the answer to `MARKS_PER_MINUTE`.
+ *
+ * Every press counts, refused ones too, so a client that keeps hammering
+ * stays refused until it stops for a minute. The clock is Postgres's, like
+ * every other timestamp here.
+ */
+export const countMarking = async (viewerId: string): Promise<number> => {
+  const [row] = await db
+    .insert(markingTallies)
+    .values({ viewerId })
+    .onConflictDoUpdate({
+      target: markingTallies.viewerId,
+      set: {
+        tally: sql`case
+          when ${markingTallies.windowStart} <= now() - interval '1 minute' then 1
+          else ${markingTallies.tally} + 1
+        end`,
+        windowStart: sql`case
+          when ${markingTallies.windowStart} <= now() - interval '1 minute' then now()
+          else ${markingTallies.windowStart}
+        end`,
+      },
+    })
+    .returning({ tally: markingTallies.tally });
+
+  if (!row) throw new Error('Counting a marking returned no row');
+
+  return row.tally;
 };
 
 /**

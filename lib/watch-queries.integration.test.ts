@@ -1,12 +1,13 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { expect, test } from 'vitest';
 
 import { db } from '@/lib/db';
-import { watchRecords } from '@/lib/schema';
+import { markingTallies, watchRecords } from '@/lib/schema';
 import { disposableViewers } from '@/lib/test-viewers';
 import { PAGE_SIZE, stateOf } from '@/lib/watch';
 import {
   clearWatchRecord,
+  countMarking,
   watchLookup,
   watchRecordsPage,
   watchTallies,
@@ -210,4 +211,42 @@ test('the tallies are one Viewer’s and nobody else’s', async () => {
   await writeWatchRecord(theirs, GOT, 'watched');
 
   expect(await watchTallies(mine)).toEqual({ planned: 0, watched: 0 });
+});
+
+test('counting a marking starts at 1 and climbs within the minute', async () => {
+  const viewerId = await viewer();
+
+  expect(await countMarking(viewerId)).toBe(1);
+  expect(await countMarking(viewerId)).toBe(2);
+  expect(await countMarking(viewerId)).toBe(3);
+});
+
+test('a minute after the window started, counting starts over', async () => {
+  const viewerId = await viewer();
+
+  await countMarking(viewerId);
+  await countMarking(viewerId);
+
+  await db
+    .update(markingTallies)
+    .set({ windowStart: sql`now() - interval '61 seconds'` })
+    .where(eq(markingTallies.viewerId, viewerId));
+
+  expect(await countMarking(viewerId)).toBe(1);
+});
+
+test('a marking tally is one Viewer’s, and one row however many presses', async () => {
+  const [mine, theirs] = await Promise.all([viewer(), viewer()]);
+
+  await countMarking(theirs);
+  await countMarking(theirs);
+
+  expect(await countMarking(mine)).toBe(1);
+
+  const rows = await db
+    .select()
+    .from(markingTallies)
+    .where(eq(markingTallies.viewerId, theirs));
+
+  expect(rows).toHaveLength(1);
 });

@@ -74,3 +74,20 @@ export const watchRecords = pgTable(
     ),
   ],
 );
+
+/**
+ * How often one Viewer has marked lately: one row per Viewer, holding the
+ * minute it started counting and how many presses it has seen since. The
+ * marking action refuses a press once the tally passes `MARKS_PER_MINUTE`,
+ * and the row is rewritten rather than accumulated, so a Viewer never owns
+ * more than one. It guards Neon's compute against a runaway client, not a
+ * Viewer against themselves.
+ *
+ * Like `watch_records`, the foreign key to the Viewer is a migration of its
+ * own: Neon owns `neon_auth.user`, and drizzle-kit cannot see it.
+ */
+export const markingTallies = pgTable('marking_tallies', {
+  viewerId: uuid('viewer_id').primaryKey(),
+  windowStart: timestamp('window_start').defaultNow().notNull(),
+  tally: integer('tally').default(1).notNull(),
+});
