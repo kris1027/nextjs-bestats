@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 
-import { auth, isProvider, viewer } from '@/lib/auth';
+import { auth, type DeletionRefusal, isProvider, viewer } from '@/lib/auth';
 import { nextPath } from '@/lib/next-path';
 
 /**
@@ -37,6 +37,11 @@ export const signOut = async (): Promise<void> => {
   redirect('/');
 };
 
+/** Back to the page, saying why. Not exported: a `'use server'` file may
+ * export only async functions. */
+const refused = (refusal: DeletionRefusal): string =>
+  `/settings?error=${refusal}`;
+
 /**
  * Deletes the Viewer: the sign-in Neon holds, and through the foreign keys
  * every Watch Record and the marking tally. Through Neon's own door rather
@@ -62,11 +67,7 @@ export const deleteViewer = async (formData: FormData): Promise<void> => {
 
     // Neon's wrapper normalises Better Auth's SESSION_EXPIRED to this
     // spelling before handing it back; the upper-case one never arrives
-    redirect(
-      error.code === 'session_expired'
-        ? '/settings?error=stale'
-        : '/settings?error=failed',
-    );
+    redirect(refused(error.code === 'session_expired' ? 'stale' : 'failed'));
   }
 
   // nothing to sign out of: the session went with the Viewer

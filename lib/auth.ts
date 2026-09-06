@@ -29,6 +29,20 @@ export type Provider = (typeof PROVIDERS)[number];
 export const isProvider = (value: string): value is Provider =>
   PROVIDERS.some((provider) => provider === value);
 
+/**
+ * The ways deleting a Viewer can be refused, as `/settings?error=` spells
+ * them: `stale` for a session older than Better Auth's freshness window,
+ * `failed` for anything else. Listed here, beside the providers, because the
+ * action sends one and the page reads one, and neither may invent a third.
+ */
+export const DELETION_REFUSALS = ['stale', 'failed'] as const;
+
+export type DeletionRefusal = (typeof DELETION_REFUSALS)[number];
+
+/** Guards the refusal, which reaches the page as an opaque query string. */
+export const isDeletionRefusal = (value: string): value is DeletionRefusal =>
+  DELETION_REFUSALS.some((refusal) => refusal === value);
+
 /** A Viewer, as much of one as anything outside this module needs. */
 export type Viewer = {
   id: string;

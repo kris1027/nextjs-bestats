@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import type { JSX } from 'react';
 
-import { viewer } from '@/lib/auth';
+import { type DeletionRefusal, isDeletionRefusal, viewer } from '@/lib/auth';
 import { deleteViewer } from '@/lib/auth-actions';
 import { formatCount } from '@/lib/format';
 import { firstValue, type SearchParams } from '@/lib/search-params';
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 /** What a refused deletion says, keyed by the `?error=` the action sends back. */
-const ERRORS: Record<string, string> = {
+const REFUSED: Record<DeletionRefusal, string> = {
   stale:
     'Your sign-in is too old to do this. Sign out, sign in again, and come back.',
   failed: 'That did not work. Try again in a moment.',
@@ -37,7 +37,8 @@ const SettingsPage = async ({
     watchTallies(currentViewer.id),
     searchParams,
   ]);
-  const error = ERRORS[firstValue(params.error)];
+  const refusal = firstValue(params.error);
+  const error = isDeletionRefusal(refusal) ? REFUSED[refusal] : null;
 
   return (
     <main className='flex-1 p-4'>
