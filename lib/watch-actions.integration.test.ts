@@ -2,11 +2,12 @@ import { eq } from 'drizzle-orm';
 import { expect, test, vi } from 'vitest';
 
 import { db } from '@/lib/db';
-import { markingTallies, watchRecords } from '@/lib/schema';
+import { watchRecords } from '@/lib/schema';
 import { expireMarkingWindow } from '@/lib/test-marking';
 import { disposableViewers } from '@/lib/test-viewers';
 import { MARKS_PER_MINUTE } from '@/lib/watch';
 import { mark } from '@/lib/watch-actions';
+import { tallyMarking } from '@/lib/watch-queries';
 
 /**
  * `mark` reads the Viewer from the session and from nowhere else, so the
@@ -94,11 +95,12 @@ test('a signed-out press is sent to sign in, carrying where it came from', async
 test(`the press after ${MARKS_PER_MINUTE} in a minute is refused, and the one before it is not`, async () => {
   currentViewer.id = await viewer();
 
-  // the tally counts presses, so the row is set to one short of the limit
-  // rather than pressed sixty times against a real database
-  await db
-    .insert(markingTallies)
-    .values({ viewerId: currentViewer.id, tally: MARKS_PER_MINUTE - 1 });
+  // one short of the limit through the query itself — its first insert and
+  // its increments — rather than a row written by hand; the last two presses
+  // then go through the action
+  for (let press = 1; press < MARKS_PER_MINUTE; press += 1) {
+    await tallyMarking(currentViewer.id);
+  }
 
   expect(await mark(press('tv', '1399', 'planned'))).toEqual({
     state: 'planned',
