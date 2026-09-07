@@ -1,6 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { config } from 'dotenv';
 
+import { databaseHost, withoutSecrets } from './lib/connection-string.ts';
 import {
   APPLIED_MIGRATIONS_QUERY,
   type AppliedMigration,
@@ -58,14 +59,45 @@ const appliedMigrations = async (
   }
 };
 
+/** Whatever a thrown thing had to say, with nothing of the connection string
+ * left in it. */
+const because = (cause: unknown, url: string): string =>
+  withoutSecrets(cause instanceof Error ? cause.message : String(cause), url);
+
 const url = process.env.DATABASE_URL;
 
-if (!url) throw new Error('Missing DATABASE_URL');
+if (!url) {
+  console.error('Missing DATABASE_URL.');
+  process.exit(1);
+}
 
-const drift = migrationDrift(
-  shippedMigrations(),
-  await appliedMigrations(neon(url)),
-);
+// before `neon()` sees it: handed something unparseable, the driver throws
+// with the whole string in the message, and this script is run against
+// databases whose strings are typed into a shell rather than read from a file
+const host = databaseHost(url);
+
+if (!host) {
+  console.error(
+    [
+      'DATABASE_URL is not a connection string.',
+      'Its value is not shown here, since it may carry a password.',
+      'Check it for an unsubstituted placeholder or a missing quote.',
+    ].join('\n'),
+  );
+  process.exit(1);
+}
+
+let applied: AppliedMigration[] | null;
+
+try {
+  applied = await appliedMigrations(neon(url));
+} catch (cause) {
+  console.error(`Could not read the migrations on ${host}:`);
+  console.error(because(cause, url));
+  process.exit(1);
+}
+
+const drift = migrationDrift(shippedMigrations(), applied);
 
 console.log(driftReport(drift));
 
