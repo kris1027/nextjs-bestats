@@ -5,9 +5,10 @@ Neon's `main`, and each CI run creates a branch of its own and drops it when
 the run ends.
 
 Local development and preview deployments once shared a long-lived `dev`
-branch. They no longer do: both point at `main`, and `dev` has been deleted.
-The title of this ADR therefore holds for CI alone, and what that costs is
-recorded where it can be read before someone "fixes" it.
+branch. Local work points at `main` now, `dev` has been deleted, and there are
+no preview deployments at all. The title of this ADR therefore holds for CI
+alone, and what that costs is recorded where it can be read before someone
+"fixes" it.
 — `docs/adr/0013-local-development-shares-productions-branch.md`
 
 A local Postgres in Docker would be faster and would work on a train. It would
@@ -81,11 +82,11 @@ and that list does the work an OAuth proxy would otherwise have done:
   production checklist, not on the path to running the app.
 
 The list is **per branch**, which follows from auth branching with the data.
-With one branch left there is one list: production's domain and any preview
-URL that needs sign-in are both trusted on `main`.
+With one branch left there is one list, and only production's domain on it.
 
-**Preview deployments are not solved by a wildcard, and this was assumed
-before it was checked.** Neon requires the `*` to be the leftmost subdomain
+**Preview deployments were not solved by a wildcard, and this was assumed
+before it was checked.** It is why they are now switched off rather than
+trusted — `docs/adr/0013`. Neon requires the `*` to be the leftmost subdomain
 label — `https://*.example.vercel.app`. Vercel's preview hostnames are
 `project-hash-scope.vercel.app`: one label under `vercel.app`, with no
 subdomain to replace. The only matching pattern would be `https://*.vercel.app`,

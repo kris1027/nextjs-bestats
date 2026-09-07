@@ -112,8 +112,8 @@ Everything else is `neon checkout`'s to fill in.
 ### Environments
 
 There is no `docker-compose.yml` and no local Postgres. `main` is production,
-and local work and preview deployments share it; CI creates a branch per run
-and drops it afterwards. The driver this app ships has no interactive
+and local work shares it; CI creates a branch per run and drops it afterwards.
+There are no preview deployments — `vercel.json` builds production only. The driver this app ships has no interactive
 transactions and a local Postgres does, so a test suite built on rolling back
 would be green about code that cannot run.
 
@@ -133,10 +133,9 @@ registered callback URLs. Localhost is pre-approved on any port, and Neon
 supplies development OAuth credentials until you register your own.
 
 The list is per branch, and there is one branch, so production's domain and
-any preview URL are trusted on `main`. Vercel's preview hostnames have no
-subdomain label to wildcard, so a preview that needs sign-in has its URL added
-by hand; previews
-that only serve the public pages need nothing. A domain that is not on the
+nothing else needs trusting, since there are no preview deployments to trust.
+Vercel's preview hostnames had no subdomain label to wildcard, which is part
+of why they are switched off rather than pointed at `main`. A domain that is not on the
 list fails with `invalid domain`, which reads like a bug in sign-in rather
 than a missing entry.
 

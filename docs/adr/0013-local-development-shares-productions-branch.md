@@ -5,11 +5,12 @@ production, and so does the app running on localhost. CI is unchanged: it still
 creates a branch per run and drops it at the end.
 
 This reverses half of `docs/adr/0009`, which had local development and preview
-deployments sharing a long-lived `dev`. The reason is that `dev` bought
-separation nobody was using: BeStats has one developer, and the Viewer and the
-Watch Records on `dev` were the same person's as the ones on `main`, entered
-twice. Two branches, two sets of credentials, and a `neon checkout` to remember
-before every session, to keep apart data that was never actually different.
+deployments sharing a long-lived `dev`. Previews are gone entirely — see the
+consequences below. The reason for the rest is that `dev` bought separation
+nobody was using: BeStats has one developer, and the Viewer and the Watch
+Records on `dev` were the same person's as the ones on `main`, entered twice.
+Two branches, two sets of credentials, and a `neon checkout` to remember before
+every session, to keep apart data that was never actually different.
 
 **What this costs is real and is accepted deliberately.** It is written down
 here so that nobody reading `.env.local` later assumes it is a misconfiguration
@@ -40,10 +41,12 @@ to dangerous, and it stops being either the moment somebody else signs in.
 
 ## Consequences
 
-**Preview deployments follow `main` too.** They had `dev`, and `dev` is gone, so
-their environment variables name `main` — which also means a preview writes to
-production. The trusted-domain list that `docs/adr/0009` describes is per
-branch, so a preview URL that needs sign-in is added to `main`'s list now.
+**There are no preview deployments.** They had `dev`, and rather than point
+them at `main` they were turned off — `vercel.json`'s `ignoreCommand` builds
+only `VERCEL_ENV=production`. Sharing production locally is one thing; a
+preview URL is openable by anyone holding the link, and it would have been
+reading and writing the live database. A pull request is still checked by CI,
+which has a branch of its own; what it no longer gets is a URL to click.
 
 **`db:check` needs care again.** Running it with no override checks `main`,
 which is production, and that is now the useful default rather than a mistake.
