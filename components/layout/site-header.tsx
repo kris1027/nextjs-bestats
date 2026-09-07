@@ -37,7 +37,7 @@ const ViewerControl = async (): Promise<JSX.Element | null> => {
           `/settings`, and that page went with the deletion it existed for
           — docs/adr/0012-a-viewer-cannot-delete-themselves.md */}
       <div className='flex items-center gap-3'>
-        <ViewerAvatar viewer={currentViewer} size={24} />
+        <ViewerAvatar viewer={currentViewer} />
         <span className='max-w-[14ch] truncate font-extrabold text-sm sm:max-w-none'>
           {currentViewer.name}
         </span>
