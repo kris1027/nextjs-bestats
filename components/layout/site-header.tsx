@@ -13,9 +13,8 @@ const control =
 /**
  * The only part of the header that depends on who is asking. It is a component
  * of its own, behind a Suspense boundary, so the request-dependent half of the
- * header is a named seam rather than a property of the whole app: the pages
- * `docs/v1-plan.md` calls "unchanged and public" stay that way as far as the
- * renderer allows.
+ * header is a named seam rather than a property of the whole app: Trending,
+ * search and the detail pages stay public as far as the renderer allows.
  *
  * Nothing at all when the sign-in went Unanswered: "Sign in" would tell a
  * Viewer they are not one, and the header's fixed height already holds the

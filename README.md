@@ -197,7 +197,6 @@ neon.ts                  Which Neon services every branch carries
 drizzle/                 Migrations — generated, except the foreign key
 docs/
   adr/                   Decisions, and why they were made
-  v1-plan.md             What the first real release contains
 ```
 
 ### The one thing to know
@@ -294,7 +293,6 @@ that must not be broken.
 | [`CONTEXT.md`](CONTEXT.md)      | The glossary. Read before naming anything.        |
 | [`CLAUDE.md`](CLAUDE.md)        | Commands, boundaries, conventions, standing rules |
 | [`docs/adr/`](docs/adr)         | Decisions that were hard to reverse, and why      |
-| [`docs/v1-plan.md`](docs/v1-plan.md) | What the first real release contains          |
 
 The ADRs are short and worth reading in order — they explain why one route
 serves both Kinds, why placeholder values are not facts, why the TMDB client
@@ -321,11 +319,11 @@ keys still cascade, so a Viewer removed by any other means takes their Watch
 Records with them. Marking is rate-limited per Viewer, in Postgres, so every
 Neon branch enforces the same rule.
 
-Still to come: the polish pass — `loading.tsx` and `error.tsx` per route,
-and the static rendering that Suspense around the TMDB fetches unlocks.
+Every route prerenders a shell and streams its request-time reads into a
+skeleton, and one `error.tsx` at the root catches what nobody anticipated.
 
-The full plan, its trade-offs and its build order are in
-[`docs/v1-plan.md`](docs/v1-plan.md).
+The decisions behind all of this, and what each one cost, are in
+[`docs/adr/`](docs/adr) — thirteen of them, short, worth reading in order.
 
 ## Attribution
 
