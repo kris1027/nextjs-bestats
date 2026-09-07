@@ -43,7 +43,9 @@ those as the absences they are rather than reporting them as measurements.
 
 ### Prerequisites
 
-- **Node.js 20.9 or newer.** Next.js 16 requires it.
+- **Node.js 22.18 or newer.** Next.js 16 asks for 20.9, and `pnpm db:check`
+  asks for more: it is a `.ts` file Node runs directly, and the type
+  stripping that makes that work is on by default from 22.18. CI runs 24.
 - **pnpm.** The version is pinned in `package.json` via `packageManager`, so
   `corepack enable` will select it for you. npm and yarn are not supported
   here.
