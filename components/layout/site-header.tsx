@@ -42,8 +42,9 @@ const ViewerControl = async (): Promise<JSX.Element | null> => {
           {currentViewer.name}
         </span>
       </div>
-      {/* a Server Action, so the header carries no client component of its
-          own; the marking control is the app's first */}
+      {/* a form posting to a Server Action, so signing out works before
+          hydration: the header's client components are the two that need
+          the address, `ListLinks` and `SignInLink`, and this is not one */}
       <form action={signOut}>
         <button type='submit' className={control}>
           Sign out
