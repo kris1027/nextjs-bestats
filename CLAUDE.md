@@ -145,9 +145,10 @@ not `lib/watch`'s. It lives here only because two routes share it.
   tally. A new table that belongs to a Viewer gets one the same way, through
   `drizzle-kit generate --custom`.
   — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
-- Environment variables come from Neon, not from typing. The exception is
-  `NEON_AUTH_COOKIE_SECRET`, and `.env.example` says so. There is one branch,
-  `main`, so there is no branch to choose and nothing to check out.
+- Environment variables come from Neon, not from typing: `neon checkout main`
+  writes every one of them but `NEON_AUTH_COOKIE_SECRET`, and `.env.example`
+  says which that is. There is one branch, so `main` is the only thing there
+  is to check out and no branch to choose.
   — `docs/adr/0013-local-development-shares-productions-branch.md`
 - Never edit or commit `.env.local`.
 - A Viewer cannot delete themselves, and `/settings` went with the button that
