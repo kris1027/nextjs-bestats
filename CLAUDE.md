@@ -54,8 +54,13 @@ the hand-written migrations in there are held to the same rule as the rest.
   graph, so `lib/watch-actions.test.ts` runs on a commit and covers the
   failure branch a migrated CI branch cannot reach.
 - `@/` resolves in tests, so an import in a test looks like an import anywhere
-  else in the repo. It does not resolve in `db-check.ts`, which Node runs
-  directly: that file reaches `lib/` by relative path, extension included.
+  else in the repo. It does not resolve for `pnpm db:check`, which Node runs
+  directly, and that holds for the whole graph Node loads and not just its
+  entry point: `db-check.ts`, `lib/connection-string.ts`,
+  `lib/migration-drift.ts` and `lib/migration-files.ts` reach each other by
+  relative path, extension included. A `@/` import among them breaks the
+  script at runtime with no type error and no test failure, since Vitest
+  resolves what Node cannot.
 - The integration project runs against a real Neon branch, never a local
   Postgres. The driver we ship has no interactive transactions and a local
   Postgres does, so a suite built on rolling back would be green about code

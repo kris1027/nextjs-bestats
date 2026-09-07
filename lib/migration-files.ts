@@ -1,13 +1,17 @@
 import crypto from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
-import type { ShippedMigration } from '@/lib/migration-drift';
+import type { ShippedMigration } from './migration-drift.ts';
 
 /**
  * The filesystem half of `pnpm db:check`: what `drizzle/` ships, read the way
  * drizzle-kit reads it. Apart from `lib/migration-drift.ts` so that the
  * comparison stays a pure unit test, and apart from `db-check.ts` so the
  * integration project can read the same side without running the script.
+ *
+ * Node runs the script, so this file is in its graph too: it reaches its
+ * neighbour by relative path with the extension, the way `db-check.ts`
+ * reaches this one. `@/` would resolve everywhere but there.
  */
 
 /** Where the migrations and their journal live, as `drizzle.config.ts` puts
