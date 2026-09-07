@@ -3,8 +3,8 @@ import type { Kind, MediaRef } from '@/lib/media';
 /**
  * The rules that move a Watch Record between states, and nothing that touches
  * a database. This file is the half of `lib/watch` a client component may
- * import: step 4's control runs `marked` for `useOptimistic`, so nothing here
- * may reach for `lib/db`, whose import throws without `DATABASE_URL`. The
+ * import: the marking control runs `marked` for `useOptimistic`, so nothing
+ * here may reach for `lib/db`, whose import throws without `DATABASE_URL`. The
  * queries live in `lib/watch-queries.ts` and the Server Action in
  * `lib/watch-actions.ts`.
  */

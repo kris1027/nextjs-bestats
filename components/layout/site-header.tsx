@@ -42,8 +42,8 @@ const ViewerControl = async (): Promise<JSX.Element | null> => {
           {currentViewer.name}
         </span>
       </div>
-      {/* a Server Action, so the first client component in the app is still
-          the marking control in step 4 */}
+      {/* a Server Action, so the header carries no client component of its
+          own; the marking control is the app's first */}
       <form action={signOut}>
         <button type='submit' className={control}>
           Sign out
