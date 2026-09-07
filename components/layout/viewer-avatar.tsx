@@ -6,8 +6,8 @@ import type { Viewer } from '@/lib/auth';
 /**
  * A Viewer's picture as their provider serves it, or nothing when they have
  * none. Decorative wherever it appears — the name sits beside it — so the
- * alt text is empty. `size` is the one thing the header and the settings
- * page disagree on.
+ * alt text is empty. The header is the only caller now that `/settings` is
+ * gone; `size` stays a prop because a second one would disagree about it.
  */
 const ViewerAvatar = ({
   viewer,

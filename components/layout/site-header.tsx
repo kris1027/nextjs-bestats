@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { type JSX, Suspense } from 'react';
 
 import { ListLinks } from '@/components/layout/list-links';
-import { SettingsLink } from '@/components/layout/settings-link';
 import { SignInLink } from '@/components/layout/sign-in-link';
 import { ViewerAvatar } from '@/components/layout/viewer-avatar';
 import { answeredViewer } from '@/lib/auth';
@@ -35,14 +34,15 @@ const ViewerControl = async (): Promise<JSX.Element | null> => {
   return (
     <div className='flex items-center gap-4'>
       <ListLinks />
-      {/* the name is the way to /settings: the one conventional destination
-          behind a name, and it spares the header a third text link */}
-      <SettingsLink>
+      {/* who they are signed in as, and nothing to press: the name led to
+          `/settings`, and that page went with the deletion it existed for
+          — docs/adr/0012-a-viewer-cannot-delete-themselves.md */}
+      <div className='flex items-center gap-3'>
         <ViewerAvatar viewer={currentViewer} size={24} />
         <span className='max-w-[14ch] truncate font-extrabold text-sm sm:max-w-none'>
           {currentViewer.name}
         </span>
-      </SettingsLink>
+      </div>
       {/* a Server Action, so the first client component in the app is still
           the marking control in step 4 */}
       <form action={signOut}>
