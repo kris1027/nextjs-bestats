@@ -8,9 +8,11 @@ comes from TMDB, and there is no client-side data fetching anywhere in the
 app.
 
 > **Status:** a Viewer can sign in, mark any Show or Movie as Planned or
-> Watched, see those records on `/watchlist` and `/watched`, and leave
-> through `/settings`, taking everything with them. The polish pass is what
-> comes next. See [Roadmap](#roadmap).
+> Watched, and see those records on `/watchlist` and `/watched`. There is no
+> way to delete an account: Neon's Managed Better Auth has no route for it,
+> so the page that offered one was removed
+> ([ADR 0012](docs/adr/0012-a-viewer-cannot-delete-themselves.md)). See
+> [Roadmap](#roadmap).
 
 ## What it does
 
@@ -41,15 +43,18 @@ those as the absences they are rather than reporting them as measurements.
 
 ### Prerequisites
 
-- **Node.js 20.9 or newer.** Next.js 16 requires it.
+- **Node.js 22.18 or newer.** Next.js 16 asks for 20.9, and `pnpm db:check`
+  asks for more: it is a `.ts` file Node runs directly, and the type
+  stripping that makes that work is on by default from 22.18. CI runs 24.
 - **pnpm.** The version is pinned in `package.json` via `packageManager`, so
   `corepack enable` will select it for you. npm and yarn are not supported
   here.
 - **A TMDB read access token.** Free — create an account, then generate one
   at <https://www.themoviedb.org/settings/api>.
 - **A Neon Postgres project**, with Auth enabled. Free, and scales to zero.
-  `neon checkout dev` creates and selects a `dev` branch and writes its
-  connection details for you — `main` is production.
+  `neon checkout main` writes its connection details for you. There is one
+  branch: `main` is production, and local work shares it
+  ([ADR 0013](docs/adr/0013-local-development-shares-productions-branch.md)).
 - **No OAuth application.** Neon supplies development credentials for Google
   and GitHub, so sign-in works before you register anything of your own.
 
@@ -65,18 +70,19 @@ cp .env.example .env.local
 # paste your TMDB token; Neon fills in the rest below
 
 npx neon@latest auth                                     # sign in to Neon
-npx neon@latest link                                     # pick the project, writes .neon
-npx neon@latest branches create --name dev --parent main # once per project
-npx neon@latest checkout dev                             # pins it, writes its env vars
+npx neon@latest link                # pick the project, writes .neon
+npx neon@latest checkout main       # pins it, writes its env vars
 echo "NEON_AUTH_COOKIE_SECRET=$(openssl rand -base64 32)" >> .env.local
 
-pnpm db:migrate   # creates watch_records on the dev branch
+pnpm db:check     # says what main has still to run
+pnpm db:migrate   # runs it
 pnpm dev
 ```
 
-`checkout` pins an existing branch and pulls its environment variables; it does
-not create one, which is why `branches create` comes first. Skip that line if
-`dev` already exists.
+`checkout` pins an existing branch and pulls its environment variables. `main`
+is production, so `db:migrate` here applies migrations to the database the
+deployed app reads — which is the point, and the reason `db:check` comes
+first.
 
 The app is then at <http://localhost:3000>. Next 16 uses Turbopack by default
 for both `dev` and `build`, so there are no bundler flags to pass.
@@ -93,7 +99,7 @@ on the server — no token and no session ever reaches a browser.
 | `TMDB_API_URL`               | API base                                 | `https://api.themoviedb.org/3`     |
 | `TMDB_POSTER_PATH`           | Poster image base, sized `w780`          | `https://image.tmdb.org/t/p/w780`  |
 | `TMDB_BACKDROP_PATH`         | Backdrop image base, `w1280`             | `https://image.tmdb.org/t/p/w1280` |
-| `DATABASE_URL`               | The Neon branch — `dev` locally          | _written by `neon checkout`_       |
+| `DATABASE_URL`               | The Neon branch — always `main`          | _written by `neon checkout`_       |
 | `DATABASE_URL_UNPOOLED`      | The same branch, direct                  | _written by `neon checkout`_       |
 | `NEON_BRANCH`                | Which branch this is                     | _written by `neon checkout`_       |
 | `NEON_AUTH_BASE_URL`         | The branch's Auth server                 | _written by `neon checkout`_       |
@@ -101,34 +107,40 @@ on the server — no token and no session ever reaches a browser.
 | `NEON_AUTH_COOKIE_SECRET`    | Signs the session cookie                 | _yours: `openssl rand -base64 32`_ |
 
 Only two of these are yours to write: the TMDB token and the cookie secret.
-Everything else is `neon checkout <branch>`'s to fill in, and running it again
-is how you move between branches.
+Everything else is `neon checkout`'s to fill in.
 
 `.env.local` is gitignored and must never be committed or edited by tooling.
 
 ### Environments
 
-There is no `docker-compose.yml` and no local Postgres. Every environment is a
-Neon branch: `main` is production, a long-lived `dev` branch serves local work
-and preview deployments, and CI creates one per run and drops it afterwards.
-The driver this app ships has no interactive transactions and a local Postgres
+There is no `docker-compose.yml` and no local Postgres. `main` is production,
+and local work shares it; CI creates a branch per run and drops it afterwards.
+There are no preview deployments — `vercel.json` builds production only. The
+driver this app ships has no interactive transactions and a local Postgres
 does, so a test suite built on rolling back would be green about code that
 cannot run.
 
+**Local development is production.** Signing in on localhost creates a real
+Viewer, marking writes a real Watch Record, and `pnpm test:integration` inserts
+and deletes rows in the database the deployed app reads. `pnpm pre-commit` runs
+the unit project alone and is unaffected. This is deliberate and its cost is
+written down in
+[ADR 0013](docs/adr/0013-local-development-shares-productions-branch.md).
+
 Auth branches with the database. Each branch carries its own `neon_auth`
 schema, so a CI run signs in against its own Viewers and drops them with the
-branch, and `dev` cannot reach production's.
+branch.
 
 Sign-in redirects are restricted to a trusted-domain allowlist rather than to
 registered callback URLs. Localhost is pre-approved on any port, and Neon
 supplies development OAuth credentials until you register your own.
 
-The list is per branch, so production's domain is trusted on `main` and a
-preview's on `dev`. Vercel's preview hostnames have no subdomain label to
-wildcard, so a preview that needs sign-in has its URL added by hand; previews
-that only serve the public pages need nothing. A domain that is not on the
-list fails with `invalid domain`, which reads like a bug in sign-in rather
-than a missing entry.
+The list is per branch, and there is one branch, so production's domain and
+nothing else needs trusting, since there are no preview deployments to trust.
+Vercel's preview hostnames had no subdomain label to wildcard, which is part
+of why they are switched off rather than pointed at `main`. A domain that is
+not on the list fails with `invalid domain`, which reads like a bug in
+sign-in rather than a missing entry.
 
 ```bash
 neon neon-auth domain add https://example.com --branch main
@@ -153,6 +165,7 @@ Both are explained in
 | `pnpm test:integration` | The suite that talks to Postgres                |
 | `pnpm db:generate` | Migration SQL from the schema, without a database    |
 | `pnpm db:migrate` | Applies migrations to whatever `DATABASE_URL` names   |
+| `pnpm db:check`   | Names what that database has not run; writes nothing  |
 | `pnpm pre-commit` | lint-staged, `tsc --noEmit`, and the unit project     |
 
 `.husky/pre-commit` is the single line `pnpm pre-commit`, so the hook and the
@@ -187,7 +200,6 @@ neon.ts                  Which Neon services every branch carries
 drizzle/                 Migrations — generated, except the foreign key
 docs/
   adr/                   Decisions, and why they were made
-  v1-plan.md             What the first real release contains
 ```
 
 ### The one thing to know
@@ -284,7 +296,6 @@ that must not be broken.
 | [`CONTEXT.md`](CONTEXT.md)      | The glossary. Read before naming anything.        |
 | [`CLAUDE.md`](CLAUDE.md)        | Commands, boundaries, conventions, standing rules |
 | [`docs/adr/`](docs/adr)         | Decisions that were hard to reverse, and why      |
-| [`docs/v1-plan.md`](docs/v1-plan.md) | What the first real release contains          |
 
 The ADRs are short and worth reading in order — they explain why one route
 serves both Kinds, why placeholder values are not facts, why the TMDB client
@@ -304,15 +315,18 @@ marking control; and `/watchlist` and `/watched` show the records. A Watch
 Record stores no copy of TMDB's data, so every fact on those pages keeps
 coming from TMDB.
 
-`/settings` lets a Viewer leave: their sign-in and every Watch Record go
-together, through the database's own foreign keys. Marking is rate-limited
-per Viewer, in Postgres, so every Neon branch enforces the same rule.
+A Viewer cannot delete themselves. `/settings` offered it and never could:
+Managed Better Auth answers `delete-user` with a 404, so the page went
+([ADR 0012](docs/adr/0012-a-viewer-cannot-delete-themselves.md)). The foreign
+keys still cascade, so a Viewer removed by any other means takes their Watch
+Records with them. Marking is rate-limited per Viewer, in Postgres, so every
+Neon branch enforces the same rule.
 
-Still to come: the polish pass — `loading.tsx` and `error.tsx` per route,
-and the static rendering that Suspense around the TMDB fetches unlocks.
+Every route prerenders a shell and streams its request-time reads into a
+skeleton, and one `error.tsx` at the root catches what nobody anticipated.
 
-The full plan, its trade-offs and its build order are in
-[`docs/v1-plan.md`](docs/v1-plan.md).
+The decisions behind all of this, and what each one cost, are in
+[`docs/adr/`](docs/adr) — thirteen of them, short, worth reading in order.
 
 ## Attribution
 

@@ -8,9 +8,10 @@ import { address } from '@/lib/next-path';
  * read its own address — so this is a hook, and the two controls that need
  * it share it rather than each pairing the two router hooks by hand.
  *
- * `useSearchParams` needs a Suspense boundary above it once a route renders
- * statically; today every route is dynamic, and step 7's boundaries around
- * the TMDB fetches will supply one.
+ * `useSearchParams` needs a Suspense boundary above it, now that every route
+ * prerenders a shell. The boundary each page draws around its own
+ * request-time reads is the one that supplies it.
+ * — `docs/adr/0010-the-shell-is-prerendered.md`
  */
 export const useAddress = (): string =>
   address(usePathname(), useSearchParams().toString());

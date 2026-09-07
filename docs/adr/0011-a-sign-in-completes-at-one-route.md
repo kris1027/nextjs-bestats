@@ -34,8 +34,9 @@ The matcher is therefore the whole of the configuration. `/signed-in` is a
 route that exists to be the one place a sign-in lands, and the proxy watches
 it alone. Widening the matcher is not a tidy-up; it makes the app private.
 
-The lists and the settings page are deliberately left off it even though
-they do need a Viewer. They already redirect, and they redirect better: the
+The lists are deliberately left off it even though they do need a Viewer —
+as `/settings` was, until it was removed with the deletion it existed for
+(`docs/adr/0012`). They already redirect, and they redirect better: the
 middleware composes its own login address by copying the request's query
 parameters onto it, which turns `/watchlist?page=3` into `/sign-in?page=3`
 and loses the destination. `viewerOrSignIn` produces

@@ -16,6 +16,7 @@
     "test:integration": "vitest run --project integration",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:check": "node db-check.ts",
     "pre-commit": "lint-staged && tsc --noEmit && vitest run --project unit",
     "prepare": "husky"
   },

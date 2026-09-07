@@ -53,9 +53,9 @@ export const address = (pathname: string, query: string): string =>
 
 /**
  * Where a Visitor is sent to become a Viewer, carrying the address to come
- * back to. Composed here once so the four things that send someone there —
- * the header's link, the marking action, the lists and the settings page —
- * agree on the spelling `nextPath` reads back.
+ * back to. Composed here once so the three things that send someone there —
+ * the header's link, the marking action and the lists — agree on the
+ * spelling `nextPath` reads back.
  */
 export const signInAddress = (next: string): string =>
   `/sign-in?next=${encodeURIComponent(next)}`;

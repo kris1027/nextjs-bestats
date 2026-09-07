@@ -6,6 +6,12 @@ database says so. That was the requirement. Neon's Managed Better Auth meets
 it: it keeps `user`, `session` and `account` in the `neon_auth` schema of the
 same database the app already has, on the same branch, branching with it.
 
+The cascade still holds, though nothing in the app deletes a Viewer any more:
+Managed Better Auth has no route a Viewer can delete themselves through, so the
+button that tried is gone. The foreign keys remain the reason a Viewer removed
+by any other means takes their Watch Records with them.
+— `docs/adr/0012-a-viewer-cannot-delete-themselves.md`
+
 The alternative that shapes everything else was a hosted identity service whose
 users live somewhere we cannot join to — Clerk, Auth0 and the like. The Viewer's
 id would then be a string arriving from elsewhere that our schema could only
