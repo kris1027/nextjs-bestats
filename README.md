@@ -115,9 +115,10 @@ Everything else is `neon checkout`'s to fill in.
 
 There is no `docker-compose.yml` and no local Postgres. `main` is production,
 and local work shares it; CI creates a branch per run and drops it afterwards.
-There are no preview deployments — `vercel.json` builds production only. The driver this app ships has no interactive
-transactions and a local Postgres does, so a test suite built on rolling back
-would be green about code that cannot run.
+There are no preview deployments — `vercel.json` builds production only. The
+driver this app ships has no interactive transactions and a local Postgres
+does, so a test suite built on rolling back would be green about code that
+cannot run.
 
 **Local development is production.** Signing in on localhost creates a real
 Viewer, marking writes a real Watch Record, and `pnpm test:integration` inserts
@@ -137,9 +138,9 @@ supplies development OAuth credentials until you register your own.
 The list is per branch, and there is one branch, so production's domain and
 nothing else needs trusting, since there are no preview deployments to trust.
 Vercel's preview hostnames had no subdomain label to wildcard, which is part
-of why they are switched off rather than pointed at `main`. A domain that is not on the
-list fails with `invalid domain`, which reads like a bug in sign-in rather
-than a missing entry.
+of why they are switched off rather than pointed at `main`. A domain that is
+not on the list fails with `invalid domain`, which reads like a bug in
+sign-in rather than a missing entry.
 
 ```bash
 neon neon-auth domain add https://example.com --branch main
