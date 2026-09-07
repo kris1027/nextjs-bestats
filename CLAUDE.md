@@ -18,6 +18,8 @@ it binds code as much as prose.
 - `pnpm pre-commit` — `lint-staged`, `tsc --noEmit`, and the unit project only
 - `pnpm db:generate` — Drizzle migration SQL from the schema, offline
 - `pnpm db:migrate` — applies migrations to whatever `DATABASE_URL` names
+- `pnpm db:check` — reads only: names what that database has not run, and
+  exits non-zero. Run it before and after a release
 
 `.husky/pre-commit` is the single line `pnpm pre-commit`, so the hook and the
 script cannot disagree. CI is a third thing and differs on purpose: it has no
@@ -133,7 +135,13 @@ routes share it.
   snapshot. Rendering a list means asking TMDB for each item on it.
   — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
 - Migrations are applied by running `pnpm db:migrate` on purpose, never from a
-  build command, and CI never points at the production database.
+  build command, and CI never points at the production database. Nothing
+  therefore applies them to production but a person, so `pnpm db:check` is how
+  that person finds out: it fails on a migration not applied, one edited after
+  it ran, one timestamped below the newest applied row — which `db:migrate`
+  skips on every run while still exiting 0 — and on a database that has never
+  been migrated at all. Production once ran `0000` and `0001` and not `0002`,
+  and every marking failed for weeks.
   — `docs/adr/0009-every-environment-is-a-neon-branch.md`
 - Neon owns every table in the `neon_auth` schema. `lib/schema.ts` declares
   none of them and `drizzle.config.ts` narrows generation to `public`. A

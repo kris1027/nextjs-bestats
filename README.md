@@ -155,6 +155,7 @@ Both are explained in
 | `pnpm test:integration` | The suite that talks to Postgres                |
 | `pnpm db:generate` | Migration SQL from the schema, without a database    |
 | `pnpm db:migrate` | Applies migrations to whatever `DATABASE_URL` names   |
+| `pnpm db:check`   | Names what that database has not run; writes nothing  |
 | `pnpm pre-commit` | lint-staged, `tsc --noEmit`, and the unit project     |
 
 `.husky/pre-commit` is the single line `pnpm pre-commit`, so the hook and the

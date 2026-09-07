@@ -37,6 +37,33 @@ command: a preview build would migrate whichever branch it points at, parallel
 builds would race for the migrations table, and a bad migration would take the
 build down rather than one deploy.
 
+### What that rule costs, and `pnpm db:check`
+
+The cost was paid in full: production ran `0000` and `0001` and never `0002`,
+so `marking_tallies` did not exist there and every press of a marking control
+failed for weeks. Nothing in this repository could have said so. CI creates a
+branch and migrates it on every run, so a test asserting the table exists was
+green throughout and silent about the one database that mattered.
+
+`pnpm db:check` is the answer that does not weaken the rule. It reads
+`drizzle/` and `drizzle.__drizzle_migrations` and names the disagreement, and
+it never writes: applying migrations stays something someone does on purpose.
+Four findings fail it, because none is fixed by the same thing — a migration
+not applied, one timestamped below the newest applied row, one edited after it
+ran, and no migrations table at all. A database *ahead* of the build is a note
+rather than a failure: it has everything this build needs.
+
+The second of those is worth knowing about on its own. `migrate()` compares
+each migration against the newest `created_at` in the table and nothing else,
+so one stamped below that is skipped on every run — silently, exiting 0. A
+hand-written `drizzle-kit generate --custom` migration is where that can
+happen, and this repository has two of them.
+
+Running it against production means pointing `DATABASE_URL` at production
+deliberately, which is the same gesture `db:migrate` already asks for. CI still
+never does either: it has its own branch, and checking a branch it just created
+would only ever be green.
+
 ## Sign-in follows the branch too
 
 Managed Better Auth restricts OAuth redirects to a trusted-domain allowlist,
