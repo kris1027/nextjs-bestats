@@ -1,9 +1,14 @@
 # Every environment is a Neon branch
 
 There is no `docker-compose.yml` and no local Postgres. Production runs on
-Neon's `main`, local development and preview deployments share a long-lived
-`dev` branch, and each CI run creates a branch of its own and drops it when the
-run ends.
+Neon's `main`, and each CI run creates a branch of its own and drops it when
+the run ends.
+
+Local development and preview deployments once shared a long-lived `dev`
+branch. They no longer do: both point at `main`, and `dev` has been deleted.
+The title of this ADR therefore holds for CI alone, and what that costs is
+recorded where it can be read before someone "fixes" it.
+— `docs/adr/0013-local-development-shares-productions-branch.md`
 
 A local Postgres in Docker would be faster and would work on a train. It would
 also not be the database we ship on. Neon is reached over its HTTP driver,
@@ -15,8 +20,9 @@ suite, so every environment uses the same Postgres over the same driver.
 
 Auth branches with the database rather than sitting beside it. A Neon branch
 carries its own `neon_auth` schema, so a CI run signs in against its own
-Viewers and drops them with the branch, and `dev` cannot reach production's.
-That is the property that makes `watch_records.viewer_id` a foreign key at all.
+Viewers and drops them with the branch. That is the property that makes
+`watch_records.viewer_id` a foreign key at all — and, now that local work
+shares `main`, the property that makes a local sign-in a production Viewer.
 — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
 
 ## Which branch you are on is a file
@@ -74,9 +80,9 @@ and that list does the work an OAuth proxy would otherwise have done:
   Google or GitHub application exists. Replacing them with our own is on the
   production checklist, not on the path to running the app.
 
-The list is **per branch**, which follows from auth branching with the data:
-production's domain is trusted on `main`, and a preview's is trusted on `dev`.
-Adding one to the branch you happen to have checked out is the easy mistake.
+The list is **per branch**, which follows from auth branching with the data.
+With one branch left there is one list: production's domain and any preview
+URL that needs sign-in are both trusted on `main`.
 
 **Preview deployments are not solved by a wildcard, and this was assumed
 before it was checked.** Neon requires the `*` to be the leftmost subdomain
@@ -102,7 +108,9 @@ Tests need a network. The integration project cannot run on a plane, and a Neon
 outage is a red build.
 
 CI never points at production; it has an ephemeral branch of its own, which is
-why its tests are free to insert Viewers and cascade deletes.
+why its tests are free to insert Viewers and cascade deletes. Run locally, that
+same suite is pointed at production — deliberately, and at a cost written down
+in `docs/adr/0013`.
 
 The trusted-domain list is not in this repository. It is the one piece of
 configuration a reader cannot find by reading the code, which is why it is

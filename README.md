@@ -50,8 +50,9 @@ those as the absences they are rather than reporting them as measurements.
 - **A TMDB read access token.** Free — create an account, then generate one
   at <https://www.themoviedb.org/settings/api>.
 - **A Neon Postgres project**, with Auth enabled. Free, and scales to zero.
-  `neon checkout dev` creates and selects a `dev` branch and writes its
-  connection details for you — `main` is production.
+  `neon checkout main` writes its connection details for you. There is one
+  branch: `main` is production, and local work shares it
+  ([ADR 0013](docs/adr/0013-local-development-shares-productions-branch.md)).
 - **No OAuth application.** Neon supplies development credentials for Google
   and GitHub, so sign-in works before you register anything of your own.
 
@@ -67,18 +68,19 @@ cp .env.example .env.local
 # paste your TMDB token; Neon fills in the rest below
 
 npx neon@latest auth                                     # sign in to Neon
-npx neon@latest link                                     # pick the project, writes .neon
-npx neon@latest branches create --name dev --parent main # once per project
-npx neon@latest checkout dev                             # pins it, writes its env vars
+npx neon@latest link                # pick the project, writes .neon
+npx neon@latest checkout main       # pins it, writes its env vars
 echo "NEON_AUTH_COOKIE_SECRET=$(openssl rand -base64 32)" >> .env.local
 
-pnpm db:migrate   # creates watch_records on the dev branch
+pnpm db:check     # says what main has still to run
+pnpm db:migrate   # runs it
 pnpm dev
 ```
 
-`checkout` pins an existing branch and pulls its environment variables; it does
-not create one, which is why `branches create` comes first. Skip that line if
-`dev` already exists.
+`checkout` pins an existing branch and pulls its environment variables. `main`
+is production, so `db:migrate` here applies migrations to the database the
+deployed app reads — which is the point, and the reason `db:check` comes
+first.
 
 The app is then at <http://localhost:3000>. Next 16 uses Turbopack by default
 for both `dev` and `build`, so there are no bundler flags to pass.
@@ -95,7 +97,7 @@ on the server — no token and no session ever reaches a browser.
 | `TMDB_API_URL`               | API base                                 | `https://api.themoviedb.org/3`     |
 | `TMDB_POSTER_PATH`           | Poster image base, sized `w780`          | `https://image.tmdb.org/t/p/w780`  |
 | `TMDB_BACKDROP_PATH`         | Backdrop image base, `w1280`             | `https://image.tmdb.org/t/p/w1280` |
-| `DATABASE_URL`               | The Neon branch — `dev` locally          | _written by `neon checkout`_       |
+| `DATABASE_URL`               | The Neon branch — always `main`          | _written by `neon checkout`_       |
 | `DATABASE_URL_UNPOOLED`      | The same branch, direct                  | _written by `neon checkout`_       |
 | `NEON_BRANCH`                | Which branch this is                     | _written by `neon checkout`_       |
 | `NEON_AUTH_BASE_URL`         | The branch's Auth server                 | _written by `neon checkout`_       |
@@ -103,31 +105,37 @@ on the server — no token and no session ever reaches a browser.
 | `NEON_AUTH_COOKIE_SECRET`    | Signs the session cookie                 | _yours: `openssl rand -base64 32`_ |
 
 Only two of these are yours to write: the TMDB token and the cookie secret.
-Everything else is `neon checkout <branch>`'s to fill in, and running it again
-is how you move between branches.
+Everything else is `neon checkout`'s to fill in.
 
 `.env.local` is gitignored and must never be committed or edited by tooling.
 
 ### Environments
 
-There is no `docker-compose.yml` and no local Postgres. Every environment is a
-Neon branch: `main` is production, a long-lived `dev` branch serves local work
-and preview deployments, and CI creates one per run and drops it afterwards.
-The driver this app ships has no interactive transactions and a local Postgres
-does, so a test suite built on rolling back would be green about code that
-cannot run.
+There is no `docker-compose.yml` and no local Postgres. `main` is production,
+and local work and preview deployments share it; CI creates a branch per run
+and drops it afterwards. The driver this app ships has no interactive
+transactions and a local Postgres does, so a test suite built on rolling back
+would be green about code that cannot run.
+
+**Local development is production.** Signing in on localhost creates a real
+Viewer, marking writes a real Watch Record, and `pnpm test:integration` inserts
+and deletes rows in the database the deployed app reads. `pnpm pre-commit` runs
+the unit project alone and is unaffected. This is deliberate and its cost is
+written down in
+[ADR 0013](docs/adr/0013-local-development-shares-productions-branch.md).
 
 Auth branches with the database. Each branch carries its own `neon_auth`
 schema, so a CI run signs in against its own Viewers and drops them with the
-branch, and `dev` cannot reach production's.
+branch.
 
 Sign-in redirects are restricted to a trusted-domain allowlist rather than to
 registered callback URLs. Localhost is pre-approved on any port, and Neon
 supplies development OAuth credentials until you register your own.
 
-The list is per branch, so production's domain is trusted on `main` and a
-preview's on `dev`. Vercel's preview hostnames have no subdomain label to
-wildcard, so a preview that needs sign-in has its URL added by hand; previews
+The list is per branch, and there is one branch, so production's domain and
+any preview URL are trusted on `main`. Vercel's preview hostnames have no
+subdomain label to wildcard, so a preview that needs sign-in has its URL added
+by hand; previews
 that only serve the public pages need nothing. A domain that is not on the
 list fails with `invalid domain`, which reads like a bug in sign-in rather
 than a missing entry.

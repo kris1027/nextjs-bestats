@@ -58,6 +58,11 @@ the hand-written migrations in there are held to the same rule as the rest.
   Postgres does, so a suite built on rolling back would be green about code
   that cannot run.
   — `docs/adr/0009-every-environment-is-a-neon-branch.md`
+- Run locally, that branch is `main` — production. The suite inserts Viewers
+  and Watch Records and deletes them, so `pnpm test` writes to the database
+  the deployed app reads. `pnpm pre-commit` runs the unit project alone and
+  is unaffected. A test that grows a broader `delete` reaches real rows.
+  — `docs/adr/0013-local-development-shares-productions-branch.md`
 
 ## Module boundary
 
@@ -151,9 +156,10 @@ routes share it.
   tally. A new table that belongs to a Viewer gets one the same way, through
   `drizzle-kit generate --custom`.
   — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
-- Environment variables come from `neon checkout <branch>`, not from typing.
-  The exception is `NEON_AUTH_COOKIE_SECRET`, and `.env.example` says so.
-  — `docs/adr/0009-every-environment-is-a-neon-branch.md`
+- Environment variables come from Neon, not from typing. The exception is
+  `NEON_AUTH_COOKIE_SECRET`, and `.env.example` says so. There is one branch,
+  `main`, so there is no branch to choose and nothing to check out.
+  — `docs/adr/0013-local-development-shares-productions-branch.md`
 - Never edit or commit `.env.local`.
 - `proxy.ts` matches `/signed-in` and nothing else. Widening the matcher
   makes every page private: Neon's middleware protects each route it sees
