@@ -150,9 +150,9 @@ routes share it.
 - `proxy.ts` matches `/signed-in` and nothing else. Widening the matcher
   makes every page private: Neon's middleware protects each route it sees
   that is not on a skip list hardcoded in the package, so a Visitor reading
-  Trending, search or a detail page would be sent to sign in. The lists and
-  settings stay off it too, since the middleware's own redirect drops the
-  `?next=` they compose themselves.
+  Trending, search or a detail page would be sent to sign in. The lists stay
+  off it too, since the middleware's own redirect drops the `?next=` they
+  compose themselves.
   — `docs/adr/0011-a-sign-in-completes-at-one-route.md`
 - `cacheComponents` is on, so a page's request-time reads — `cookies()`,
   `params`, `searchParams`, a database query — sit inside a Suspense boundary

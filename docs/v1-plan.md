@@ -102,7 +102,7 @@ of `docs/adr/0009-every-environment-is-a-neon-branch.md`.
 | `/`, `/search`, `/[kind]/[id]` | unchanged and public, now carrying marking controls |
 | `/watchlist`, `/watched`  | new; paginated at 20, newest first, `?page=` in the address |
 | `/sign-in`                | new; Google and GitHub, honours `?next=`           |
-| `/settings`               | new; delete account, cascading to Watch Records    |
+| `/settings`               | built, then removed; `docs/adr/0012`               |
 | `/signed-in`              | unplanned; a sign-in completes here and nowhere else |
 
 Every new top-level segment is static, so `docs/adr/0001` holds.
@@ -323,20 +323,24 @@ The pages were verified in a browser through the same temporary override as
 step 4, with a Gone id on the list, a page past the end, and a mark made from
 each list.
 
-**6. Account.** _Done._ `/settings` shows who is signed in and one section,
-"Leave BeStats", that says what goes — the sign-in and every Watch Record,
-with both counts — behind a required checkbox and a "Delete everything"
-button. The word "account" is on the glossary's avoid list, which is why the
-section is named for what a Viewer is doing rather than for what is deleted.
-The Viewer's name in the header is the way there.
+**6. Account.** _Removed._ It was built and it never worked. `/settings`
+showed who was signed in and one section, "Leave BeStats", that said what
+goes — the sign-in and every Watch Record, with both counts — behind a
+required checkbox and a "Delete everything" button. The word "account" is on
+the glossary's avoid list, which is why the section was named for what a
+Viewer is doing rather than for what is deleted.
 
-Deletion goes through Neon's own door, `auth.deleteUser()`, rather than a
-`delete` of ours on a table Neon owns; sessions, accounts, Watch Records and
-the marking tally all go with the row through their foreign keys. The door
-has a lock the plan did not mention: Better Auth refuses a session older
-than its freshness window, so a Viewer who signed in yesterday is told to
-sign in again first. The page reports that and any other refusal through
-`?error=`, which keeps it a server component that works before hydration.
+Deletion went through Neon's own door, `auth.deleteUser()`, rather than a
+`delete` of ours on a table Neon owns. That door is not there: Managed Better
+Auth answers `delete-user` with a bare 404, so every press came back to
+`/settings?error=failed` and told the Viewer to try again in a moment. The
+step's own lock — Better Auth refusing a session older than its freshness
+window — was real but was never what refused, and the two-word refusal
+vocabulary had no way to say "never" so it said "later".
+
+The page went with the button, since sign-out lives in the header and the
+rest of it was the name the header already shows.
+— `docs/adr/0012-a-viewer-cannot-delete-themselves.md`
 
 The rate limit is Postgres's, per Viewer: `marking_tallies`, one row each,
 upserted by `tallyMarking` in one statement that restarts the window a
@@ -369,11 +373,11 @@ which the comment in `lib/auth.ts` says it was written leniently to protect.
 A second helper beside `viewer()` answers Viewer, Visitor or Unanswered, and
 the header and the three public routes read that one: no Viewer control, no
 marking controls, which is what a card already does when the lookup went
-Unanswered. The lists, `/settings` and `/sign-in` can neither redirect nor
-render without the answer, so they keep `viewer()` and let it throw. That
-gives `error.tsx` its job: one at the root, a sentence and a "Try again"
-that calls `reset`, for what nobody anticipated rather than for outages the
-glossary has a word for.
+Unanswered. The lists and `/sign-in` can neither redirect nor render
+without the answer, so they keep `viewer()` and let it throw — `/settings`
+did too, until it was removed. That gives `error.tsx` its job: one at the
+root, a sentence and a "Try again" that calls `reset`, for what nobody
+anticipated rather than for outages the glossary has a word for.
 
 Then the boundaries. Explicit `Suspense` in each page rather than a
 `loading.tsx` per route, because what sits outside a boundary is what stays
@@ -383,7 +387,8 @@ the lists, and the marking control's slot alone on a detail page, so the
 TMDB fetch there stops waiting on the session. The lists' boundary is the
 grid — twenty Watch Records is twenty TMDB requests, the wait this step was
 written for. `/settings` and `/sign-in` get a `loading.tsx` each, since
-everything on them follows the redirect check. Every fallback is a
+everything on them follows the redirect check; `/settings` took its own with
+it when it went. Every fallback is a
 skeleton: a grid of twenty poster-shaped blocks, `aria-busy` and one
 screen-reader "Loading", the same height as what replaces it, for the reason
 the header's height was fixed in step 2. Nothing spins.

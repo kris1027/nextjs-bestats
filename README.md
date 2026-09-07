@@ -8,9 +8,11 @@ comes from TMDB, and there is no client-side data fetching anywhere in the
 app.
 
 > **Status:** a Viewer can sign in, mark any Show or Movie as Planned or
-> Watched, see those records on `/watchlist` and `/watched`, and leave
-> through `/settings`, taking everything with them. The polish pass is what
-> comes next. See [Roadmap](#roadmap).
+> Watched, and see those records on `/watchlist` and `/watched`. There is no
+> way to delete an account: Neon's Managed Better Auth has no route for it,
+> so the page that offered one was removed
+> ([ADR 0012](docs/adr/0012-a-viewer-cannot-delete-themselves.md)). See
+> [Roadmap](#roadmap).
 
 ## What it does
 
@@ -304,9 +306,12 @@ marking control; and `/watchlist` and `/watched` show the records. A Watch
 Record stores no copy of TMDB's data, so every fact on those pages keeps
 coming from TMDB.
 
-`/settings` lets a Viewer leave: their sign-in and every Watch Record go
-together, through the database's own foreign keys. Marking is rate-limited
-per Viewer, in Postgres, so every Neon branch enforces the same rule.
+A Viewer cannot delete themselves. `/settings` offered it and never could:
+Managed Better Auth answers `delete-user` with a 404, so the page went
+([ADR 0012](docs/adr/0012-a-viewer-cannot-delete-themselves.md)). The foreign
+keys still cascade, so a Viewer removed by any other means takes their Watch
+Records with them. Marking is rate-limited per Viewer, in Postgres, so every
+Neon branch enforces the same rule.
 
 Still to come: the polish pass — `loading.tsx` and `error.tsx` per route,
 and the static rendering that Suspense around the TMDB fetches unlocks.

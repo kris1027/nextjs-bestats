@@ -29,8 +29,9 @@ A 404 does, which is fine: Gone Media stops being asked for.
 `loading.tsx`.** What is outside a boundary is the shell, so a `loading.tsx`
 per route would make every shell the header alone. The pages draw their own
 boundaries around what waits, and `loading.tsx` exists only where the whole
-page follows a check — `/settings`, `/sign-in`. Every fallback is a
-skeleton the height of what replaces it.
+page follows a check — `/sign-in`, and `/settings` until that page was
+removed. Every fallback is a skeleton the height of what replaces it.
+— `docs/adr/0012-a-viewer-cannot-delete-themselves.md`
 
 **A theme preference cannot be a cookie.** The class that picks the palette
 sits on `<html>`, above every boundary, and reading a cookie there is the
