@@ -18,8 +18,7 @@ it binds code as much as prose.
 - `pnpm pre-commit` — `lint-staged`, `tsc --noEmit`, and the unit project only
 - `pnpm db:generate` — Drizzle migration SQL from the schema, offline
 - `pnpm db:migrate` — applies migrations to whatever `DATABASE_URL` names
-- `pnpm db:check` — reads only: names what that database has not run, and
-  exits non-zero. Run it before and after a release
+- `pnpm db:check` — read-only; names what that database has not run
 
 `.husky/pre-commit` is the single line `pnpm pre-commit`, so the hook and the
 script cannot disagree. CI is a third thing and differs on purpose: it has no
@@ -50,18 +49,20 @@ the hand-written migrations in there are held to the same rule as the rest.
   `lib/watch-actions.integration.test.ts` does. Never by giving the action a
   Viewer parameter: the action reads the Viewer from the session and from
   nowhere else, and a parameter would be the client-supplied id it exists to
-  refuse.
+  refuse. Its unit twin mocks `lib/watch-queries` too, which is what keeps
+  `lib/db` — whose import throws without `DATABASE_URL` — out of the module
+  graph, so `lib/watch-actions.test.ts` runs on a commit and covers the
+  failure branch a migrated CI branch cannot reach.
 - `@/` resolves in tests, so an import in a test looks like an import anywhere
-  else in the repo.
+  else in the repo. It does not resolve in `db-check.ts`, which Node runs
+  directly: that file reaches `lib/` by relative path, extension included.
 - The integration project runs against a real Neon branch, never a local
   Postgres. The driver we ship has no interactive transactions and a local
   Postgres does, so a suite built on rolling back would be green about code
   that cannot run.
   — `docs/adr/0009-every-environment-is-a-neon-branch.md`
-- Run locally, that branch is `main` — production. The suite inserts Viewers
-  and Watch Records and deletes them, so `pnpm test` writes to the database
-  the deployed app reads. `pnpm pre-commit` runs the unit project alone and
-  is unaffected. A test that grows a broader `delete` reaches real rows.
+- Run locally that branch is `main` — production — so `pnpm test` writes to
+  the database the deployed app reads. `pnpm pre-commit` is unit-only.
   — `docs/adr/0013-local-development-shares-productions-branch.md`
 
 ## Module boundary
@@ -82,38 +83,25 @@ Viewer through its two helpers and never reach for a session themselves.
 the public pages, which leave the Viewer's half out when the sign-in could
 not be checked; `viewer()` throws on Unanswered, for the pages that can
 neither redirect nor render without knowing. `lib/media` never learns that
-Viewers exist. That boundary is why swapping a self-hosted Better Auth for
-Neon's managed one cost one module rather than the application.
+Viewers exist.
 — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
 
-`proxy.ts` mounts the instance's middleware the way `app/api/auth` mounts its
-handler, and reads a Viewer no more than that route does. What it mounts it
-on is one route: `/signed-in`, the only place the verifier a provider returns
-with can be traded for a session cookie. The handler there reads no Viewer
-either — by the time it runs the proxy has decided, and all that is left is
-the `?next=` the Visitor came with.
-— `docs/adr/0011-a-sign-in-completes-at-one-route.md`
-
 `lib/watch` holds Watch Records. `lib/watch.ts` is its pure half, so it never
-imports `lib/db`, whose import throws without `DATABASE_URL`. A client
-component may import it, and `lib/watch-actions.ts` for the action a
-`'use server'` file exists to hand out, and nothing else in the module. The
-queries take a Viewer id and never decide whose it is; only the action reads
-`lib/auth`, and the page lookup takes what `answeredViewer()` answered as a
-type alone: a page reads the Viewer itself and hands the answer to
-`answeredWatchLookup`, whose `null` is Unanswered and means no controls,
-whether the database or the sign-in was what did not answer. `lib/watch`
-reads `lib/media` for `Kind` and its guards, and `lib/media` reads neither
-`lib/watch` nor `lib/auth`.
+imports `lib/db`, whose import throws without `DATABASE_URL`; a client
+component may import it, and `lib/watch-actions.ts` for the action, and
+nothing else in the module. The queries take a Viewer id and never decide
+whose it is — only the action reads `lib/auth`. A page reads the Viewer
+itself and hands the answer to `answeredWatchLookup`, whose `null` is
+Unanswered and means no controls, whether the database or the sign-in was
+what did not answer. `lib/watch` reads `lib/media` for `Kind` and its
+guards, and `lib/media` reads neither `lib/watch` nor `lib/auth`.
 
-`components/watch/` is what a Visitor sees of Watch Records, and it has two
-halves with different rights. The client half — the marking control and the
-absent card — reads `lib/watch.ts` and the action, as above. The server half
-is `watch-record-list.tsx`, the body of both list routes: it reads
-`viewer()`, the queries and `lib/media` the way any page does, because
-resolving a list of Watch Records against TMDB is the page's job and not
-`lib/watch`'s, and it lives here rather than under `app/` only because two
-routes share it.
+`components/watch/` has two halves with different rights. The client half —
+the marking control and the absent card — reads `lib/watch.ts` and the
+action, as above. The server half is `watch-record-list.tsx`, the body of
+both list routes: it reads `viewer()`, the queries and `lib/media` the way
+any page does, since resolving Watch Records against TMDB is a page's job and
+not `lib/watch`'s. It lives here only because two routes share it.
 
 ## Standing rules
 
@@ -140,13 +128,9 @@ routes share it.
   snapshot. Rendering a list means asking TMDB for each item on it.
   — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
 - Migrations are applied by running `pnpm db:migrate` on purpose, never from a
-  build command, and CI never points at the production database. Nothing
-  therefore applies them to production but a person, so `pnpm db:check` is how
-  that person finds out: it fails on a migration not applied, one edited after
-  it ran, one timestamped below the newest applied row — which `db:migrate`
-  skips on every run while still exiting 0 — and on a database that has never
-  been migrated at all. Production once ran `0000` and `0001` and not `0002`,
-  and every marking failed for weeks.
+  build command, and CI never points at the production database. Nothing but a
+  person therefore applies them to production, so `pnpm db:check` is how that
+  person finds out what a database has not run.
   — `docs/adr/0009-every-environment-is-a-neon-branch.md`
 - Neon owns every table in the `neon_auth` schema. `lib/schema.ts` declares
   none of them and `drizzle.config.ts` narrows generation to `public`. A
@@ -161,12 +145,16 @@ routes share it.
   `main`, so there is no branch to choose and nothing to check out.
   — `docs/adr/0013-local-development-shares-productions-branch.md`
 - Never edit or commit `.env.local`.
+- A Viewer cannot delete themselves, and `/settings` went with the button that
+  tried: Neon's Managed Better Auth answers `delete-user` with a bare 404.
+  — `docs/adr/0012-a-viewer-cannot-delete-themselves.md`
 - `proxy.ts` matches `/signed-in` and nothing else. Widening the matcher
   makes every page private: Neon's middleware protects each route it sees
   that is not on a skip list hardcoded in the package, so a Visitor reading
   Trending, search or a detail page would be sent to sign in. The lists stay
   off it too, since the middleware's own redirect drops the `?next=` they
-  compose themselves.
+  compose themselves. `/signed-in` is the only place a verifier can be traded
+  for a session cookie, and neither the proxy nor that handler reads a Viewer.
   — `docs/adr/0011-a-sign-in-completes-at-one-route.md`
 - `cacheComponents` is on, so a page's request-time reads — `cookies()`,
   `params`, `searchParams`, a database query — sit inside a Suspense boundary
