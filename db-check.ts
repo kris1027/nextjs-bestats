@@ -59,11 +59,6 @@ const appliedMigrations = async (
   }
 };
 
-/** Whatever a thrown thing had to say, with nothing of the connection string
- * left in it. */
-const because = (cause: unknown, url: string): string =>
-  withoutSecrets(cause instanceof Error ? cause.message : String(cause), url);
-
 const url = process.env.DATABASE_URL;
 
 if (!url) {
@@ -93,7 +88,10 @@ try {
   applied = await appliedMigrations(neon(url));
 } catch (cause) {
   console.error(`Could not read the migrations on ${host}:`);
-  console.error(because(cause, url));
+  // whatever it had to say, with nothing of the connection string left in it
+  console.error(
+    withoutSecrets(cause instanceof Error ? cause.message : String(cause), url),
+  );
   process.exit(1);
 }
 
