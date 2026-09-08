@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import type { JSX } from 'react';
 
 import { BackButton } from '@/components/ui/back-button';
-import { PROVIDERS, type Provider, viewer } from '@/lib/auth';
+import { viewer } from '@/lib/auth';
 import { signIn } from '@/lib/auth-actions';
 import { nextPath } from '@/lib/next-path';
 import type { SearchParams } from '@/lib/search-params';
@@ -13,11 +13,6 @@ export const metadata: Metadata = {
   title: 'Sign in',
   description:
     'Sign in to BeStats to record what you mean to watch and what you have watched',
-};
-
-const PROVIDER_LABELS: Record<Provider, string> = {
-  google: 'Google',
-  github: 'GitHub',
 };
 
 const SignInPage = async ({
@@ -46,23 +41,17 @@ const SignInPage = async ({
           </p>
         </div>
 
-        <div className='flex flex-col gap-3'>
-          {PROVIDERS.map((provider) => (
-            // a plain form, not next/form: this posts to a Server Action
-            // rather than navigating, so there is no document reload to
-            // intercept
-            <form key={provider} action={signIn}>
-              <input type='hidden' name='provider' value={provider} />
-              <input type='hidden' name='next' value={next} />
-              <button
-                type='submit'
-                className={cn(control, 'w-full justify-center')}
-              >
-                Continue with {PROVIDER_LABELS[provider]}
-              </button>
-            </form>
-          ))}
-        </div>
+        {/* a plain form, not next/form: this posts to a Server Action rather
+            than navigating, so there is no document reload to intercept */}
+        <form action={signIn}>
+          <input type='hidden' name='next' value={next} />
+          <button
+            type='submit'
+            className={cn(control, 'w-full justify-center')}
+          >
+            Continue with Google
+          </button>
+        </form>
       </div>
     </main>
   );

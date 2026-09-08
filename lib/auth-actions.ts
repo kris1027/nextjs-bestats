@@ -2,11 +2,11 @@
 
 import { redirect } from 'next/navigation';
 
-import { auth, isProvider } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 import { nextPath, signedInAddress } from '@/lib/next-path';
 
 /**
- * Hands the Visitor to a provider and brings them back to `/signed-in`,
+ * Hands the Visitor to Google and brings them back to `/signed-in`,
  * carrying the `?next=` they came with. That address and no other, because
  * completing a sign-in means exchanging the verifier the provider returns
  * with, and `proxy.ts` is the only thing that can make that exchange — so
@@ -20,18 +20,19 @@ import { nextPath, signedInAddress } from '@/lib/next-path';
  * — `docs/adr/0009-every-environment-is-a-neon-branch.md`
  */
 export const signIn = async (formData: FormData): Promise<void> => {
-  const provider = String(formData.get('provider') ?? '');
-
-  if (!isProvider(provider)) throw new Error(`Unknown provider: ${provider}`);
-
   const callbackURL = signedInAddress(
     nextPath(String(formData.get('next') ?? '')),
   );
 
-  const { data, error } = await auth.signIn.social({ provider, callbackURL });
+  // Named here rather than read from the form: Google is the only way in, so
+  // there is no choice for the Visitor to send and none for us to refuse.
+  const { data, error } = await auth.signIn.social({
+    provider: 'google',
+    callbackURL,
+  });
 
-  if (error) throw new Error(`${provider} sign-in failed: ${error.message}`);
-  if (!data?.url) throw new Error(`No authorize URL from ${provider}`);
+  if (error) throw new Error(`Google sign-in failed: ${error.message}`);
+  if (!data?.url) throw new Error('No authorize URL from Google');
 
   // outside any try: redirect signals by throwing
   redirect(data.url);

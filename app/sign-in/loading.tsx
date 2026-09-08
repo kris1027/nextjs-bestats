@@ -1,14 +1,13 @@
 import type { JSX } from 'react';
 
-import { PROVIDERS } from '@/lib/auth';
 import { control } from '@/lib/utils';
 
 /**
  * The sign-in page's shape while whether there is anything on it for this
  * Visitor is checked: the heading and the sentence, which never change, and
- * a block where each provider's button goes. The back link needs the
- * address to return to, which is the request-time read this waits on, so
- * a block holds its place.
+ * a block where the one button goes. The back link needs the address to
+ * return to, which is the request-time read this waits on, so a block holds
+ * its place.
  */
 const SignInLoading = (): JSX.Element => (
   <main className='flex-1 p-4'>
@@ -30,15 +29,10 @@ const SignInLoading = (): JSX.Element => (
         </p>
       </div>
 
-      <div className='flex flex-col gap-3'>
-        {PROVIDERS.map((provider) => (
-          <div
-            key={provider}
-            className={`${control} w-full animate-pulse justify-center border-transparent bg-muted text-transparent`}
-          >
-            Continue
-          </div>
-        ))}
+      <div
+        className={`${control} w-full animate-pulse justify-center border-transparent bg-muted text-transparent`}
+      >
+        Continue
       </div>
     </div>
   </main>
