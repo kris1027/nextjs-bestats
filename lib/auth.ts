@@ -116,9 +116,9 @@ const NO_VIEWER = 'visitor';
 /**
  * The key a marking control is rendered under, which is the whole of what a
  * caller needs: a control keyed on this unmounts when the Viewer changes,
- * and that is what keeps a Viewer's marks from staying lit on a Visitor's
- * page after a sign out. The state a control holds outlives a re-render at
- * the same position; it does not outlive an unmount.
+ * and that is what keeps a Viewer's Watch Records from staying lit on a
+ * Visitor's page after a sign out. The state a control holds outlives a
+ * re-render at the same position; it does not outlive an unmount.
  *
  * The finished key rather than the id it is built from, so no call site
  * spells the Visitor's half for itself: one that spells it differently keys

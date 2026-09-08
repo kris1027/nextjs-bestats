@@ -193,9 +193,9 @@ const ListPage = async ({
  * and the cards into the grid, each behind a boundary of its own, because
  * the database answers in one round trip and TMDB in twenty.
  *
- * Nothing moves after a mark here. A card pressed out of this list shows its
- * new state where it is, and the list catches up on the next navigation;
- * that keeps the undo one press away.
+ * Nothing moves when a card here is marked. A card pressed out of this list
+ * shows its new state where it is, and the list catches up on the next
+ * navigation; that keeps the undo one press away.
  * — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
  */
 const WatchRecordList = ({
