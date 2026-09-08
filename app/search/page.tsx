@@ -94,11 +94,11 @@ const MatchesFor = async ({
   const words = KIND_WORDS[selected];
 
   // one query for both Kinds' cards: the closed tab is a link away
-  const records = await answeredWatchLookup(asked, [
+  const states = await answeredWatchLookup(asked, [
     ...(shows?.items ?? []),
     ...(movies?.items ?? []),
   ]);
-  const lookup = { records, viewerKey: viewerKeyOf(asked) };
+  const lookup = { states, viewerKey: viewerKeyOf(asked) };
 
   return (
     <>

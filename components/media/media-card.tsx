@@ -11,7 +11,7 @@ import { stateOf, type ViewerLookup } from '@/lib/watch';
 
 /**
  * `lookup` is the page's one query for every card on it, and the card reads
- * its own state out of it. `records` is `null` for Unanswered — the database
+ * its own state out of it. `states` is `null` for Unanswered — the database
  * did not say — and the card renders no control rather than one claiming
  * nothing is marked. A signed-out Visitor's page passes an empty lookup
  * instead, which is a real absence: no Viewer, so no Watch Record.
@@ -63,12 +63,12 @@ const MediaCard = ({
         </div>
       </Link>
       {/* outside the link: a button inside one is nested interactive content */}
-      {lookup.records !== null ? (
+      {lookup.states !== null ? (
         <div className='px-2.5 pt-2.5'>
           <MarkingControl
             key={lookup.viewerKey}
             media={item}
-            state={stateOf(lookup.records, item)}
+            state={stateOf(lookup.states, item)}
           />
         </div>
       ) : null}

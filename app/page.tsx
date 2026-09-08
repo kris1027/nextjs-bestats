@@ -31,12 +31,12 @@ const trendingAndLookup = cache(
       answeredViewer(),
     ]);
 
-    const records = await answeredWatchLookup(asked, [
+    const states = await answeredWatchLookup(asked, [
       ...(trending.tv ?? []),
       ...(trending.movie ?? []),
     ]);
 
-    return { trending, lookup: { records, viewerKey: viewerKeyOf(asked) } };
+    return { trending, lookup: { states, viewerKey: viewerKeyOf(asked) } };
   },
 );
 

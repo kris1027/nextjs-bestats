@@ -131,7 +131,7 @@ const ListPage = async ({
   const answers = await mediaItems(refs);
   // the page's own records are its lookup: every card on it has a state
   const states = toLookup(records);
-  const lookup = { records: states, viewerKey: viewerKey(currentViewer) };
+  const lookup = { states, viewerKey: viewerKey(currentViewer) };
 
   return (
     <>
