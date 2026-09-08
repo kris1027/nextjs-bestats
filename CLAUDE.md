@@ -171,12 +171,19 @@ not `lib/watch`'s. It lives here only because two routes share it.
   — `docs/adr/0010-the-shell-is-prerendered.md`
 - The layout is drawn for a 390px screen and must not overflow a 320px one:
   nothing scrolls sideways there, nothing is clipped, and every control can
-  still be pressed. Unprefixed classes are the phone's and are read on their
-  own; a wider screen is a `sm:`/`lg:` prefix, which may add to what they said
-  or undo it — `sm:hidden` over a phone's icon is the rule working, not a
-  breach of it. What there is no `max-*` variant for in the repo is the other
-  direction, and there should not be one: it would put the phone's layout in
-  a prefix and leave the unprefixed layer saying something no phone reads.
+  still be pressed. The floor answers for the content a Viewer will actually
+  meet and not for every value a type allows: a case that takes implausible
+  data to reach may stand where it degrades to a page that scrolls sideways
+  rather than to a clipped word or a control nobody can press — two list tabs
+  wearing five-figure tallies measure 315px and are left standing on those
+  terms. Noticing one is not the same as accepting it: an accepted case is
+  argued in the ADR, with what it costs to close and who pays. Unprefixed
+  classes are the phone's and are read on their own; a wider screen is a
+  `sm:`/`lg:` prefix, which may add to what they said or undo it — `sm:hidden`
+  over a phone's icon is the rule working, not a breach of it. What there is
+  no `max-*` variant for in the repo is the other direction, and there should
+  not be one: it would put the phone's layout in a prefix and leave the
+  unprefixed layer saying something no phone reads.
   Nothing checks any of this, so a new width is measured in a browser rather
   than reasoned about; the numbers in the ADR were.
   — `docs/adr/0014-the-narrow-header-gives-up-words.md`
