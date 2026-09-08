@@ -59,7 +59,16 @@ const Tally = ({ tally }: { tally: number | null }): JSX.Element =>
  * restyling the trending tabs leaves these where they are. Re-read
  * `TabsTrigger` and carry the difference across by hand. It is mirrored
  * once, here, and both the search tabs and the lists' tabs are built on it.
+ * `whitespace-nowrap` is one such difference, carried across late: without
+ * it a tab whose word and count outgrow the row wrapped inside a fixed
+ * `h-10` and was cut off rather than pushing anything.
  * — `docs/adr/0004-search-is-two-searches.md`
+ *
+ * The padding narrows below `sm:` because these two tabs wear counts, and a
+ * count is as wide as the number in it. Two list tabs measured 302px against
+ * the 288px a 320px screen has, on tallies as ordinary as 128 and 1,024, and
+ * a five-figure search total is wider still. The tabs are what give, since a
+ * count that cannot be read is the thing the tab is for.
  *
  * `replace` is the caller's: a toggle within one search is a step within
  * that search, and pushes nothing; the two lists are two pages, and do.
@@ -84,7 +93,7 @@ const LinkTabs = ({
         replace={replace}
         aria-current={tab.selected ? 'page' : undefined}
         className={cn(
-          'inline-flex h-[calc(100%-1px)] items-center justify-center border border-transparent px-4 py-1.5 font-semibold text-foreground/60 text-xs uppercase tracking-wider transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:outline-ring',
+          'inline-flex h-[calc(100%-1px)] items-center justify-center whitespace-nowrap border border-transparent px-2.5 py-1.5 font-semibold text-foreground/60 text-xs uppercase tracking-wider transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:outline-ring sm:px-4',
           tab.selected &&
             'bg-background text-foreground dark:border-input dark:bg-input/30',
         )}
