@@ -95,11 +95,14 @@ Viewers exist.
 imports `lib/db`, whose import throws without `DATABASE_URL`; a client
 component may import it, and `lib/watch-actions.ts` for the action, and
 nothing else in the module. The queries take a Viewer id and never decide
-whose it is — only the action reads `lib/auth`. A page reads the Viewer
-itself and hands the answer to `answeredWatchLookup`, whose `null` is
-Unanswered and means no controls, whether the database or the sign-in was
-what did not answer. `lib/watch` reads `lib/media` for `Kind` and its
-guards, and `lib/media` reads neither `lib/watch` nor `lib/auth`.
+whose it is — only the action reads `lib/auth` to find out. A page reads the
+Viewer itself and hands the answer to `answeredWatchLookup`, which answers
+with a `ViewerLookup`: it spells that same answer as a key rather than
+deciding anything about it, which is the one reason a query reaches
+`lib/auth` at all. Its `states` of `null` is Unanswered and means no
+controls, whether the database or the sign-in was what did not answer.
+`lib/watch` reads `lib/media` for `Kind` and its guards, and `lib/media`
+reads neither `lib/watch` nor `lib/auth`.
 
 A `ViewerLookup` is what a page hands its cards: that answer, and the key of
 the Viewer whose states are in it. The two are one value because a marking

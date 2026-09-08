@@ -4,7 +4,7 @@ import { MediaList } from '@/components/media/media-list';
 import { MediaGridSkeleton } from '@/components/media/media-skeleton';
 import { SearchForm } from '@/components/search/search-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { answeredViewer, viewerKeyOf } from '@/lib/auth';
+import { answeredViewer } from '@/lib/auth';
 import {
   KIND_WORDS,
   KINDS,
@@ -31,12 +31,12 @@ const trendingAndLookup = cache(
       answeredViewer(),
     ]);
 
-    const states = await answeredWatchLookup(asked, [
+    const lookup = await answeredWatchLookup(asked, [
       ...(trending.tv ?? []),
       ...(trending.movie ?? []),
     ]);
 
-    return { trending, lookup: { states, viewerKey: viewerKeyOf(asked) } };
+    return { trending, lookup };
   },
 );
 

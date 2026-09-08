@@ -6,7 +6,7 @@ import { MediaGridSkeleton } from '@/components/media/media-skeleton';
 import { KindTabs } from '@/components/search/kind-tabs';
 import { SearchForm } from '@/components/search/search-form';
 import { BackButton } from '@/components/ui/back-button';
-import { answeredViewer, viewerKeyOf } from '@/lib/auth';
+import { answeredViewer } from '@/lib/auth';
 import { formatTally } from '@/lib/format';
 import {
   hasMatches,
@@ -94,11 +94,10 @@ const MatchesFor = async ({
   const words = KIND_WORDS[selected];
 
   // one query for both Kinds' cards: the closed tab is a link away
-  const states = await answeredWatchLookup(asked, [
+  const lookup = await answeredWatchLookup(asked, [
     ...(shows?.items ?? []),
     ...(movies?.items ?? []),
   ]);
-  const lookup = { states, viewerKey: viewerKeyOf(asked) };
 
   return (
     <>

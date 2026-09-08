@@ -1,12 +1,13 @@
 import { and, count, desc, eq, or, sql } from 'drizzle-orm';
 
-import type { ViewerAnswer } from '@/lib/auth';
+import { type ViewerAnswer, viewerKeyOf } from '@/lib/auth';
 import { db } from '@/lib/db';
 import type { MediaRef } from '@/lib/media';
 import { markingTallies, watchRecords } from '@/lib/schema';
 import {
   PAGE_SIZE,
   toLookup,
+  type ViewerLookup,
   type WatchLookup,
   type WatchRecordsPage,
   type WatchState,
@@ -16,7 +17,9 @@ import {
  * The reads and writes behind `lib/watch`, and the only file in it that
  * touches the database. Every function takes the Viewer's id as its first
  * argument and never decides who that is: the action reads it from the
- * session, and a page reads it the same way.
+ * session, and a page reads it the same way. `answeredWatchLookup` takes the
+ * whole answer instead, and reaches `lib/auth` only to spell that same answer
+ * as a key — it decides no more about who the Viewer is than the others do.
  * — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
  */
 
@@ -65,8 +68,23 @@ export const watchLookup = async (
  * not be checked asks nothing either, and that is Unanswered: a card that
  * cannot know whose it is has nothing to press. Said here once rather than
  * as a ternary on every page.
+ *
+ * The key comes back with the states because this is the one place holding
+ * the answer both are read from. A page that pairs them itself is pairing
+ * two values it fetched apart, and a mismatched pair is not a type error: it
+ * renders one Viewer's states under another's key, which is the sign-out bug
+ * `viewerKey` exists to stop.
  */
 export const answeredWatchLookup = async (
+  asked: ViewerAnswer,
+  refs: readonly MediaRef[],
+): Promise<ViewerLookup> => ({
+  states: await answeredStates(asked, refs),
+  viewerKey: viewerKeyOf(asked),
+});
+
+/** The states half of `answeredWatchLookup`, whose `null` is Unanswered. */
+const answeredStates = async (
   asked: ViewerAnswer,
   refs: readonly MediaRef[],
 ): Promise<WatchLookup | null> => {

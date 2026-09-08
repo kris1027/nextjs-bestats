@@ -6,7 +6,7 @@ import { MediaDetail } from '@/components/media/media-detail';
 import { MediaDetailSkeleton } from '@/components/media/media-skeleton';
 import { MarkingControlSkeleton } from '@/components/watch/control-skeleton';
 import { MarkingControl } from '@/components/watch/marking-control';
-import { answeredViewer, viewerKeyOf } from '@/lib/auth';
+import { answeredViewer } from '@/lib/auth';
 import {
   isKind,
   isMediaId,
@@ -74,13 +74,13 @@ const Control = async ({
   const asked = await answeredViewer();
   const lookup = await answeredWatchLookup(asked, [media]);
 
-  if (lookup === null) return null;
+  if (lookup.states === null) return null;
 
   return (
     <MarkingControl
-      key={viewerKeyOf(asked)}
+      key={lookup.viewerKey}
       media={media}
-      state={stateOf(lookup, media)}
+      state={stateOf(lookup.states, media)}
     />
   );
 };
