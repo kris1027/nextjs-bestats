@@ -12,16 +12,20 @@ import {
   type Trending,
   trendingMedia,
 } from '@/lib/media';
-import type { WatchLookup } from '@/lib/watch';
+import type { ViewerLookup } from '@/lib/watch';
 import { answeredWatchLookup } from '@/lib/watch-queries';
 
 /**
- * Both Kinds and one lookup for every card on both tabs, asked for once per
- * request however many panels ask: `cache` is what lets two sibling panels
- * share a request without a promise threaded through the client tabs.
+ * Both Kinds, one lookup for every card on both tabs, and whose lookup it is,
+ * asked for once per request however many panels ask: `cache` is what lets
+ * two sibling panels share a request without a promise threaded through the
+ * client tabs.
  */
 const trendingAndLookup = cache(
-  async (): Promise<{ trending: Trending; lookup: WatchLookup | null }> => {
+  async (): Promise<{
+    trending: Trending;
+    lookup: ViewerLookup;
+  }> => {
     const [trending, asked] = await Promise.all([
       trendingMedia(),
       answeredViewer(),

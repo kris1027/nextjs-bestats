@@ -13,14 +13,15 @@ import { mediaItems } from '@/lib/media';
 import { signInAddress } from '@/lib/next-path';
 import { pageNumber, type SearchParams } from '@/lib/search-params';
 import { cn, control } from '@/lib/utils';
+import { viewerKey } from '@/lib/viewer-key';
 import {
   LISTS,
   PAGE_SIZE,
   refOf,
-  stateOf,
   toLookup,
   WATCH_STATES,
   type WatchState,
+  watchKey,
 } from '@/lib/watch';
 import { watchRecordsPage, watchTallies } from '@/lib/watch-queries';
 
@@ -129,14 +130,17 @@ const ListPage = async ({
   // in the refs' order, so an answer and its record share an index
   const answers = await mediaItems(refs);
   // the page's own records are its lookup: every card on it has a state
-  const lookup = toLookup(records);
+  const lookup = {
+    states: toLookup(records),
+    viewerKey: viewerKey(currentViewer),
+  };
 
   return (
     <>
       <MediaGrid>
         {refs.map((ref, index) => {
           const answer = answers[index];
-          const key = `${ref.kind}/${ref.id}`;
+          const key = watchKey(ref);
 
           // the answers are one per ref, so this branch cannot run;
           // it is here for the type rather than the reader
@@ -149,7 +153,7 @@ const ListPage = async ({
               key={key}
               media={ref}
               answer={answer.answer}
-              state={stateOf(lookup, ref)}
+              lookup={lookup}
             />
           );
         })}
@@ -190,9 +194,9 @@ const ListPage = async ({
  * and the cards into the grid, each behind a boundary of its own, because
  * the database answers in one round trip and TMDB in twenty.
  *
- * Nothing moves after a mark here. A card pressed out of this list shows its
- * new state where it is, and the list catches up on the next navigation;
- * that keeps the undo one press away.
+ * Nothing moves when a card here is marked. A card pressed out of this list
+ * shows its new state where it is, and the list catches up on the next
+ * navigation; that keeps the undo one press away.
  * — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
  */
 const WatchRecordList = ({

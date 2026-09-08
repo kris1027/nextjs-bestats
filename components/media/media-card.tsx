@@ -7,21 +7,24 @@ import { Star } from 'lucide-react';
 import { MediaPlaceholder } from '@/components/media/media-placeholder';
 import { MarkingControl } from '@/components/watch/marking-control';
 import type { MediaItem } from '@/lib/media';
-import { stateOf, type WatchLookup } from '@/lib/watch';
+import { stateOf, type ViewerLookup } from '@/lib/watch';
 
 /**
  * `lookup` is the page's one query for every card on it, and the card reads
- * its own state out of it. `null` is Unanswered — the database did not say —
- * and the card renders no control rather than one claiming nothing is marked.
- * A signed-out Visitor's page passes an empty lookup instead, which is a
- * real absence: no Viewer, so no Watch Record.
+ * its own state out of it. `states` is `null` for Unanswered — the database
+ * did not say — and the card renders no control rather than one claiming
+ * nothing is marked. A signed-out Visitor's page passes an empty lookup
+ * instead, which is a real absence: no Viewer, so no Watch Record.
+ *
+ * The lookup carries whose Watch Records those are, and that is the control's
+ * key and nothing the card renders. See `viewerKey` in `lib/auth`.
  */
 const MediaCard = ({
   item,
   lookup,
 }: {
   item: MediaItem;
-  lookup: WatchLookup | null;
+  lookup: ViewerLookup;
 }): JSX.Element => {
   return (
     <li className='flex flex-col transition duration-150 ease-out hover:-translate-y-1.5 hover:shadow-lg focus-within:-translate-y-1.5 focus-within:ring-2 focus-within:ring-ring'>
@@ -60,9 +63,13 @@ const MediaCard = ({
         </div>
       </Link>
       {/* outside the link: a button inside one is nested interactive content */}
-      {lookup !== null ? (
+      {lookup.states !== null ? (
         <div className='px-2.5 pt-2.5'>
-          <MarkingControl media={item} state={stateOf(lookup, item)} />
+          <MarkingControl
+            key={lookup.viewerKey}
+            media={item}
+            state={stateOf(lookup.states, item)}
+          />
         </div>
       ) : null}
     </li>
