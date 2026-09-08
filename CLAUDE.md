@@ -101,16 +101,24 @@ Unanswered and means no controls, whether the database or the sign-in was
 what did not answer. `lib/watch` reads `lib/media` for `Kind` and its
 guards, and `lib/media` reads neither `lib/watch` nor `lib/auth`.
 
+A `ViewerLookup` is what a page hands its cards: that answer, and the key of
+the Viewer whose states are in it. The two are one value because a marking
+control's state is one Viewer's and outlives a re-render at the same
+position, so a control given the states without the key stays lit for a
+Viewer who has signed out — and a missing `key` is not a type error. Any
+component rendering a `MarkingControl` directly keys it on `lib/auth`'s key
+for the Viewer the state was seeded for: `viewerKeyOf` where the page asked
+with `answeredViewer`, `viewerKey` where it already has the Viewer. Three
+places do — `media-card.tsx`, `absent-card.tsx` and the detail page — and
+everything else reaches the control through a `ViewerLookup`, which carries
+the key for it.
+
 `components/watch/` has two halves with different rights. The client half —
 the marking control and the absent card — reads `lib/watch.ts` and the
-action, as above. Its state is one Viewer's and outlives a re-render at the
-same position, so every caller keys the marking control on `lib/auth`'s key
-for the Viewer it was seeded for — `viewerKeyOf` where the page asked with
-`answeredViewer`, `viewerKey` where it has the Viewer itself. The server
-half is `watch-record-list.tsx`, the body of both list routes: it
-reads `viewer()`, the queries and `lib/media` the way any page does, since
-resolving Watch Records against TMDB is a page's job and not `lib/watch`'s.
-It lives here only because two routes share it.
+action, as above. The server half is `watch-record-list.tsx`, the body of
+both list routes: it reads `viewer()`, the queries and `lib/media` the way
+any page does, since resolving Watch Records against TMDB is a page's job and
+not `lib/watch`'s. It lives here only because two routes share it.
 
 ## Standing rules
 
