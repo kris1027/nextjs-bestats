@@ -71,11 +71,18 @@ const Control = async ({
 }: {
   media: MediaRef;
 }): Promise<JSX.Element | null> => {
-  const lookup = await answeredWatchLookup(await answeredViewer(), [media]);
+  const asked = await answeredViewer();
+  const lookup = await answeredWatchLookup(asked, [media]);
 
-  if (lookup === null) return null;
+  if (lookup.states === null) return null;
 
-  return <MarkingControl media={media} state={stateOf(lookup, media)} />;
+  return (
+    <MarkingControl
+      key={lookup.viewerKey}
+      media={media}
+      state={stateOf(lookup.states, media)}
+    />
+  );
 };
 
 /**

@@ -46,6 +46,14 @@ const BUTTONS: Record<WatchState, { label: string; Icon: LucideIcon }> = {
  * Nothing refreshes on success. The returned state is what the row now holds,
  * no page shows a piece of Media twice, and Next refetches a dynamic page on
  * the next navigation to it.
+ *
+ * Which is why the caller keys this on the Viewer. The state below outlives a
+ * re-render at the same tree position, and signing out is exactly that: the
+ * action redirects to `/`, and a Viewer already there gets a soft navigation
+ * rather than a remount. The server sends an empty lookup and every `state`
+ * arrives `null`, but a component that only reads its prop at mount never
+ * sees it, and a Visitor is left reading a Viewer's Watch Records. The key
+ * is what unmounts them. — `viewerKey` in `lib/auth`.
  */
 const MarkingControl = ({
   media,
@@ -56,7 +64,9 @@ const MarkingControl = ({
 }): JSX.Element => {
   const next = useAddress();
 
-  // the state as the last completed action left it; the prop only seeds it
+  // the state as the last completed action left it, and the prop that state
+  // was seeded from, which is what the reset below compares against
+  const [seed, setSeed] = useState(initial);
   const [state, setState] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   // `marked` is the reducer, so a press flips from whatever is shown — a
@@ -64,6 +74,31 @@ const MarkingControl = ({
   // will on the server — and the value falls back to `state` on its own when
   // the actions settle, which is how a failed write undoes the flip
   const [shown, flip] = useOptimistic(state, marked);
+
+  // The server has said something new about this piece of Media since the
+  // state above was seeded, so its word replaces what a press left here. The
+  // key handles a Viewer who changed; this handles a Viewer who did not — a
+  // navigation that re-renders this control rather than remounting it, which
+  // is every navigation with the same piece of Media in both renders, since
+  // that is what a card is keyed on: a new `q=` on search matching a piece
+  // of Media the last Query matched, or a turn of a list page that a marking
+  // has reordered. That render's lookup ran after the marking reached the
+  // database, so it is the newer of the two and this is not a revert.
+  //
+  // Back is the one place it can be the older of the two: Next's default
+  // `staleTimes.dynamic` of 0 — which `next.config.ts` leaves alone rather
+  // than sets — is why a forward navigation refetches, but back and forward
+  // replay what was cached, which may predate the marking. The control then
+  // un-lights a row that really is marked, until the next render says so
+  // again. Accepted: that costs a moment of a wrong-looking button on a path
+  // that marks something, a same-route navigation and a press of Back, where
+  // holding the old state costs a stale one on every ordinary search and
+  // page turn.
+  if (seed !== initial) {
+    setSeed(initial);
+    setState(initial);
+    setError(null);
+  }
 
   const press =
     (pressed: WatchState) =>
