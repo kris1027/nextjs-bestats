@@ -79,3 +79,18 @@ a page that scrolls sideways rather than to anything unreadable. The fix would
 be `overflow-x-auto` inside a fixed-height row, which spends a scrollbar's
 height on every platform that does not overlay them — a cost to everyone to
 close a case almost nobody reaches.
+
+**Two more pairs have to agree, and one fails quietly.** Beside the `Bookmark`
+map above, the branch left `@min-[200px]` written literally in
+`components/watch/marking-control.tsx` and again in `control-skeleton.tsx`,
+which exists to hold the height the control takes; and a grid's `grid-cols-*`
+against the `sizes` of the posters in it. The second is the one to watch. A
+skeleton of the wrong height is visible the moment anyone looks, but a lying
+`sizes` has no symptom on screen at all — the markup stays right while every
+phone fetches a poster far wider than it draws. Both are in `CLAUDE.md`; only
+the second needed an argument there.
+
+**The tabs' padding is a third.** `LinkTabs` narrowed to `px-2.5` below `sm:`
+to fit the 320px row while `TabsTrigger` keeps `px-4`, so the home page's tabs
+take the same pair at their call site rather than diverging from every other
+set of tabs at exactly the width this document is about.
