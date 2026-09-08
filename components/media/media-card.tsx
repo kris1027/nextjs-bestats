@@ -37,7 +37,13 @@ const MediaCard = ({
             // decorative: the link's accessible name comes from the <h2> inside it
             alt=''
             className='h-auto w-full'
-            sizes='(min-width: 1024px) 244px, (min-width: 640px) 50vw, 100vw'
+            // `MediaGrid`'s columns, restated as widths, because nothing but
+            // this tells the browser how big the poster lands. Two columns
+            // below `lg:` put a card at half the viewport less half the
+            // page's padding and the gap between them; four columns above it
+            // divide the 1024px the list is capped at. A stale `100vw` here
+            // would have every phone fetch a poster twice the width it draws.
+            sizes='(min-width: 1024px) 244px, calc(50vw - 24px)'
           />
         ) : (
           <MediaPlaceholder artwork='poster' />
