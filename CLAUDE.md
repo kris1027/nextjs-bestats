@@ -108,13 +108,17 @@ A `ViewerLookup` is what a page hands its cards: that answer, and the key of
 the Viewer whose states are in it. The two are one value because a marking
 control's state is one Viewer's and outlives a re-render at the same
 position, so a control given the states without the key stays lit for a
-Viewer who has signed out — and a missing `key` is not a type error. Any
-component rendering a `MarkingControl` directly keys it on `lib/auth`'s key
-for the Viewer the state was seeded for: `viewerKeyOf` where the page asked
-with `answeredViewer`, `viewerKey` where it already has the Viewer. Three
-places do — `media-card.tsx`, `absent-card.tsx` and the detail page — and
-everything else reaches the control through a `ViewerLookup`, which carries
-the key for it.
+Viewer who has signed out — and a missing `key` is not a type error. Every
+`MarkingControl` is therefore keyed on the `viewerKey` of the same lookup
+its state was read from, and never on a key the caller went and fetched
+itself. Three places render one — `media-card.tsx`, `absent-card.tsx` and
+the detail page — and all three read both halves off a `ViewerLookup`.
+
+Two places make that key, and they are the two that hold the Viewer:
+`answeredWatchLookup` calls `lib/auth`'s `viewerKeyOf` on the answer it was
+handed, and `watch-record-list.tsx` calls `viewerKey` on the Viewer it
+already has from `viewer()`. A fourth caller of either is the thing to look
+twice at: the key belongs beside the states, not beside the render.
 
 `components/watch/` has two halves with different rights. The client half —
 the marking control and the absent card — reads `lib/watch.ts` and the
