@@ -54,12 +54,9 @@ the hand-written migrations in there are held to the same rule as the rest.
   graph, so `lib/watch-actions.test.ts` runs on a commit and covers the
   failure branch a migrated CI branch cannot reach.
 - A unit test may mock a package to make a module importable at all, not only
-  to stand in for what it does. `lib/auth.test.ts` mocks
-  `@neondatabase/auth/next/server` because it reaches `next/headers` through
-  an ESM build only Next's bundler resolves, so `lib/auth` cannot be imported
-  outside Next without it; `auth` itself is never called. That is what puts
-  the pure exports of a module full of request-time reads — `viewerKey` and
-  `viewerKeyOf` — under the project that runs on a commit.
+  to stand in for it. `lib/auth.test.ts` mocks `@neondatabase/auth` — an ESM
+  build only Next's bundler resolves — so `lib/auth`'s pure exports can be
+  tested on a commit. `auth` itself is never called.
 - `@/` resolves in tests, so an import in a test looks like an import anywhere
   else in the repo. It does not resolve for `pnpm db:check`, which Node runs
   directly, and that holds for the whole graph Node loads and not just its
@@ -112,20 +109,15 @@ controls, whether the database or the sign-in was what did not answer.
 reads neither `lib/watch` nor `lib/auth`.
 
 A `ViewerLookup` is what a page hands its cards: that answer, and the key of
-the Viewer whose states are in it. The two are one value because a marking
-control's state is one Viewer's and outlives a re-render at the same
-position, so a control given the states without the key stays lit for a
-Viewer who has signed out — and a missing `key` is not a type error. Every
-`MarkingControl` is therefore keyed on the `viewerKey` of the same lookup
-its state was read from, and never on a key the caller went and fetched
-itself. Three places render one — `media-card.tsx`, `absent-card.tsx` and
-the detail page — and all three read both halves off a `ViewerLookup`.
-
-Two places make that key, and they are the two that hold the Viewer:
-`answeredWatchLookup` calls `lib/auth`'s `viewerKeyOf` on the answer it was
-handed, and `watch-record-list.tsx` calls `viewerKey` on the Viewer it
-already has from `viewer()`. A fourth caller of either is the thing to look
-twice at: the key belongs beside the states, not beside the render.
+the Viewer whose states are in it. One value, because a control given the
+states without the key stays lit for a Viewer who has signed out — its state
+outlives a re-render at the same position, and a missing `key` is not a type
+error. So every `MarkingControl` is keyed on the `viewerKey` of the lookup
+its state came from, never on a key the caller fetched itself:
+`media-card.tsx`, `absent-card.tsx` and the detail page all read both halves
+off one. Two places make that key — `answeredWatchLookup` from the answer it
+was handed, `watch-record-list.tsx` from the Viewer `viewer()` gave it — and
+a third caller of either is the thing to look twice at.
 
 `components/watch/` has two halves with different rights. The client half —
 the marking control and the absent card — reads `lib/watch.ts` and the

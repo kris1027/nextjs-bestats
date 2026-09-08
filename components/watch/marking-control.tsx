@@ -80,9 +80,9 @@ const MarkingControl = ({
   // key handles a Viewer who changed; this handles a Viewer who did not — a
   // navigation that re-renders this control rather than remounting it, which
   // is every navigation with the same piece of Media in both renders, since
-  // that is what a card is keyed on: a new `q=` on search matching a title
-  // the last Query matched, or a turn of a list page that a marking has
-  // reordered. That render's lookup ran after the marking reached the
+  // that is what a card is keyed on: a new `q=` on search matching a piece
+  // of Media the last Query matched, or a turn of a list page that a marking
+  // has reordered. That render's lookup ran after the marking reached the
   // database, so it is the newer of the two and this is not a revert.
   //
   // Back is the one place it can be the older of the two: Next's default
