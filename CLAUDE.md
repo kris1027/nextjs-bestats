@@ -169,6 +169,19 @@ not `lib/watch`'s. It lives here only because two routes share it.
   TMDB cache is `lib/tmdb`'s and by directive, never a fetch option, and a
   theme preference can never be a cookie.
   — `docs/adr/0010-the-shell-is-prerendered.md`
+- The layout is drawn for a 390px screen and must not overflow a 320px one:
+  nothing scrolls sideways there, nothing is clipped, and every control can
+  still be pressed. Unprefixed classes are the phone's, and `sm:`/`lg:` only
+  add — there is no `max-*` variant in the repo and there should not be one.
+  Nothing checks any of this, so a new width is measured in a browser rather
+  than reasoned about; the numbers in the ADR were.
+  — `docs/adr/0014-the-narrow-header-gives-up-words.md`
+- A grid's column count and the `sizes` of the images in it are one decision
+  said in two places. Change `grid-cols-*` without changing `sizes` and the
+  markup still looks right while every phone fetches a poster far wider than
+  it draws — a `100vw` left over from one column had a 390px screen asking
+  for 828px to paint 171px. Nothing but `sizes` tells a browser how wide an
+  image lands, and no test or type will notice that it lies.
 
 ## Conventions Biome does not enforce
 
