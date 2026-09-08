@@ -33,6 +33,16 @@ page follows a check — `/sign-in`, and `/settings` until that page was
 removed. Every fallback is a skeleton the height of what replaces it.
 — `docs/adr/0012-a-viewer-cannot-delete-themselves.md`
 
+**That height is a box, not a class list.** `/sign-in`'s button carries
+`control`, which is `inline-flex`, and sits in a `<form>`: an inline-level
+box makes the form draw a line box, and the form takes that line's height
+rather than the button's. The skeleton reused the class on a div that was a
+flex item of the column directly, which blockifies it — same padding, same
+border, no line box, and a few px short. A wrapper div stands in for the
+form now. Nothing catches this on its own: a fallback and what replaces it
+are never on screen together, so the difference arrives as a small jump at
+the swap rather than as a number anyone can compare.
+
 **A theme preference cannot be a cookie.** The class that picks the palette
 sits on `<html>`, above every boundary, and reading a cookie there is the
 one request-time read no boundary can contain. When the toggle arrives it
