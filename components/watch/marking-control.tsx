@@ -64,7 +64,9 @@ const MarkingControl = ({
 }): JSX.Element => {
   const next = useAddress();
 
-  // the state as the last completed action left it; the prop only seeds it
+  // the state as the last completed action left it, and the prop that state
+  // was seeded from, which is what the reset below compares against
+  const [seed, setSeed] = useState(initial);
   const [state, setState] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   // `marked` is the reducer, so a press flips from whatever is shown — a
@@ -72,6 +74,27 @@ const MarkingControl = ({
   // will on the server — and the value falls back to `state` on its own when
   // the actions settle, which is how a failed write undoes the flip
   const [shown, flip] = useOptimistic(state, marked);
+
+  // The server has said something new about this piece of Media since the
+  // state above was seeded, so its word replaces what a press left here. The
+  // key handles a Viewer who changed; this handles a Viewer who did not — a
+  // navigation that re-renders this position rather than remounting it, which
+  // on a list means `?page=`, and on search a new `q=` with a title in both
+  // sets of Matches. That render's lookup ran after the mark reached the
+  // database, so it is the newer of the two and this is not a revert.
+  //
+  // Back is the one place it can be the older of the two: `staleTimes.dynamic`
+  // is 0, so a forward navigation refetches, but back and forward replay what
+  // was cached, which may predate the mark. The control then un-lights a row
+  // that really is marked, until the next render says so again. Accepted:
+  // that costs a moment of a wrong-looking button on a path that needs a
+  // mark, a same-route navigation and a press of Back, where holding the old
+  // state costs a stale one on every ordinary search and page turn.
+  if (seed !== initial) {
+    setSeed(initial);
+    setState(initial);
+    setError(null);
+  }
 
   const press =
     (pressed: WatchState) =>
