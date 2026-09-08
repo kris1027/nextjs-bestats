@@ -53,7 +53,7 @@ const BUTTONS: Record<WatchState, { label: string; Icon: LucideIcon }> = {
  * rather than a remount. The server sends an empty lookup and every `state`
  * arrives `null`, but a component that only reads its prop at mount never
  * sees it, and a Visitor is left reading a Viewer's marks. The key is what
- * unmounts them. — `viewerIdOf` in `lib/auth`.
+ * unmounts them. — `viewerKey` in `lib/auth`.
  */
 const MarkingControl = ({
   media,

@@ -104,8 +104,10 @@ guards, and `lib/media` reads neither `lib/watch` nor `lib/auth`.
 `components/watch/` has two halves with different rights. The client half —
 the marking control and the absent card — reads `lib/watch.ts` and the
 action, as above. Its state is one Viewer's and outlives a re-render at the
-same position, so every caller keys the marking control on `viewerIdOf`. The
-server half is `watch-record-list.tsx`, the body of both list routes: it
+same position, so every caller keys the marking control on `lib/auth`'s key
+for the Viewer it was seeded for — `viewerKeyOf` where the page asked with
+`answeredViewer`, `viewerKey` where it has the Viewer itself. The server
+half is `watch-record-list.tsx`, the body of both list routes: it
 reads `viewer()`, the queries and `lib/media` the way any page does, since
 resolving Watch Records against TMDB is a page's job and not `lib/watch`'s.
 It lives here only because two routes share it.

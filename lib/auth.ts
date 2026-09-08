@@ -110,19 +110,34 @@ const askViewer = cache(async (): Promise<ViewerAnswer> => {
  */
 export const answeredViewer = (): Promise<ViewerAnswer> => askViewer();
 
+/** The key every request with no Viewer behind it shares. */
+const NO_VIEWER = 'visitor';
+
 /**
- * Who a marking control belongs to, as the one value it can be keyed on:
- * the Viewer's id, or `null` for a Visitor. An Unanswered sign-in is `null`
- * too and never reaches a control — a card and the detail page both render
- * none when the lookup came back `null` — so the two are not told apart here.
+ * The key a marking control is rendered under, which is the whole of what a
+ * caller needs: a control keyed on this unmounts when the Viewer changes,
+ * and that is what keeps a Viewer's marks from staying lit on a Visitor's
+ * page after a sign out. The state a control holds outlives a re-render at
+ * the same position; it does not outlive an unmount.
  *
- * A control keyed on this unmounts when the Viewer changes, which is what
- * keeps a Viewer's marks from staying lit on a Visitor's page after a sign
- * out. The state a control holds outlives a re-render at the same position;
- * it does not outlive an unmount.
+ * The finished key rather than the id it is built from, so no call site
+ * spells the Visitor's half for itself: one that spells it differently keys
+ * two Visitors apart for nothing, and one that leaves it off hands React
+ * `undefined`, which is no key at all and no type error either. The prefix
+ * is what keeps a Viewer whose id is `visitor` from sharing a key with every
+ * Visitor there is.
  */
-export const viewerIdOf = (asked: ViewerAnswer): string | null =>
-  asked.answer === 'viewer' ? asked.viewer.id : null;
+export const viewerKey = (viewer: Pick<Viewer, 'id'>): string =>
+  `viewer:${viewer.id}`;
+
+/**
+ * The same key from an answer that may be Unanswered, for the pages that ask
+ * with `answeredViewer`. An Unanswered sign-in takes the Visitor's key and
+ * never reaches a control — a card and the detail page both render none when
+ * the lookup came back `null` — so the two are not told apart here.
+ */
+export const viewerKeyOf = (asked: ViewerAnswer): string =>
+  asked.answer === 'viewer' ? viewerKey(asked.viewer) : NO_VIEWER;
 
 /**
  * The Viewer this request belongs to, or `null` for a Visitor who has not

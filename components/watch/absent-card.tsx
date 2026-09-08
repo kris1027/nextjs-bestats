@@ -20,20 +20,20 @@ const LINES: Record<Absence, string> = {
  * here is the only way a Viewer can ever remove a Gone record.
  * — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
  *
- * `viewerId` is not nullable here the way it is on a `MediaCard`: only the
- * lists render this card, and a Visitor is sent to sign in before one is
- * drawn. It keys the control, as it does there.
+ * `viewerKey` keys the control, as it does on a `MediaCard`. Only the lists
+ * render this card, and a Visitor is sent to sign in before one is drawn, so
+ * the key here is always a Viewer's.
  */
 const AbsentCard = ({
   media,
   answer,
   state,
-  viewerId,
+  viewerKey,
 }: {
   media: MediaRef;
   answer: Absence;
   state: WatchState | null;
-  viewerId: string;
+  viewerKey: string;
 }): JSX.Element => (
   <li className='flex flex-col'>
     <MediaPlaceholder artwork='poster' />
@@ -46,7 +46,7 @@ const AbsentCard = ({
     </div>
     <p className='px-2.5 pt-2 text-muted-foreground text-xs'>{LINES[answer]}</p>
     <div className='px-2.5 pt-2.5'>
-      <MarkingControl key={viewerId} media={media} state={state} />
+      <MarkingControl key={viewerKey} media={media} state={state} />
     </div>
   </li>
 );

@@ -7,7 +7,7 @@ import { MediaGrid } from '@/components/media/media-grid';
 import { MediaGridSkeleton } from '@/components/media/media-skeleton';
 import { LinkTabs } from '@/components/navigation/link-tabs';
 import { AbsentCard } from '@/components/watch/absent-card';
-import { viewer } from '@/lib/auth';
+import { viewer, viewerKey } from '@/lib/auth';
 import { formatNumber } from '@/lib/format';
 import { mediaItems } from '@/lib/media';
 import { signInAddress } from '@/lib/next-path';
@@ -147,7 +147,7 @@ const ListPage = async ({
               key={key}
               item={answer.item}
               lookup={lookup}
-              viewerId={currentViewer.id}
+              viewerKey={viewerKey(currentViewer)}
             />
           ) : (
             <AbsentCard
@@ -155,7 +155,7 @@ const ListPage = async ({
               media={ref}
               answer={answer.answer}
               state={stateOf(lookup, ref)}
-              viewerId={currentViewer.id}
+              viewerKey={viewerKey(currentViewer)}
             />
           );
         })}

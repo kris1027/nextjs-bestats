@@ -4,7 +4,7 @@ import { MediaList } from '@/components/media/media-list';
 import { MediaGridSkeleton } from '@/components/media/media-skeleton';
 import { SearchForm } from '@/components/search/search-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { answeredViewer, viewerIdOf } from '@/lib/auth';
+import { answeredViewer, viewerKeyOf } from '@/lib/auth';
 import {
   KIND_WORDS,
   KINDS,
@@ -25,7 +25,7 @@ const trendingAndLookup = cache(
   async (): Promise<{
     trending: Trending;
     lookup: WatchLookup | null;
-    viewerId: string | null;
+    viewerKey: string;
   }> => {
     const [trending, asked] = await Promise.all([
       trendingMedia(),
@@ -37,13 +37,13 @@ const trendingAndLookup = cache(
       ...(trending.movie ?? []),
     ]);
 
-    return { trending, lookup, viewerId: viewerIdOf(asked) };
+    return { trending, lookup, viewerKey: viewerKeyOf(asked) };
   },
 );
 
 /** What a Kind's panel opens on: its list, or the sentence for its absence. */
 const TrendingList = async ({ kind }: { kind: Kind }): Promise<JSX.Element> => {
-  const { trending, lookup, viewerId } = await trendingAndLookup();
+  const { trending, lookup, viewerKey } = await trendingAndLookup();
   const media = trending[kind];
 
   return media === null ? (
@@ -53,7 +53,7 @@ const TrendingList = async ({ kind }: { kind: Kind }): Promise<JSX.Element> => {
       moment.
     </p>
   ) : (
-    <MediaList media={media} lookup={lookup} viewerId={viewerId} />
+    <MediaList media={media} lookup={lookup} viewerKey={viewerKey} />
   );
 };
 

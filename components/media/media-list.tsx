@@ -7,16 +7,16 @@ import type { WatchLookup } from '@/lib/watch';
 
 /**
  * `lookup` passes straight through: each card reads its own state from it.
- * So does `viewerId`, which says whose states those are.
+ * So does `viewerKey`, which says whose states those are.
  */
 const MediaList = ({
   media,
   lookup,
-  viewerId,
+  viewerKey,
 }: {
   media: MediaItem[];
   lookup: WatchLookup | null;
-  viewerId: string | null;
+  viewerKey: string;
 }): JSX.Element => {
   return (
     <MediaGrid>
@@ -24,7 +24,7 @@ const MediaList = ({
         <MediaCard
           item={item}
           lookup={lookup}
-          viewerId={viewerId}
+          viewerKey={viewerKey}
           key={item.id}
         />
       ))}
