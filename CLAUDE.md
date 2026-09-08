@@ -53,6 +53,13 @@ the hand-written migrations in there are held to the same rule as the rest.
   `lib/db` — whose import throws without `DATABASE_URL` — out of the module
   graph, so `lib/watch-actions.test.ts` runs on a commit and covers the
   failure branch a migrated CI branch cannot reach.
+- A unit test may mock a package to make a module importable at all, not only
+  to stand in for what it does. `lib/auth.test.ts` mocks
+  `@neondatabase/auth/next/server` because it reaches `next/headers` through
+  an ESM build only Next's bundler resolves, so `lib/auth` cannot be imported
+  outside Next without it; `auth` itself is never called. That is what puts
+  the pure exports of a module full of request-time reads — `viewerKey` and
+  `viewerKeyOf` — under the project that runs on a commit.
 - `@/` resolves in tests, so an import in a test looks like an import anywhere
   else in the repo. It does not resolve for `pnpm db:check`, which Node runs
   directly, and that holds for the whole graph Node loads and not just its
