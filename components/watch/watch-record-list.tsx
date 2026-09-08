@@ -21,6 +21,7 @@ import {
   toLookup,
   WATCH_STATES,
   type WatchState,
+  watchKey,
 } from '@/lib/watch';
 import { watchRecordsPage, watchTallies } from '@/lib/watch-queries';
 
@@ -137,7 +138,7 @@ const ListPage = async ({
       <MediaGrid>
         {refs.map((ref, index) => {
           const answer = answers[index];
-          const key = `${ref.kind}/${ref.id}`;
+          const key = watchKey(ref);
 
           // the answers are one per ref, so this branch cannot run;
           // it is here for the type rather than the reader
