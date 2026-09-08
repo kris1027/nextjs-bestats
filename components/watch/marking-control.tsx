@@ -85,9 +85,10 @@ const MarkingControl = ({
   // reordered. That render's lookup ran after the mark reached the database,
   // so it is the newer of the two and this is not a revert.
   //
-  // Back is the one place it can be the older of the two: `staleTimes.dynamic`
-  // is 0, so a forward navigation refetches, but back and forward replay what
-  // was cached, which may predate the mark. The control then un-lights a row
+  // Back is the one place it can be the older of the two: Next's default
+  // `staleTimes.dynamic` of 0 — which `next.config.ts` leaves alone rather
+  // than sets — is why a forward navigation refetches, but back and forward
+  // replay what was cached, which may predate the mark. The control then un-lights a row
   // that really is marked, until the next render says so again. Accepted:
   // that costs a moment of a wrong-looking button on a path that needs a
   // mark, a same-route navigation and a press of Back, where holding the old
