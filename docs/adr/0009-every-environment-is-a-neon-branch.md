@@ -78,8 +78,9 @@ and that list does the work an OAuth proxy would otherwise have done:
 
 - **Localhost is pre-approved**, on any port. Nothing to register.
 - **Neon supplies development OAuth credentials**, so sign-in works before a
-  Google or GitHub application exists. Replacing them with our own is on the
-  production checklist, not on the path to running the app.
+  Google application exists. Replacing them with our own is on the production
+  checklist, not on the path to running the app — one application to register
+  now that Google is the only way in, not two.
 
 The list is **per branch**, which follows from auth branching with the data.
 With one branch left there is one list, and only production's domain on it.

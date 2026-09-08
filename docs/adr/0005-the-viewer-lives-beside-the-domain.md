@@ -22,9 +22,19 @@ model would be the one relationship the database could not enforce.
 have "a home that is not named after a third-party API"; putting the Viewer in a
 second third-party API would have missed the point twice.
 
-Google and GitHub are the only ways in. Neither email delivery, verification,
-reset flows nor password hashing exists in v1, because sign-in is not the
-interesting part of this app.
+Google is the only way in. GitHub was a second way in and is not one any
+more: no Viewer ever signed in with it, and a second provider bought a second
+OAuth application on the production checklist and nothing else. Neither email
+delivery, verification, reset flows nor password hashing exists in v1 — email
+is deferred to v2, along with the delivery it needs — because sign-in is not
+the interesting part of this app.
+
+There is no provider vocabulary left, and that is deliberate rather than
+neglect. A `PROVIDERS` list, a `Provider` union and the guard that refused a
+forged one existed so the sign-in page could loop over a choice; a choice of
+one is not a choice, so `lib/auth-actions` names Google itself and no
+provider reaches it from the client. Adding a second way in means bringing
+all three back, not parameterising what is there.
 
 ## Considered and rejected: running Better Auth ourselves
 
