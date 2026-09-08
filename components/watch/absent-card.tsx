@@ -4,7 +4,7 @@ import { MediaPlaceholder } from '@/components/media/media-placeholder';
 import { MarkingControl } from '@/components/watch/marking-control';
 import { capitalize } from '@/lib/format';
 import { type Absence, KIND_WORDS, type MediaRef } from '@/lib/media';
-import type { WatchState } from '@/lib/watch';
+import { stateOf, type ViewerLookup } from '@/lib/watch';
 
 /** What each absence says. Gone is TMDB's answer; Unanswered may change. */
 const LINES: Record<Absence, string> = {
@@ -20,20 +20,21 @@ const LINES: Record<Absence, string> = {
  * here is the only way a Viewer can ever remove a Gone record.
  * — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
  *
- * `viewerKey` keys the control, as it does on a `MediaCard`. Only the lists
- * render this card, and a Visitor is sent to sign in before one is drawn, so
- * the key here is always a Viewer's.
+ * The card reads its own state and its control's key out of `lookup`, the
+ * way a `MediaCard` does: the pair is one value so this card cannot be given
+ * one Viewer's state under another's key. Only the lists render it, and a
+ * Visitor is sent to sign in before one is drawn, so the key here is always
+ * a Viewer's and `states` is never Unanswered — the guard is the same one a
+ * card makes, said here for the type rather than for the reader.
  */
 const AbsentCard = ({
   media,
   answer,
-  state,
-  viewerKey,
+  lookup,
 }: {
   media: MediaRef;
   answer: Absence;
-  state: WatchState | null;
-  viewerKey: string;
+  lookup: ViewerLookup;
 }): JSX.Element => (
   <li className='flex flex-col'>
     <MediaPlaceholder artwork='poster' />
@@ -45,9 +46,15 @@ const AbsentCard = ({
       </h2>
     </div>
     <p className='px-2.5 pt-2 text-muted-foreground text-xs'>{LINES[answer]}</p>
-    <div className='px-2.5 pt-2.5'>
-      <MarkingControl key={viewerKey} media={media} state={state} />
-    </div>
+    {lookup.states !== null ? (
+      <div className='px-2.5 pt-2.5'>
+        <MarkingControl
+          key={lookup.viewerKey}
+          media={media}
+          state={stateOf(lookup.states, media)}
+        />
+      </div>
+    ) : null}
   </li>
 );
 

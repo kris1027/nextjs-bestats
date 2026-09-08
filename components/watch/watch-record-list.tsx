@@ -17,7 +17,6 @@ import {
   LISTS,
   PAGE_SIZE,
   refOf,
-  stateOf,
   toLookup,
   WATCH_STATES,
   type WatchState,
@@ -130,8 +129,10 @@ const ListPage = async ({
   // in the refs' order, so an answer and its record share an index
   const answers = await mediaItems(refs);
   // the page's own records are its lookup: every card on it has a state
-  const states = toLookup(records);
-  const lookup = { states, viewerKey: viewerKey(currentViewer) };
+  const lookup = {
+    states: toLookup(records),
+    viewerKey: viewerKey(currentViewer),
+  };
 
   return (
     <>
@@ -151,8 +152,7 @@ const ListPage = async ({
               key={key}
               media={ref}
               answer={answer.answer}
-              state={stateOf(states, ref)}
-              viewerKey={lookup.viewerKey}
+              lookup={lookup}
             />
           );
         })}
