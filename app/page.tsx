@@ -66,8 +66,10 @@ const HomePage = (): JSX.Element => (
     </div>
     <Tabs defaultValue='tv' className='mx-auto w-full max-w-5xl items-center'>
       <TabsList>
+        {/* the padding `LinkTabs` narrows below sm:, carried here so these
+            and the list and search tabs read as one control at every width */}
         {KINDS.map((kind) => (
-          <TabsTrigger key={kind} value={kind}>
+          <TabsTrigger key={kind} value={kind} className='px-2.5 sm:px-4'>
             {KIND_WORDS[kind].label}
           </TabsTrigger>
         ))}

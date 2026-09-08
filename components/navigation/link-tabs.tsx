@@ -70,6 +70,14 @@ const Tally = ({ tally }: { tally: number | null }): JSX.Element =>
  * a five-figure search total is wider still. The tabs are what give, since a
  * count that cannot be read is the thing the tab is for.
  *
+ * The trending tabs wear no count and so did not need it, but they carry the
+ * same `px-2.5 sm:px-4` at their call site in `app/page.tsx`: the mirror is
+ * for reading as one control, and two tab sets that disagree about their
+ * padding on the width this was written for would not. It is passed as a
+ * `className` there rather than changed in `TabsTrigger`, which stays in its
+ * generated shape. This is the seam again — restyle one, carry it to the
+ * other.
+ *
  * `replace` is the caller's: a toggle within one search is a step within
  * that search, and pushes nothing; the two lists are two pages, and do.
  */
