@@ -143,13 +143,19 @@ const ListPage = async ({
           if (!answer) return null;
 
           return answer.answer === 'item' ? (
-            <MediaCard key={key} item={answer.item} lookup={lookup} />
+            <MediaCard
+              key={key}
+              item={answer.item}
+              lookup={lookup}
+              viewerId={currentViewer.id}
+            />
           ) : (
             <AbsentCard
               key={key}
               media={ref}
               answer={answer.answer}
               state={stateOf(lookup, ref)}
+              viewerId={currentViewer.id}
             />
           );
         })}

@@ -15,13 +15,18 @@ import { stateOf, type WatchLookup } from '@/lib/watch';
  * and the card renders no control rather than one claiming nothing is marked.
  * A signed-out Visitor's page passes an empty lookup instead, which is a
  * real absence: no Viewer, so no Watch Record.
+ *
+ * `viewerId` says whose those Watch Records are, and is the control's key
+ * rather than anything it renders. See `viewerIdOf` in `lib/auth`.
  */
 const MediaCard = ({
   item,
   lookup,
+  viewerId,
 }: {
   item: MediaItem;
   lookup: WatchLookup | null;
+  viewerId: string | null;
 }): JSX.Element => {
   return (
     <li className='flex flex-col transition duration-150 ease-out hover:-translate-y-1.5 hover:shadow-lg focus-within:-translate-y-1.5 focus-within:ring-2 focus-within:ring-ring'>
@@ -62,7 +67,11 @@ const MediaCard = ({
       {/* outside the link: a button inside one is nested interactive content */}
       {lookup !== null ? (
         <div className='px-2.5 pt-2.5'>
-          <MarkingControl media={item} state={stateOf(lookup, item)} />
+          <MarkingControl
+            key={viewerId ?? 'visitor'}
+            media={item}
+            state={stateOf(lookup, item)}
+          />
         </div>
       ) : null}
     </li>

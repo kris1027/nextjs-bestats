@@ -6,7 +6,7 @@ import { MediaDetail } from '@/components/media/media-detail';
 import { MediaDetailSkeleton } from '@/components/media/media-skeleton';
 import { MarkingControlSkeleton } from '@/components/watch/control-skeleton';
 import { MarkingControl } from '@/components/watch/marking-control';
-import { answeredViewer } from '@/lib/auth';
+import { answeredViewer, viewerIdOf } from '@/lib/auth';
 import {
   isKind,
   isMediaId,
@@ -71,11 +71,18 @@ const Control = async ({
 }: {
   media: MediaRef;
 }): Promise<JSX.Element | null> => {
-  const lookup = await answeredWatchLookup(await answeredViewer(), [media]);
+  const asked = await answeredViewer();
+  const lookup = await answeredWatchLookup(asked, [media]);
 
   if (lookup === null) return null;
 
-  return <MarkingControl media={media} state={stateOf(lookup, media)} />;
+  return (
+    <MarkingControl
+      key={viewerIdOf(asked) ?? 'visitor'}
+      media={media}
+      state={stateOf(lookup, media)}
+    />
+  );
 };
 
 /**

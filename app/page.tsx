@@ -4,7 +4,7 @@ import { MediaList } from '@/components/media/media-list';
 import { MediaGridSkeleton } from '@/components/media/media-skeleton';
 import { SearchForm } from '@/components/search/search-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { answeredViewer } from '@/lib/auth';
+import { answeredViewer, viewerIdOf } from '@/lib/auth';
 import {
   KIND_WORDS,
   KINDS,
@@ -16,12 +16,17 @@ import type { WatchLookup } from '@/lib/watch';
 import { answeredWatchLookup } from '@/lib/watch-queries';
 
 /**
- * Both Kinds and one lookup for every card on both tabs, asked for once per
- * request however many panels ask: `cache` is what lets two sibling panels
- * share a request without a promise threaded through the client tabs.
+ * Both Kinds, one lookup for every card on both tabs, and whose lookup it is,
+ * asked for once per request however many panels ask: `cache` is what lets
+ * two sibling panels share a request without a promise threaded through the
+ * client tabs.
  */
 const trendingAndLookup = cache(
-  async (): Promise<{ trending: Trending; lookup: WatchLookup | null }> => {
+  async (): Promise<{
+    trending: Trending;
+    lookup: WatchLookup | null;
+    viewerId: string | null;
+  }> => {
     const [trending, asked] = await Promise.all([
       trendingMedia(),
       answeredViewer(),
@@ -32,13 +37,13 @@ const trendingAndLookup = cache(
       ...(trending.movie ?? []),
     ]);
 
-    return { trending, lookup };
+    return { trending, lookup, viewerId: viewerIdOf(asked) };
   },
 );
 
 /** What a Kind's panel opens on: its list, or the sentence for its absence. */
 const TrendingList = async ({ kind }: { kind: Kind }): Promise<JSX.Element> => {
-  const { trending, lookup } = await trendingAndLookup();
+  const { trending, lookup, viewerId } = await trendingAndLookup();
   const media = trending[kind];
 
   return media === null ? (
@@ -48,7 +53,7 @@ const TrendingList = async ({ kind }: { kind: Kind }): Promise<JSX.Element> => {
       moment.
     </p>
   ) : (
-    <MediaList media={media} lookup={lookup} />
+    <MediaList media={media} lookup={lookup} viewerId={viewerId} />
   );
 };
 

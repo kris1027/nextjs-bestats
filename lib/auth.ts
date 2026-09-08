@@ -111,6 +111,20 @@ const askViewer = cache(async (): Promise<ViewerAnswer> => {
 export const answeredViewer = (): Promise<ViewerAnswer> => askViewer();
 
 /**
+ * Who a marking control belongs to, as the one value it can be keyed on:
+ * the Viewer's id, or `null` for a Visitor. An Unanswered sign-in is `null`
+ * too and never reaches a control — a card and the detail page both render
+ * none when the lookup came back `null` — so the two are not told apart here.
+ *
+ * A control keyed on this unmounts when the Viewer changes, which is what
+ * keeps a Viewer's marks from staying lit on a Visitor's page after a sign
+ * out. The state a control holds outlives a re-render at the same position;
+ * it does not outlive an unmount.
+ */
+export const viewerIdOf = (asked: ViewerAnswer): string | null =>
+  asked.answer === 'viewer' ? asked.viewer.id : null;
+
+/**
  * The Viewer this request belongs to, or `null` for a Visitor who has not
  * signed in — which is an ordinary state and not an error. This is the only
  * way `app/` and `components/` may ask, besides `answeredViewer` above.

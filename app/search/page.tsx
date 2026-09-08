@@ -6,7 +6,7 @@ import { MediaGridSkeleton } from '@/components/media/media-skeleton';
 import { KindTabs } from '@/components/search/kind-tabs';
 import { SearchForm } from '@/components/search/search-form';
 import { BackButton } from '@/components/ui/back-button';
-import { answeredViewer } from '@/lib/auth';
+import { answeredViewer, viewerIdOf } from '@/lib/auth';
 import { formatTally } from '@/lib/format';
 import {
   hasMatches,
@@ -112,7 +112,11 @@ const MatchesFor = async ({
           <p className='text-sm opacity-60'>
             Showing {formatTally(matches.items.length, matches.total, words)}
           </p>
-          <MediaList media={matches.items} lookup={lookup} />
+          <MediaList
+            media={matches.items}
+            lookup={lookup}
+            viewerId={viewerIdOf(asked)}
+          />
         </>
       ) : (
         <p className='opacity-60'>

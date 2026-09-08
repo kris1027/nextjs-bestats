@@ -46,6 +46,14 @@ const BUTTONS: Record<WatchState, { label: string; Icon: LucideIcon }> = {
  * Nothing refreshes on success. The returned state is what the row now holds,
  * no page shows a piece of Media twice, and Next refetches a dynamic page on
  * the next navigation to it.
+ *
+ * Which is why the caller keys this on the Viewer. The state below outlives a
+ * re-render at the same tree position, and signing out is exactly that: the
+ * action redirects to `/`, and a Viewer already there gets a soft navigation
+ * rather than a remount. The server sends an empty lookup and every `state`
+ * arrives `null`, but a component that only reads its prop at mount never
+ * sees it, and a Visitor is left reading a Viewer's marks. The key is what
+ * unmounts them. — `viewerIdOf` in `lib/auth`.
  */
 const MarkingControl = ({
   media,
