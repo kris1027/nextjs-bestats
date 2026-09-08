@@ -75,6 +75,20 @@ export const watchKey = ({ kind, id }: MediaRef): string => `${kind}/${id}`;
 export type WatchLookup = ReadonlyMap<string, WatchState>;
 
 /**
+ * A lookup and the key of the Viewer whose states are in it, which is what a
+ * page hands its cards. One type rather than two props because the two are
+ * only ever right together: a card given the states without the key renders
+ * a control that outlives the Viewer it was seeded for, and leaving a key off
+ * is not a type error. `lib/auth` is where the key comes from; this half of
+ * `lib/watch` only carries it.
+ */
+export type ViewerLookup = {
+  /** `null` is Unanswered — the database did not say, so no controls. */
+  records: WatchLookup | null;
+  viewerKey: string;
+};
+
+/**
  * The ref a Watch Record names: the same pair, spelled the way `lib/media`
  * spells it. A record says `tmdbId` because the column does; everything that
  * asks TMDB says `id`. Said once here rather than at every seam between them.

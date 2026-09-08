@@ -129,7 +129,8 @@ const ListPage = async ({
   // in the refs' order, so an answer and its record share an index
   const answers = await mediaItems(refs);
   // the page's own records are its lookup: every card on it has a state
-  const lookup = toLookup(records);
+  const states = toLookup(records);
+  const lookup = { records: states, viewerKey: viewerKey(currentViewer) };
 
   return (
     <>
@@ -143,19 +144,14 @@ const ListPage = async ({
           if (!answer) return null;
 
           return answer.answer === 'item' ? (
-            <MediaCard
-              key={key}
-              item={answer.item}
-              lookup={lookup}
-              viewerKey={viewerKey(currentViewer)}
-            />
+            <MediaCard key={key} item={answer.item} lookup={lookup} />
           ) : (
             <AbsentCard
               key={key}
               media={ref}
               answer={answer.answer}
-              state={stateOf(lookup, ref)}
-              viewerKey={viewerKey(currentViewer)}
+              state={stateOf(states, ref)}
+              viewerKey={lookup.viewerKey}
             />
           );
         })}

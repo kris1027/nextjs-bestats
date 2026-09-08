@@ -94,10 +94,11 @@ const MatchesFor = async ({
   const words = KIND_WORDS[selected];
 
   // one query for both Kinds' cards: the closed tab is a link away
-  const lookup = await answeredWatchLookup(asked, [
+  const records = await answeredWatchLookup(asked, [
     ...(shows?.items ?? []),
     ...(movies?.items ?? []),
   ]);
+  const lookup = { records, viewerKey: viewerKeyOf(asked) };
 
   return (
     <>
@@ -112,11 +113,7 @@ const MatchesFor = async ({
           <p className='text-sm opacity-60'>
             Showing {formatTally(matches.items.length, matches.total, words)}
           </p>
-          <MediaList
-            media={matches.items}
-            lookup={lookup}
-            viewerKey={viewerKeyOf(asked)}
-          />
+          <MediaList media={matches.items} lookup={lookup} />
         </>
       ) : (
         <p className='opacity-60'>

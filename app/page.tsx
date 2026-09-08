@@ -12,7 +12,7 @@ import {
   type Trending,
   trendingMedia,
 } from '@/lib/media';
-import type { WatchLookup } from '@/lib/watch';
+import type { ViewerLookup } from '@/lib/watch';
 import { answeredWatchLookup } from '@/lib/watch-queries';
 
 /**
@@ -24,26 +24,25 @@ import { answeredWatchLookup } from '@/lib/watch-queries';
 const trendingAndLookup = cache(
   async (): Promise<{
     trending: Trending;
-    lookup: WatchLookup | null;
-    viewerKey: string;
+    lookup: ViewerLookup;
   }> => {
     const [trending, asked] = await Promise.all([
       trendingMedia(),
       answeredViewer(),
     ]);
 
-    const lookup = await answeredWatchLookup(asked, [
+    const records = await answeredWatchLookup(asked, [
       ...(trending.tv ?? []),
       ...(trending.movie ?? []),
     ]);
 
-    return { trending, lookup, viewerKey: viewerKeyOf(asked) };
+    return { trending, lookup: { records, viewerKey: viewerKeyOf(asked) } };
   },
 );
 
 /** What a Kind's panel opens on: its list, or the sentence for its absence. */
 const TrendingList = async ({ kind }: { kind: Kind }): Promise<JSX.Element> => {
-  const { trending, lookup, viewerKey } = await trendingAndLookup();
+  const { trending, lookup } = await trendingAndLookup();
   const media = trending[kind];
 
   return media === null ? (
@@ -53,7 +52,7 @@ const TrendingList = async ({ kind }: { kind: Kind }): Promise<JSX.Element> => {
       moment.
     </p>
   ) : (
-    <MediaList media={media} lookup={lookup} viewerKey={viewerKey} />
+    <MediaList media={media} lookup={lookup} />
   );
 };
 
