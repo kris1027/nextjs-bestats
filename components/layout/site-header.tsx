@@ -31,14 +31,18 @@ const ViewerControl = async (): Promise<JSX.Element | null> => {
   const currentViewer = asked.viewer;
 
   return (
-    <div className='flex items-center gap-4'>
+    <div className='flex items-center gap-3 sm:gap-4'>
       <ListLinks />
       {/* who they are signed in as, and nothing to press: the name led to
           `/settings`, and that page went with the deletion it existed for
           — docs/adr/0012-a-viewer-cannot-delete-themselves.md */}
       <div className='flex items-center gap-3'>
         <ViewerAvatar viewer={currentViewer} />
-        <span className='max-w-[14ch] truncate font-extrabold text-sm sm:max-w-none'>
+        {/* Read but not drawn below `sm:`: the name is 125px the 320px floor
+            has not got, and the avatar is standing for the Viewer there. It
+            is `sr-only` rather than `hidden` so a screen reader still says
+            who this is, and absolute, so it adds no gap beside the avatar. */}
+        <span className='sr-only font-extrabold text-sm sm:not-sr-only'>
           {currentViewer.name}
         </span>
       </div>
@@ -64,9 +68,15 @@ const ViewerControl = async (): Promise<JSX.Element | null> => {
  * by the difference between the fallback and the control when it lands —
  * two pixels, under the threshold the Layout Instability API reports, and
  * enough to move every card on the page.
+ *
+ * That fixed height is also why the narrow header gives up words rather than
+ * gaining a second row. The Viewer control is what streams in, so a row that
+ * exists only once it lands would shift the page by its whole height instead
+ * of by those two pixels.
+ * — `docs/adr/0014-the-narrow-header-gives-up-words.md`
  */
 const SiteHeader = (): JSX.Element => (
-  <header className='flex h-14 items-center justify-between gap-4 border-foreground/20 border-b px-4'>
+  <header className='flex h-14 items-center justify-between gap-3 border-foreground/20 border-b px-4 sm:gap-4'>
     <Link
       href='/'
       className='font-extrabold text-base leading-none tracking-tight'
