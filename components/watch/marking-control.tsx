@@ -78,10 +78,12 @@ const MarkingControl = ({
   // The server has said something new about this piece of Media since the
   // state above was seeded, so its word replaces what a press left here. The
   // key handles a Viewer who changed; this handles a Viewer who did not — a
-  // navigation that re-renders this position rather than remounting it, which
-  // on a list means `?page=`, and on search a new `q=` with a title in both
-  // sets of Matches. That render's lookup ran after the mark reached the
-  // database, so it is the newer of the two and this is not a revert.
+  // navigation that re-renders this control rather than remounting it, which
+  // is every navigation with the same piece of Media in both renders, since
+  // that is what a card is keyed on: a new `q=` on search matching a title
+  // the last Query matched, or a turn of a list page that a marking has
+  // reordered. That render's lookup ran after the mark reached the database,
+  // so it is the newer of the two and this is not a revert.
   //
   // Back is the one place it can be the older of the two: `staleTimes.dynamic`
   // is 0, so a forward navigation refetches, but back and forward replay what
