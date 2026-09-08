@@ -23,15 +23,6 @@ export const auth = createNeonAuth({
   cookies: { secret: process.env.NEON_AUTH_COOKIE_SECRET ?? '' },
 });
 
-/** The ways in. Email is deferred to v2, along with the delivery it needs. */
-export const PROVIDERS = ['google', 'github'] as const;
-
-export type Provider = (typeof PROVIDERS)[number];
-
-/** Guards the provider name, which reaches the action as an opaque string. */
-export const isProvider = (value: string): value is Provider =>
-  PROVIDERS.some((provider) => provider === value);
-
 /** A Viewer, as much of one as anything outside this module needs. */
 export type Viewer = {
   id: string;

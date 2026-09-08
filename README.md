@@ -55,8 +55,8 @@ those as the absences they are rather than reporting them as measurements.
   `neon checkout main` writes its connection details for you. There is one
   branch: `main` is production, and local work shares it
   ([ADR 0013](docs/adr/0013-local-development-shares-productions-branch.md)).
-- **No OAuth application.** Neon supplies development credentials for Google
-  and GitHub, so sign-in works before you register anything of your own.
+- **No OAuth application.** Neon supplies development credentials for Google,
+  so sign-in works before you register anything of your own.
 
 ### Setup
 
@@ -179,7 +179,7 @@ app/
   page.tsx               Trending
   search/page.tsx        Search, both Kinds
   [kind]/[id]/page.tsx   One detail page serving Shows and Movies
-  sign-in/page.tsx       Google and GitHub, honouring ?next=
+  sign-in/page.tsx       Google, honouring ?next=
   api/auth/[...path]/    Neon Auth's handler
   layout.tsx             Fonts, metadata, theme, header
 components/
@@ -307,13 +307,12 @@ v1 turns BeStats from a TMDB browser into something that is yours: a **Viewer**
 signs in and keeps **Watch Records** — Media they mean to watch, and Media they
 have watched.
 
-Most of it is here. Sign-in is Neon's Managed Better Auth over Google and
-GitHub; Watch Records live in Neon Postgres through Drizzle, in a table whose
-primary key is the Viewer, the Kind and the TMDB id together, so the
-one-state-only invariant is the database's to keep; every card carries the
-marking control; and `/watchlist` and `/watched` show the records. A Watch
-Record stores no copy of TMDB's data, so every fact on those pages keeps
-coming from TMDB.
+Most of it is here. Sign-in is Neon's Managed Better Auth over Google; Watch
+Records live in Neon Postgres through Drizzle, in a table whose primary key
+is the Viewer, the Kind and the TMDB id together, so the one-state-only
+invariant is the database's to keep; every card carries the marking control;
+and `/watchlist` and `/watched` show the records. A Watch Record stores no
+copy of TMDB's data, so every fact on those pages keeps coming from TMDB.
 
 A Viewer cannot delete themselves. `/settings` offered it and never could:
 Managed Better Auth answers `delete-user` with a 404, so the page went
