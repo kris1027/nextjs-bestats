@@ -49,8 +49,11 @@ const MediaDetail = ({
           Back
         </BackButton>
       </div>
-      {/* the poster overlaps the bottom third of the backdrop */}
-      <div className='relative -mt-[calc(var(--backdrop-h)/3)] grid gap-8 px-8 pb-8 sm:grid-cols-[208px_1fr] lg:grid-cols-[260px_1fr]'>
+      {/* The poster overlaps the bottom third of the backdrop. `px-4` is what
+          every other page's `main` is padded by, and this was the one place
+          that said `px-8` at every width: 64px of a 390px screen, spent on
+          margin, in the page a shared link lands on. */}
+      <div className='relative -mt-[calc(var(--backdrop-h)/3)] grid gap-8 px-4 pb-8 sm:grid-cols-[208px_1fr] sm:px-8 lg:grid-cols-[260px_1fr]'>
         {/* the slot owns the poster's size, so both branches match */}
         <div className='w-42 shadow-lg sm:w-52 lg:w-65'>
           {media.posterUrl ? (

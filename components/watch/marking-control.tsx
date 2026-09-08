@@ -135,11 +135,17 @@ const MarkingControl = ({
     };
 
   return (
-    <form action={markFromForm} className='flex flex-col gap-1.5'>
+    <form action={markFromForm} className='@container flex flex-col gap-1.5'>
       <input type='hidden' name='kind' value={media.kind} />
       <input type='hidden' name='id' value={media.id} />
       <input type='hidden' name='next' value={next} />
-      <div className='flex gap-1.5'>
+      {/* Stacked until the two buttons fit beside each other, and the width
+          asked about is this form's rather than the viewport's. What crowds
+          these buttons is whatever holds them: a card in a grid is 151px at
+          any viewport that draws two columns, and the detail page's slot is
+          320px at every viewport there is. A `sm:` here would split the
+          detail page's control in two on a phone that had room for it. */}
+      <div className='flex flex-col gap-1.5 @min-[200px]:flex-row'>
         {WATCH_STATES.map((value) => {
           const { label, Icon } = BUTTONS[value];
           const pressed = shown === value;

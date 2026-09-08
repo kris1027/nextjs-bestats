@@ -325,7 +325,7 @@ Every route prerenders a shell and streams its request-time reads into a
 skeleton, and one `error.tsx` at the root catches what nobody anticipated.
 
 The decisions behind all of this, and what each one cost, are in
-[`docs/adr/`](docs/adr) — thirteen of them, short, worth reading in order.
+[`docs/adr/`](docs/adr) — fourteen of them, short, worth reading in order.
 
 ## Attribution
 

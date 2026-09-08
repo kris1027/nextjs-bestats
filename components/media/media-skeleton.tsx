@@ -63,7 +63,7 @@ const MediaDetailSkeleton = (): JSX.Element => (
     </div>
     <div
       aria-hidden='true'
-      className='relative -mt-[calc(var(--backdrop-h)/3)] grid gap-8 px-8 pb-8 sm:grid-cols-[208px_1fr] lg:grid-cols-[260px_1fr]'
+      className='relative -mt-[calc(var(--backdrop-h)/3)] grid gap-8 px-4 pb-8 sm:grid-cols-[208px_1fr] sm:px-8 lg:grid-cols-[260px_1fr]'
     >
       <div className='w-42 sm:w-52 lg:w-65'>
         <div className='aspect-2/3 animate-pulse bg-muted' />

@@ -7,6 +7,7 @@ import {
   formatNumber,
   formatRuntime,
   formatTally,
+  initials,
 } from '@/lib/format';
 
 test('formatRuntime splits minutes into hours and minutes', () => {
@@ -76,4 +77,38 @@ test('capitalize raises the first letter and leaves the rest', () => {
   expect(capitalize('movie')).toBe('Movie');
   expect(capitalize('Show')).toBe('Show');
   expect(capitalize('')).toBe('');
+});
+
+test('initials takes the first and last words of a name', () => {
+  expect(initials('Ada Lovelace')).toBe('AL');
+  expect(initials('ada lovelace')).toBe('AL');
+});
+
+test('initials takes one letter from a single word', () => {
+  expect(initials('Ada')).toBe('A');
+});
+
+// A middle name is the case that decides between "first two words" and
+// "first and last": the surname is what the reader recognises.
+test('initials skips the middle of a longer name', () => {
+  expect(initials('Ada B. Lovelace')).toBe('AL');
+  expect(initials('Ada Byron King Lovelace')).toBe('AL');
+});
+
+test('initials ignores the space around and between the words', () => {
+  expect(initials('  Ada   Lovelace  ')).toBe('AL');
+  expect(initials('Ada\tLovelace')).toBe('AL');
+});
+
+// A name is whatever the provider stored, so it may be empty. Nothing is the
+// honest answer: any letter here would be one the Viewer never chose.
+test('initials has nothing to say about an empty name', () => {
+  expect(initials('')).toBe('');
+  expect(initials('   ')).toBe('');
+});
+
+// `charAt` would take half a surrogate pair here and render a lone
+// replacement character.
+test('initials takes a whole astral character, not half of one', () => {
+  expect(initials('𝒜da Lovelace')).toBe('𝒜L');
 });

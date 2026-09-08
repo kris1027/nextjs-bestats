@@ -89,3 +89,29 @@ export const formatNumber = (value: number): string =>
  */
 export const capitalize = (word: string): string =>
   word.charAt(0).toLocaleUpperCase(LOCALE) + word.slice(1);
+
+/**
+ * The letters that stand in for a Viewer with no picture — "Ada Lovelace"
+ * becomes "AL", "Ada" becomes "A", and a Viewer with no name at all gets
+ * nothing rather than a letter nobody chose.
+ *
+ * The first and last words, so a middle name never pushes the surname out,
+ * and two at most: the square they sit in is 24px, and a third letter is
+ * unreadable there.
+ *
+ * Split by code point rather than by index, so a name beginning with an
+ * astral character contributes a whole character instead of half a surrogate
+ * pair. Raised through the locale, for the reason `capitalize` is.
+ */
+export const initials = (name: string): string => {
+  const words = name
+    .trim()
+    .split(/\s+/)
+    .filter((word) => word !== '');
+  const chosen = words.length > 1 ? [words.at(0), words.at(-1)] : [words.at(0)];
+
+  return chosen
+    .map((word) => [...(word ?? '')].at(0) ?? '')
+    .join('')
+    .toLocaleUpperCase(LOCALE);
+};
