@@ -29,10 +29,16 @@ const SignInLoading = (): JSX.Element => (
         </p>
       </div>
 
-      <div
-        className={`${control} w-full animate-pulse justify-center border-transparent bg-muted text-transparent`}
-      >
-        Continue
+      {/* the div stands in for the button's <form>: control is inline-flex, so
+          on the page it sits in a line box and takes that line's leading. A
+          placeholder made a flex item directly is blockified and takes none,
+          which is a few px shorter than what replaces it */}
+      <div>
+        <div
+          className={`${control} w-full animate-pulse justify-center border-transparent bg-muted text-transparent`}
+        >
+          Continue
+        </div>
       </div>
     </div>
   </main>
