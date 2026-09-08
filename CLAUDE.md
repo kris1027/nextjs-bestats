@@ -46,10 +46,6 @@ hand-written migrations in there follow the same rules as the rest.
   Its unit twin mocks `lib/watch-queries` too, keeping `lib/db` out of the
   module graph, so it runs on a commit and covers the failure branch a
   migrated CI branch cannot reach.
-- A unit test may mock a package to make a module importable at all, not only
-  to stand in for it. `lib/auth.test.ts` mocks `@neondatabase/auth` — an ESM
-  build only Next's bundler resolves — so `lib/auth`'s pure exports can be
-  tested on a commit. `auth` itself is never called.
 - `@/` resolves in tests but not for `pnpm db:check`, which Node runs
   directly — and that holds for the whole graph Node loads: `db-check.ts`,
   `lib/connection-string.ts`, `lib/migration-drift.ts` and
@@ -88,11 +84,11 @@ knowing. `lib/media` never learns that Viewers exist.
 imports `lib/db`, whose import throws without `DATABASE_URL`; a client
 component may import it, and `lib/watch-actions.ts` for the action, and
 nothing else in the module. The queries take a Viewer id and never decide
-whose it is — only the action reads `lib/auth` to find out, and
-`answeredWatchLookup` only to spell as a key the answer a page handed it. It
-answers with a `ViewerLookup` whose `states` of `null` is Unanswered and means
-no controls, whether the database or the sign-in was what did not answer.
-`lib/watch` reads `lib/media` for `Kind` and its guards, never the other way.
+whose it is — only the action reads `lib/auth` to find out.
+`answeredWatchLookup` takes the whole answer and comes back with a
+`ViewerLookup` whose `states` of `null` is Unanswered and means no controls,
+whether the database or the sign-in was what did not answer. `lib/watch`
+reads `lib/media` for `Kind` and its guards, never the other way.
 
 A `ViewerLookup` is what a page hands its cards: that answer, and the key of
 the Viewer whose states are in it. One value, because a control given the
@@ -100,9 +96,12 @@ states without the key stays lit for a Viewer who has signed out — its state
 outlives a re-render at the same position — and a missing `key` is not a type
 error. So every `MarkingControl` is keyed on the `viewerKey` of the lookup its
 state came from: `media-card.tsx`, `absent-card.tsx` and the detail page all
-read both halves off one. Two places make that key — `answeredWatchLookup`
-from the answer it was handed, `watch-record-list.tsx` from the Viewer
-`viewer()` gave it — and a third caller of either is worth looking twice at.
+read both halves off one. `lib/viewer-key` makes that key, and is pure for
+the reason `lib/watch.ts` is: `lib/auth.ts` boots Neon Auth and reads
+`next/headers` at import, so a query that reached it for a string could not
+be loaded outside Next at all. Two callers — `answeredWatchLookup` from the
+answer it was handed, `watch-record-list.tsx` from the Viewer `viewer()` gave
+it — and a third is worth looking twice at.
 
 `watch-record-list.tsx` is `components/watch/`'s exception: the body of both
 list routes, it reads `viewer()`, the queries and `lib/media` the way any page

@@ -7,12 +7,13 @@ import { MediaGrid } from '@/components/media/media-grid';
 import { MediaGridSkeleton } from '@/components/media/media-skeleton';
 import { LinkTabs } from '@/components/navigation/link-tabs';
 import { AbsentCard } from '@/components/watch/absent-card';
-import { viewer, viewerKey } from '@/lib/auth';
+import { viewer } from '@/lib/auth';
 import { formatNumber } from '@/lib/format';
 import { mediaItems } from '@/lib/media';
 import { signInAddress } from '@/lib/next-path';
 import { pageNumber, type SearchParams } from '@/lib/search-params';
 import { cn, control } from '@/lib/utils';
+import { viewerKey } from '@/lib/viewer-key';
 import {
   LISTS,
   PAGE_SIZE,

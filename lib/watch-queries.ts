@@ -1,9 +1,10 @@
 import { and, count, desc, eq, or, sql } from 'drizzle-orm';
 
-import { type ViewerAnswer, viewerKeyOf } from '@/lib/auth';
+import type { ViewerAnswer } from '@/lib/auth';
 import { db } from '@/lib/db';
 import type { MediaRef } from '@/lib/media';
 import { markingTallies, watchRecords } from '@/lib/schema';
+import { viewerKeyOf } from '@/lib/viewer-key';
 import {
   PAGE_SIZE,
   toLookup,
@@ -18,8 +19,9 @@ import {
  * touches the database. Every function takes the Viewer's id as its first
  * argument and never decides who that is: the action reads it from the
  * session, and a page reads it the same way. `answeredWatchLookup` takes the
- * whole answer instead, and reaches `lib/auth` only to spell that same answer
- * as a key — it decides no more about who the Viewer is than the others do.
+ * whole answer instead and spells it as a key, which decides no more about
+ * who the Viewer is than the others do — and `lib/viewer-key` is pure, so no
+ * query drags a session in.
  * — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
  */
 

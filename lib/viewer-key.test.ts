@@ -1,6 +1,7 @@
-import { expect, test, vi } from 'vitest';
+import { expect, test } from 'vitest';
 
-import { type ViewerAnswer, viewerKey, viewerKeyOf } from '@/lib/auth';
+import type { ViewerAnswer } from '@/lib/auth';
+import { viewerKey, viewerKeyOf } from '@/lib/viewer-key';
 
 /**
  * The key a marking control is rendered under. It is the whole of what stops
@@ -8,16 +9,10 @@ import { type ViewerAnswer, viewerKey, viewerKeyOf } from '@/lib/auth';
  * out, and a wrong one is silent: the control renders, it just holds state
  * that is no longer anyone's.
  *
- * A unit test, which means mocking Neon's package: `@neondatabase/auth`
- * reaches `next/headers` through an ESM build only Next's bundler resolves,
- * so importing `lib/auth` unmocked fails before a single assertion. `auth`
- * itself is never called here — the mock exists to let the module load, the
- * way `lib/watch-actions.test.ts` mocks the queries to keep `lib/db` out of
- * its graph.
+ * No mock: `lib/viewer-key` imports `lib/auth` for types alone, so nothing
+ * here loads Neon Auth's package or `next/headers`, and the module is a
+ * plain import the way `lib/watch.ts` is.
  */
-vi.mock('@neondatabase/auth/next/server', () => ({
-  createNeonAuth: () => ({ getSession: vi.fn() }),
-}));
 
 const asViewer = (id: string): ViewerAnswer => ({
   answer: 'viewer',
