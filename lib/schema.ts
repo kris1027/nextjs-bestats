@@ -66,7 +66,11 @@ export const watchRecords = pgTable(
   },
   (table) => [
     primaryKey({ columns: [table.viewerId, table.kind, table.tmdbId] }),
-    // exactly the query `/watchlist` and `/watched` each make
+    // the prefix of the query each list tab makes: a list narrows to one Kind
+    // on top of this, which the index does not carry, so Postgres walks these
+    // rows in `updated_at` order and drops the other Kind. Adding `kind` here
+    // would make it exact and cost a migration; one Viewer's list is small
+    // enough that it has not been worth one.
     index('watch_records_viewer_state_idx').on(
       table.viewerId,
       table.state,

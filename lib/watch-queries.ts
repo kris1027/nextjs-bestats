@@ -2,7 +2,7 @@ import { and, count, desc, eq, or, sql } from 'drizzle-orm';
 
 import type { ViewerAnswer } from '@/lib/auth';
 import { db } from '@/lib/db';
-import type { MediaRef } from '@/lib/media';
+import type { Kind, MediaRef } from '@/lib/media';
 import { markingTallies, watchRecords } from '@/lib/schema';
 import { viewerKeyOf } from '@/lib/viewer-key';
 import {
@@ -12,6 +12,7 @@ import {
   type WatchLookup,
   type WatchRecordsPage,
   type WatchState,
+  type WatchTallies,
 } from '@/lib/watch';
 
 /**
@@ -103,26 +104,32 @@ const answeredStates = async (
 };
 
 /**
- * One page of a Viewer's list in one state — the Watchlist, or the Watched
- * list — newest marking first, with the size of the whole list beside it so
- * the page can say "20 of 214" the way it does for Matches. `page` counts
- * from 1, the way the address bar does, and anything else is refused here
- * rather than handed to Postgres as a negative offset: `?page=` is the
- * page's to validate, and this is where forgetting to would surface. The two
- * queries are issued together because neither needs the other.
+ * One page of one Kind of a Viewer's list in one state — the Shows on their
+ * Watchlist, the Movies they have watched — newest marking first, with the
+ * size of that whole tab beside it so the page can count what it is paging
+ * through. The Kind narrows here rather than in the page, because a page that
+ * fetched both and threw one away would page through a list it was not
+ * showing.
+ *
+ * `page` counts from 1, the way the address bar does, and anything else is
+ * refused here rather than handed to Postgres as a negative offset: `?page=`
+ * is the page's to validate, and this is where forgetting to would surface.
+ * The two queries are issued together because neither needs the other.
  */
 export const watchRecordsPage = async (
   viewerId: string,
   state: WatchState,
+  kind: Kind,
   page: number,
 ): Promise<WatchRecordsPage> => {
   if (!Number.isInteger(page) || page < 1) {
     throw new RangeError(`A list page counts from 1, not ${page}`);
   }
 
-  const inState = and(
+  const inTab = and(
     eq(watchRecords.viewerId, viewerId),
     eq(watchRecords.state, state),
+    eq(watchRecords.kind, kind),
   );
 
   const [records, [tally]] = await Promise.all([
@@ -134,34 +141,44 @@ export const watchRecordsPage = async (
         updatedAt: watchRecords.updatedAt,
       })
       .from(watchRecords)
-      .where(inState)
+      .where(inTab)
       .orderBy(desc(watchRecords.updatedAt))
       .limit(PAGE_SIZE)
       .offset((page - 1) * PAGE_SIZE),
-    db.select({ total: count() }).from(watchRecords).where(inState),
+    db.select({ total: count() }).from(watchRecords).where(inTab),
   ]);
 
   return { records, total: tally?.total ?? 0 };
 };
 
 /**
- * How many Watch Records a Viewer holds in each state, in one grouped query:
- * the counts the two lists' tabs wear, so the closed tab admits what waits
- * behind it. A state with no rows is `0` here rather than absent, since a
- * Viewer with an empty Watchlist has an empty Watchlist, not a missing one.
+ * How many Watch Records a Viewer holds in each state and Kind, in one
+ * grouped query: the counts a list's two tabs wear, so the closed tab admits
+ * what waits behind it — and, for an address that names no Kind, the numbers
+ * the open tab is chosen from. A pair with no rows is `0` here rather than
+ * absent, since a Viewer with no Movies on their Watchlist has none, not a
+ * missing count.
+ *
+ * The four are written out rather than built from `WATCH_STATES` and `KINDS`,
+ * so adding either without deciding what its zero is fails to compile.
  */
-export const watchTallies = async (
-  viewerId: string,
-): Promise<Record<WatchState, number>> => {
+export const watchTallies = async (viewerId: string): Promise<WatchTallies> => {
   const rows = await db
-    .select({ state: watchRecords.state, total: count() })
+    .select({
+      state: watchRecords.state,
+      kind: watchRecords.kind,
+      total: count(),
+    })
     .from(watchRecords)
     .where(eq(watchRecords.viewerId, viewerId))
-    .groupBy(watchRecords.state);
+    .groupBy(watchRecords.state, watchRecords.kind);
 
-  const tallies: Record<WatchState, number> = { planned: 0, watched: 0 };
+  const tallies: WatchTallies = {
+    planned: { tv: 0, movie: 0 },
+    watched: { tv: 0, movie: 0 },
+  };
 
-  for (const row of rows) tallies[row.state] = row.total;
+  for (const row of rows) tallies[row.state][row.kind] = row.total;
 
   return tallies;
 };

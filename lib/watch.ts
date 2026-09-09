@@ -137,3 +137,15 @@ export type WatchRecordsPage = {
   records: WatchRecord[];
   total: number;
 };
+
+/**
+ * How many Watch Records a Viewer holds, split by state and by Kind. Four
+ * numbers rather than two, because a list page is one Kind at a time: its
+ * tabs wear that state's pair, and which tab opens when the address does not
+ * say is read off the same pair.
+ *
+ * Both states are here though a page shows one, because they come back
+ * together — the query groups by both, and splitting the answer would only
+ * mean asking twice.
+ */
+export type WatchTallies = Record<WatchState, Record<Kind, number>>;
