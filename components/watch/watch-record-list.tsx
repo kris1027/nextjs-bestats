@@ -87,9 +87,10 @@ type ListState = {
  * `cache` keys on argument identity, and both callers are handed the very
  * `searchParams` promise the page was given, so the two share one entry.
  *
- * A Visitor is sent to sign in and back to this very address, `?kind=` and
- * `?page=` included. The redirect carries the Kind only if the address named
- * one: the default is read off counts this Visitor does not have.
+ * A Visitor is sent to sign in and back to this very address. It carries the
+ * Kind only if the address named one — the default is read off counts this
+ * Visitor does not have — and `?page=` only alongside it, for the reason the
+ * tabs drop `?page=`: a page of one Kind is often past the end of the other.
  */
 const listState = cache(
   async (
@@ -106,7 +107,12 @@ const listState = cache(
     const currentViewer = await viewer();
 
     if (!currentViewer) {
-      redirect(signInAddress(listAddress(state, { kind: named, page })));
+      // a page number with no Kind beside it is a page of a list nobody has
+      // chosen yet: this Visitor comes back, the default is read off their
+      // counts, and page 2 of a Kind with one page is `notFound()` below
+      redirect(
+        signInAddress(listAddress(state, named ? { kind: named, page } : {})),
+      );
     }
 
     const tallies = await watchTallies(currentViewer.id);
