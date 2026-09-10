@@ -6,11 +6,12 @@ import { answeredViewer } from '@/lib/auth';
 import { isKind, isMediaId, type MediaRef } from '@/lib/media';
 import { nextPath, signInAddress } from '@/lib/next-path';
 import {
-  isWatchState,
+  MARKING_FIELD,
   MARKS_PER_MINUTE,
+  type Marking,
   marked,
-  stateOf,
-  type WatchState,
+  markingFrom,
+  markingOf,
   watchKey,
 } from '@/lib/watch';
 import {
@@ -21,20 +22,20 @@ import {
 } from '@/lib/watch-queries';
 
 /**
- * What `mark` hands back to the control. On success, the state the Watch
- * Record is in now — `null` once unmarked. On a failed write, a sentence for
- * the Visitor; the cause goes to the server log, because nothing on the
- * client can act on it.
+ * What `mark` hands back to the control. On success, what the Watch Record
+ * says now — `null` once unmarked, and a Score with it where it is Watched.
+ * On a failed write, a sentence for the Visitor; the cause goes to the server
+ * log, because nothing on the client can act on it.
  */
-export type MarkResult = { state: WatchState | null } | { error: string };
+export type MarkResult = { marking: Marking | null } | { error: string };
 
 /**
  * Marks a piece of Media for the Viewer this request belongs to.
  *
- * The form carries what the Visitor did — the Kind, the id, and the state
- * of the button they pressed — and never what should happen. `marked` decides
- * that here, against the row as it really is, so a page that fell behind
- * another tab cannot carry a delete instruction in a hidden field.
+ * The form carries what the Visitor did — the Kind, the id, and the marking
+ * the button they pressed says — and never what should happen. `marked`
+ * decides that here, against the row as it really is, so a page that fell
+ * behind another tab cannot carry a delete instruction in a hidden field.
  *
  * In this order on purpose: the Viewer first, so a signed-out Visitor with a
  * tampered form is sent to sign in rather than shown a stack trace — and a
@@ -67,11 +68,12 @@ export const mark = async (formData: FormData): Promise<MarkResult> => {
 
   const kind = String(formData.get('kind') ?? '');
   const id = String(formData.get('id') ?? '');
-  const pressed = String(formData.get('state') ?? '');
+  const field = String(formData.get(MARKING_FIELD) ?? '');
+  const pressed = markingFrom(field);
 
   if (!isKind(kind)) throw new Error(`Unknown Kind: ${kind}`);
   if (!isMediaId(id)) throw new Error(`Not a TMDB id: ${id}`);
-  if (!isWatchState(pressed)) throw new Error(`Unknown state: ${pressed}`);
+  if (!pressed) throw new Error(`Not a marking: ${field}`);
 
   const ref: MediaRef = { kind, id: Number(id) };
 
@@ -81,15 +83,15 @@ export const mark = async (formData: FormData): Promise<MarkResult> => {
     }
 
     const lookup = await watchLookup(currentViewer.id, [ref]);
-    const state = marked(stateOf(lookup, ref), pressed);
+    const marking = marked(markingOf(lookup, ref), pressed);
 
-    if (state) {
-      await writeWatchRecord(currentViewer.id, ref, state);
+    if (marking) {
+      await writeWatchRecord(currentViewer.id, ref, marking);
     } else {
       await clearWatchRecord(currentViewer.id, ref);
     }
 
-    return { state };
+    return { marking };
   } catch (cause) {
     console.error(`Marking ${watchKey(ref)} failed:`, cause);
 

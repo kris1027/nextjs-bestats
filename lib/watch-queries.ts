@@ -6,8 +6,11 @@ import type { Kind, MediaRef } from '@/lib/media';
 import { markingTallies, watchRecords } from '@/lib/schema';
 import { viewerKeyOf } from '@/lib/viewer-key';
 import {
+  type Marking,
   PAGE_SIZE,
+  scoreOf,
   toLookup,
+  toMarking,
   type ViewerLookup,
   type WatchLookup,
   type WatchRecordsPage,
@@ -31,7 +34,7 @@ const whereMedia = (ref: MediaRef) =>
   and(eq(watchRecords.kind, ref.kind), eq(watchRecords.tmdbId, ref.id));
 
 /**
- * The states one Viewer holds for the Media on one page, in one query. Keyed
+ * The markings one Viewer holds for the Media on one page, in one query. Keyed
  * by the page rather than fetching the Viewer's whole history, so the cost
  * belongs to the page — forty rows at most on Trending — and not to how much
  * the Viewer has watched.
@@ -48,6 +51,7 @@ export const watchLookup = async (
       kind: watchRecords.kind,
       tmdbId: watchRecords.tmdbId,
       state: watchRecords.state,
+      score: watchRecords.score,
     })
     .from(watchRecords)
     .where(
@@ -141,6 +145,7 @@ export const watchRecordsPage = async (
         kind: watchRecords.kind,
         tmdbId: watchRecords.tmdbId,
         state: watchRecords.state,
+        score: watchRecords.score,
         updatedAt: watchRecords.updatedAt,
       })
       .from(watchRecords)
@@ -151,7 +156,17 @@ export const watchRecordsPage = async (
     db.select({ total: count() }).from(watchRecords).where(inList),
   ]);
 
-  return { records, total: tally?.total ?? 0 };
+  return {
+    // the two columns become one marking here, the way a lookup's rows do,
+    // so nothing above the queries holds a state and a Score apart
+    records: records.map(({ updatedAt, ...row }) => ({
+      ...toMarking(row),
+      kind: row.kind,
+      tmdbId: row.tmdbId,
+      updatedAt,
+    })),
+    total: tally?.total ?? 0,
+  };
 };
 
 /**
@@ -221,26 +236,35 @@ export const tallyMarking = async (viewerId: string): Promise<number> => {
 };
 
 /**
- * The write half of marking: the Watch Record for a piece of Media, in
- * `state`, whether or not one existed. One statement: the primary key is the
- * triple, so a second marking is
- * a conflict that becomes the move. `updated_at` is set here by hand, because
- * Drizzle's `$onUpdate` fires for `update` and not for an upsert — and set
- * from Postgres's clock, not this process's, so a move and an insert are
- * ordered by the one clock the lists sort on.
+ * The write half of marking: the Watch Record for a piece of Media, saying
+ * what `marking` says, whether or not one existed. One statement: the primary
+ * key is the triple, so a second marking is a conflict that becomes the move.
+ * `updated_at` is set here by hand, because Drizzle's `$onUpdate` fires for
+ * `update` and not for an upsert — and set from Postgres's clock, not this
+ * process's, so a move and an insert are ordered by the one clock the lists
+ * sort on.
  * — `docs/adr/0007-watchlist-and-watched-are-one-record.md`
+ *
+ * Both columns are written every time, the Score included, because moving a
+ * record to Planned has to clear the Score it used to carry — the check
+ * constraint refuses the row otherwise, which is the schema catching what a
+ * forgotten `score: null` would have left behind.
+ * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
  */
 export const writeWatchRecord = async (
   viewerId: string,
   ref: MediaRef,
-  state: WatchState,
+  marking: Marking,
 ): Promise<void> => {
+  const { state } = marking;
+  const score = scoreOf(marking);
+
   await db
     .insert(watchRecords)
-    .values({ viewerId, kind: ref.kind, tmdbId: ref.id, state })
+    .values({ viewerId, kind: ref.kind, tmdbId: ref.id, state, score })
     .onConflictDoUpdate({
       target: [watchRecords.viewerId, watchRecords.kind, watchRecords.tmdbId],
-      set: { state, updatedAt: sql`now()` },
+      set: { state, score, updatedAt: sql`now()` },
     });
 };
 

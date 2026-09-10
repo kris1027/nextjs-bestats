@@ -14,7 +14,7 @@ import {
   type MediaRef,
   mediaDetails,
 } from '@/lib/media';
-import { stateOf } from '@/lib/watch';
+import { markingOf } from '@/lib/watch';
 import { answeredWatchLookup } from '@/lib/watch-queries';
 
 type RouteParams = { kind: string; id: string };
@@ -80,7 +80,7 @@ const Control = async ({
     <MarkingControl
       key={lookup.viewerKey}
       media={media}
-      state={stateOf(lookup.states, media)}
+      marking={markingOf(lookup.states, media)}
     />
   );
 };

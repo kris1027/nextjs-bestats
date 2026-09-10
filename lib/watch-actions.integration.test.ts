@@ -5,7 +5,12 @@ import { db } from '@/lib/db';
 import { watchRecords } from '@/lib/schema';
 import { expireMarkingWindow } from '@/lib/test-marking';
 import { disposableViewers } from '@/lib/test-viewers';
-import { MARKS_PER_MINUTE } from '@/lib/watch';
+import {
+  MARKING_FIELD,
+  MARKS_PER_MINUTE,
+  PLANNED,
+  watchedAt,
+} from '@/lib/watch';
 import { mark } from '@/lib/watch-actions';
 import { tallyMarking } from '@/lib/watch-queries';
 
@@ -30,13 +35,17 @@ vi.mock('@/lib/auth', () => ({
 
 const viewer = disposableViewers();
 
-/** What the marking control posts: the Media, the button, and where it was. */
-const press = (kind: string, id: string, state: string): FormData => {
+/**
+ * What the marking control posts: the Media, the button, and where it was.
+ * The button is one field saying `planned` or a Score, because a submit
+ * button posts one name and one value.
+ */
+const press = (kind: string, id: string, marking: string): FormData => {
   const formData = new FormData();
 
   formData.set('kind', kind);
   formData.set('id', id);
-  formData.set('state', state);
+  formData.set(MARKING_FIELD, marking);
   formData.set('next', '/tv/1399');
 
   return formData;
@@ -49,27 +58,68 @@ test('a press creates the Watch Record, and the same press again unmarks it', as
   currentViewer.id = await viewer();
 
   expect(await mark(press('tv', '1399', 'planned'))).toEqual({
-    state: 'planned',
+    marking: PLANNED,
   });
   expect(await rowsOf(currentViewer.id)).toHaveLength(1);
 
-  expect(await mark(press('tv', '1399', 'planned'))).toEqual({ state: null });
+  expect(await mark(press('tv', '1399', 'planned'))).toEqual({ marking: null });
   expect(await rowsOf(currentViewer.id)).toHaveLength(0);
 });
 
-test('pressing the other state moves the Watch Record', async () => {
+test('a press of the Score a record already holds unmarks it', async () => {
+  currentViewer.id = await viewer();
+
+  expect(await mark(press('tv', '1399', '8'))).toEqual({
+    marking: watchedAt(8),
+  });
+  expect(await mark(press('tv', '1399', '8'))).toEqual({ marking: null });
+  expect(await rowsOf(currentViewer.id)).toHaveLength(0);
+});
+
+test('a press of a different Score rescores rather than unmarks', async () => {
+  currentViewer.id = await viewer();
+
+  await mark(press('tv', '1399', '8'));
+
+  expect(await mark(press('tv', '1399', '3'))).toEqual({
+    marking: watchedAt(3),
+  });
+
+  const rows = await rowsOf(currentViewer.id);
+
+  expect(rows).toHaveLength(1);
+  expect(rows[0]?.score).toBe(3);
+});
+
+test('a press of Planned on a scored record moves it and drops the Score', async () => {
+  currentViewer.id = await viewer();
+
+  await mark(press('tv', '1399', '8'));
+
+  expect(await mark(press('tv', '1399', 'planned'))).toEqual({
+    marking: PLANNED,
+  });
+
+  const rows = await rowsOf(currentViewer.id);
+
+  expect(rows[0]?.state).toBe('planned');
+  expect(rows[0]?.score).toBe(null);
+});
+
+test('pressing a Score moves the Watch Record and records it', async () => {
   currentViewer.id = await viewer();
 
   await mark(press('movie', '603', 'planned'));
 
-  expect(await mark(press('movie', '603', 'watched'))).toEqual({
-    state: 'watched',
+  expect(await mark(press('movie', '603', '10'))).toEqual({
+    marking: watchedAt(10),
   });
 
   const rows = await rowsOf(currentViewer.id);
 
   expect(rows).toHaveLength(1);
   expect(rows[0]?.state).toBe('watched');
+  expect(rows[0]?.score).toBe(10);
 });
 
 test('input our own form cannot produce throws rather than returns', async () => {
@@ -82,7 +132,15 @@ test('input our own form cannot produce throws rather than returns', async () =>
     'Not a TMDB id',
   );
   await expect(mark(press('tv', '1399', 'seen'))).rejects.toThrow(
-    'Unknown state',
+    'Not a marking',
+  );
+  // `watched` is a state and not a marking: reaching Watched means naming a
+  // Score, so the word alone is a field our own buttons never post
+  await expect(mark(press('tv', '1399', 'watched'))).rejects.toThrow(
+    'Not a marking',
+  );
+  await expect(mark(press('tv', '1399', '11'))).rejects.toThrow(
+    'Not a marking',
   );
 });
 
@@ -109,7 +167,7 @@ test(`the press after ${MARKS_PER_MINUTE} in a minute is refused, and the one be
   );
 
   expect(await mark(press('tv', '1399', 'planned'))).toEqual({
-    state: 'planned',
+    marking: PLANNED,
   });
   expect(await mark(press('tv', '1399', 'planned'))).toEqual({
     error: 'Slow down. Try again in a minute.',
@@ -121,6 +179,6 @@ test(`the press after ${MARKS_PER_MINUTE} in a minute is refused, and the one be
   // and a minute later the window restarts
   await expireMarkingWindow(currentViewer.id);
 
-  expect(await mark(press('tv', '1399', 'planned'))).toEqual({ state: null });
+  expect(await mark(press('tv', '1399', 'planned'))).toEqual({ marking: null });
   // sixty round trips to Neon from a CI runner outrun the 5s default
 }, 30_000);

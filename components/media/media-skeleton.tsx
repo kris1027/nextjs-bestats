@@ -2,7 +2,10 @@ import type { JSX } from 'react';
 
 import { MediaGrid } from '@/components/media/media-grid';
 import { BackButton } from '@/components/ui/back-button';
-import { MarkingControlSkeleton } from '@/components/watch/control-skeleton';
+import {
+  CardControlSkeleton,
+  MarkingControlSkeleton,
+} from '@/components/watch/control-skeleton';
 import { PAGE_SIZE } from '@/lib/watch';
 
 /**
@@ -15,7 +18,7 @@ const MediaCardSkeleton = (): JSX.Element => (
     <div className='aspect-2/3 animate-pulse bg-muted' />
     <div className='h-7 animate-pulse bg-muted/60' />
     <div className='px-2.5 pt-2.5'>
-      <MarkingControlSkeleton />
+      <CardControlSkeleton />
     </div>
   </li>
 );
