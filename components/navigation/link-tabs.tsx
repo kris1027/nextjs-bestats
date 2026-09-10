@@ -18,10 +18,10 @@ type LinkTab = {
 };
 
 /**
- * The count a tab wears. On the search tabs it is every Match TMDB reported
- * for that Kind, not the first page of them; on the lists it is every Watch
- * Record in that state. Either way the closed tab admits what is waiting
- * behind it.
+ * The count a tab wears, which is one Kind's either way: on the search tabs
+ * every Match TMDB reported for that Kind, not the first page of them; on a
+ * list every Watch Record of that Kind in the state the list shows. Either
+ * way the closed tab admits what is waiting behind it.
  *
  * An Unanswered count wears a dash instead. Nobody said how many, and a `0`
  * there would report a failure as an absence — the same mistake as rendering
@@ -65,10 +65,13 @@ const Tally = ({ tally }: { tally: number | null }): JSX.Element =>
  * — `docs/adr/0004-search-is-two-searches.md`
  *
  * The padding narrows below `sm:` because these two tabs wear counts, and a
- * count is as wide as the number in it. Two list tabs measured 302px against
- * the 288px a 320px screen has, on tallies as ordinary as 128 and 1,024, and
- * a five-figure search total is wider still. The tabs are what give, since a
- * count that cannot be read is the thing the tab is for.
+ * count is as wide as the number in it. The widest row either caller draws is
+ * a search whose two totals are five figures — `/search?q=a` answers 10,000
+ * for both — and it measures 268px at `px-2.5` and 292px at `px-4`, against
+ * the 288px a 320px screen leaves inside the page's `p-4`. So the wide
+ * padding is 4px more than there is, and the narrow one is what fits. The
+ * tabs are what give, since a count that cannot be read is the thing the tab
+ * is for. A list's tallies are Watch Record counts and its row is narrower.
  *
  * The trending tabs wear no count and so did not need it, but they carry the
  * same `px-2.5 sm:px-4` at their call site in `app/page.tsx`: the mirror is
@@ -78,8 +81,9 @@ const Tally = ({ tally }: { tally: number | null }): JSX.Element =>
  * generated shape. This is the seam again — restyle one, carry it to the
  * other.
  *
- * `replace` is the caller's: a toggle within one search is a step within
- * that search, and pushes nothing; the two lists are two pages, and do.
+ * `replace` is the caller's, and both callers pass it: a Kind is a step
+ * within one search or one list rather than a page of either. What is a page
+ * still pushes — the `Previous` and `Next` below a list are ordinary links.
  */
 const LinkTabs = ({
   label,

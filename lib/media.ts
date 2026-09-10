@@ -132,6 +132,18 @@ export type MediaDetails = {
 export const isKind = (value: string): value is Kind =>
   KINDS.some((kind) => kind === value);
 
+/**
+ * Which Kind opens where an address names none: the one with something in it,
+ * and Shows where both have something or neither does. Said here once because
+ * both tab rows that read an address follow it — `/search` and the two lists
+ * — so a Kind with something behind its tab is never left behind a closed
+ * one, whether that something is a Match or a Watch Record. What counts as
+ * something is the caller's: Matches it can render, records it holds.
+ * — `docs/adr/0004-search-is-two-searches.md`
+ */
+export const openKind = (has: Record<Kind, boolean>): Kind =>
+  has.movie && !has.tv ? 'movie' : 'tv';
+
 // TMDB ids are positive integers, so anything else cannot exist
 const ID_PATTERN = /^[1-9]\d{0,8}$/;
 

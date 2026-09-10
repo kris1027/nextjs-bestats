@@ -124,6 +124,11 @@ does, since resolving Watch Records against TMDB is a page's job and not
 - Search is two per-Kind requests, never `/search/multi`, and its tabs are
   links so the open Kind stays in the address.
   — `docs/adr/0004-search-is-two-searches.md`
+- A tab row above a grid is the Kind. The lists show one Kind at a time and
+  name it `?kind=`; the way between the Watchlist and the Watched list is the
+  header's, not the page's. Trending alone may hold its Kind in the client.
+  There is no All tab, and `isKind` stays the guard that reads the address.
+  — `docs/adr/0015-the-lists-tabs-are-the-kind.md`
 - A Watch Record is Planned or Watched, never both and never neither. One row
   per Viewer per piece of Media, keyed `(viewerId, kind, tmdbId)` — composite
   because a TMDB id is unique only within a Kind. Unmarking deletes the row.
