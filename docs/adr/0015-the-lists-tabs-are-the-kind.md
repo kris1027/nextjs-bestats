@@ -49,10 +49,14 @@ its lookup.
 
 It also costs the fallback a selection. The tabs stream in, and until the
 counts land no tab can honestly claim to be the open one, so the fallback
-marks neither and the real row marks one. `/search` guesses `tv` there and
-lets the mark move; a list cannot, because it reads its default off counts
-the shell has not got. A mark that appears is a smaller lie than a mark that
-jumps.
+marks neither and the real row marks one. `/search` marks what its address
+named and guesses `tv` only where it named nothing, because that fallback is
+drawn inside a boundary which has already read `?kind=`. A list's fallback is
+the prerendered shell — `docs/adr/0010-the-shell-is-prerendered.md` — and
+reads no `searchParams` at all, so it cannot mark even the Kind an address
+does name; the default is beyond it twice over, being read off counts the
+shell has not got either. A mark that appears is a smaller lie than a mark
+that jumps.
 
 `watch_records_viewer_state_idx` is now a prefix of the list query rather than
 the whole of it: the Kind narrows on top of `(viewer_id, state)` and is not in

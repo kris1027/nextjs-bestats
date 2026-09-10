@@ -151,10 +151,15 @@ const ListTabs = async ({
  * href drops `?page=`, since the two Kinds are different lengths and page 3
  * of one is often past the end of the other.
  *
- * With no `selected`, neither tab is marked. That is the fallback: which tab
- * is open is what the counts decide, so before they land nothing here can
- * honestly claim to be the open one, and guessing would move the mark under a
- * Viewer whose list is all Movies. It gains a mark; it never changes one.
+ * With no `selected`, neither tab is marked. That is the fallback, and it is
+ * drawn in the prerendered shell, which reads no `searchParams`: it cannot
+ * mark even the Kind an address names, the way `/search`'s fallback does from
+ * inside a boundary that has already read one.
+ * — `docs/adr/0010-the-shell-is-prerendered.md`
+ *
+ * Guessing is no way out either. Which tab is open is what the counts decide,
+ * so before they land a guess would move the mark under a Viewer whose list
+ * is all Movies. It gains a mark; it never changes one.
  */
 const Tabs = ({
   state,
