@@ -65,10 +65,13 @@ const Tally = ({ tally }: { tally: number | null }): JSX.Element =>
  * — `docs/adr/0004-search-is-two-searches.md`
  *
  * The padding narrows below `sm:` because these two tabs wear counts, and a
- * count is as wide as the number in it. Two list tabs measured 302px against
- * the 288px a 320px screen has, on tallies as ordinary as 128 and 1,024, and
- * a five-figure search total is wider still. The tabs are what give, since a
- * count that cannot be read is the thing the tab is for.
+ * count is as wide as the number in it. The widest row either caller draws is
+ * a search whose two totals are five figures — `/search?q=a` answers 10,000
+ * for both — and it measures 268px at `px-2.5` and 292px at `px-4`, against
+ * the 288px a 320px screen leaves inside the page's `p-4`. So the wide
+ * padding is 4px more than there is, and the narrow one is what fits. The
+ * tabs are what give, since a count that cannot be read is the thing the tab
+ * is for. A list's tallies are Watch Record counts and its row is narrower.
  *
  * The trending tabs wear no count and so did not need it, but they carry the
  * same `px-2.5 sm:px-4` at their call site in `app/page.tsx`: the mirror is
