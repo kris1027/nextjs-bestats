@@ -67,8 +67,13 @@ const EMPTY: Record<WatchState, (words: NounForms) => string> = {
     `No ${other} watched yet. Mark a ${one} Watched and it will appear here.`,
 };
 
-/** What both halves of a list read: who is asking, and which tab, at which page. */
-type ListState = {
+/**
+ * The list as an address opens it, which is what both halves of the page
+ * read: who is asking, which tab, at which page. Not named for the state it
+ * is in — `WatchState` is that word, and this holds one of those rather than
+ * being one.
+ */
+type OpenList = {
   viewerId: string;
   tallies: WatchTallies;
   kind: Kind;
@@ -89,11 +94,11 @@ type ListState = {
  * Visitor does not have — and `?page=` only alongside it, for the reason the
  * tabs drop `?page=`: a page of one Kind is often past the end of the other.
  */
-const listState = cache(
+const openList = cache(
   async (
     state: WatchState,
     searchParams: Promise<SearchParams>,
-  ): Promise<ListState> => {
+  ): Promise<OpenList> => {
     const params = await searchParams;
     const page = pageNumber(params.page);
     // `?kind=abc` is a typo rather than an address, so it falls through to the
@@ -134,7 +139,7 @@ const ListTabs = async ({
   state: WatchState;
   searchParams: Promise<SearchParams>;
 }): Promise<JSX.Element> => {
-  const { kind, tallies } = await listState(state, searchParams);
+  const { kind, tallies } = await openList(state, searchParams);
 
   return <Tabs state={state} selected={kind} tallies={tallies[state]} />;
 };
@@ -198,7 +203,7 @@ const ListPage = async ({
   state: WatchState;
   searchParams: Promise<SearchParams>;
 }): Promise<JSX.Element> => {
-  const { viewerId, kind, page } = await listState(state, searchParams);
+  const { viewerId, kind, page } = await openList(state, searchParams);
 
   const { records, total } = await watchRecordsPage(
     viewerId,
