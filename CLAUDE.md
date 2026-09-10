@@ -133,6 +133,13 @@ does, since resolving Watch Records against TMDB is a page's job and not
   per Viewer per piece of Media, keyed `(viewerId, kind, tmdbId)` — composite
   because a TMDB id is unique only within a Kind. Unmarking deletes the row.
   — `docs/adr/0007-watchlist-and-watched-are-one-record.md`
+- A Watched record always carries a Score of 1 to 10 and a Planned one never
+  does; the check constraint on `watch_records` is what says so, not the code
+  that writes it. Giving a Score is how a record becomes Watched, so a move
+  back to Planned destroys it. Scoring is the detail page's alone — a card
+  shows a Score and cannot set one — and a card's one star is TMDB's Rating
+  until the Viewer scores the Media, theirs after.
+  — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
 - A Watch Record stores nothing from TMDB — no label, no poster path, no
   snapshot. Rendering a list means asking TMDB for each item on it.
   — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
@@ -184,10 +191,13 @@ does, since resolving Watch Records against TMDB is a page's job and not
   measured in a browser rather than reasoned about.
   — `docs/adr/0014-the-narrow-header-gives-up-words.md`
 - A control sized by its container asks about its container: `@container` on
-  the wrapper and `@min-[…]` on what stacks, never `sm:`. The marking control
-  has two callers at one viewport — 151px in a grid card, 320px in the detail
-  page's slot — so a viewport breakpoint would split the one that had room.
-  The skeleton mirrors the query, since it holds the height the control takes.
+  the wrapper and `@min-[…]` on what stacks, never `sm:`. A card's marking
+  control is 151px in a grid at one viewport and 244px in it at another, while
+  the detail page's slot is 320px at every viewport there is, so a viewport
+  breakpoint would split the one that had room. The star row escapes this by
+  having a single caller: ten pressable targets need the detail page's width,
+  which is why a card cannot draw them at all. Each control's skeleton mirrors
+  its own query, since it holds the height that control takes.
 - A grid's column count and the `sizes` of its images are one decision said in
   two places. Change `grid-cols-*` without changing `sizes` and the markup
   still looks right while every phone fetches a poster far wider than it
