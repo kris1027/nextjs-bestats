@@ -75,6 +75,12 @@ const EMPTY: Record<WatchState, (words: NounForms) => string> = {
  */
 type OpenList = {
   viewerId: string;
+  /**
+   * The key the cards on this page are rendered under, made here from the
+   * Viewer `viewer()` answered with rather than rebuilt downstream from the
+   * id beside it — `lib/viewer-key.ts`.
+   */
+  viewerKey: string;
   tallies: WatchTallies;
   kind: Kind;
   page: number;
@@ -122,6 +128,7 @@ const openList = cache(
 
     return {
       viewerId: currentViewer.id,
+      viewerKey: viewerKey(currentViewer),
       tallies,
       // what this Viewer holds is this page's answer to what `openKind` asks,
       // so a Watchlist that is all Movies opens on Movies
@@ -203,7 +210,10 @@ const ListPage = async ({
   state: WatchState;
   searchParams: Promise<SearchParams>;
 }): Promise<JSX.Element> => {
-  const { viewerId, kind, page } = await openList(state, searchParams);
+  const { viewerId, viewerKey, kind, page } = await openList(
+    state,
+    searchParams,
+  );
 
   const { records, total } = await watchRecordsPage(
     viewerId,
@@ -233,10 +243,7 @@ const ListPage = async ({
   // in the refs' order, so an answer and its record share an index
   const answers = await mediaItems(refs);
   // the page's own records are its lookup: every card on it has a state
-  const lookup = {
-    states: toLookup(records),
-    viewerKey: viewerKey({ id: viewerId }),
-  };
+  const lookup = { states: toLookup(records), viewerKey };
 
   return (
     <>
