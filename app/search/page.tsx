@@ -15,20 +15,25 @@ import {
   type Kind,
   type Matches,
   matchedNothing,
+  openKind,
   searchMedia,
 } from '@/lib/media';
 import { firstValue, type SearchParams } from '@/lib/search-params';
 import { answeredWatchLookup } from '@/lib/watch-queries';
 
 /**
- * Which tab opens when the address does not name one: a Kind with Matches
- * first, Shows when both have them. When neither has any, the unanswered Kind
- * opens, so a failed search is never left behind a closed tab.
+ * Which tab opens when the address does not name one. A Kind with Matches
+ * opens, which is `openKind`'s rule and the lists' too; what is `/search`'s
+ * own is the case below it, where neither Kind has any.
  */
 const defaultKind = (shows: Matches | null, movies: Matches | null): Kind => {
-  if (hasMatches(shows)) return 'tv';
-  if (hasMatches(movies)) return 'movie';
+  if (hasMatches(shows) || hasMatches(movies)) {
+    return openKind({ tv: hasMatches(shows), movie: hasMatches(movies) });
+  }
 
+  // Neither matched, so at least one went Unanswered: `MatchesFor` returns
+  // before this when both answered nothing. That Kind opens and says so,
+  // rather than a failed search sitting behind a closed tab wearing a dash.
   return shows === null ? 'tv' : 'movie';
 };
 

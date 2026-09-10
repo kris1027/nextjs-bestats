@@ -9,7 +9,14 @@ import { LinkTabs } from '@/components/navigation/link-tabs';
 import { AbsentCard } from '@/components/watch/absent-card';
 import { viewer } from '@/lib/auth';
 import { formatNumber, type NounForms } from '@/lib/format';
-import { isKind, KIND_WORDS, KINDS, type Kind, mediaItems } from '@/lib/media';
+import {
+  isKind,
+  KIND_WORDS,
+  KINDS,
+  type Kind,
+  mediaItems,
+  openKind,
+} from '@/lib/media';
 import { signInAddress } from '@/lib/next-path';
 import { firstValue, pageNumber, type SearchParams } from '@/lib/search-params';
 import { cn, control } from '@/lib/utils';
@@ -60,16 +67,6 @@ const EMPTY: Record<WatchState, (words: NounForms) => string> = {
     `No ${other} watched yet. Mark a ${one} Watched and it will appear here.`,
 };
 
-/**
- * Which tab opens when the address does not name one: a Kind this Viewer has
- * records of, Shows when both have some and when neither does. The rule the
- * search page follows, for the same reason — a Watchlist that is all Movies
- * would otherwise open on an empty Shows tab and read as an empty Watchlist.
- * — `docs/adr/0004-search-is-two-searches.md`
- */
-const defaultKind = (tallies: Record<Kind, number>): Kind =>
-  tallies.tv === 0 && tallies.movie > 0 ? 'movie' : 'tv';
-
 /** What both halves of a list read: who is asking, and which tab, at which page. */
 type ListState = {
   viewerId: string;
@@ -116,11 +113,14 @@ const listState = cache(
     }
 
     const tallies = await watchTallies(currentViewer.id);
+    const held = tallies[state];
 
     return {
       viewerId: currentViewer.id,
       tallies,
-      kind: named ?? defaultKind(tallies[state]),
+      // what this Viewer holds is this page's answer to what `openKind` asks,
+      // so a Watchlist that is all Movies opens on Movies
+      kind: named ?? openKind({ tv: held.tv > 0, movie: held.movie > 0 }),
       page,
     };
   },
