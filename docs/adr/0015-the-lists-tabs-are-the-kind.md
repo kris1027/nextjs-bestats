@@ -36,6 +36,15 @@ A page is therefore one Kind's, and so is its `total`, its page count and its
 Shows is often past the end of the Movies and `ListPage` answers a page past
 the end with `notFound()`.
 
+They replace rather than push, which the tabs they replaced did not: those
+were the way between two pages and these are two views of one. It is what the
+app's other two Kind rows do — `/search` replaces, and trending keeps its Kind
+in the client, where there is no history entry to make — so no tab row in the
+app puts a press of Back between a Viewer and the page they arrived from. What
+is a page still pushes: `Previous` and `Next` are ordinary links, and Back
+after one returns to the page before it. The cost is that Back after a tab
+does not return to the other tab, which is the same trade `/search` made.
+
 An empty tab says which Kind is empty. "Nothing planned yet" was true of a
 list and is false of a tab, since the other one may hold twenty.
 
