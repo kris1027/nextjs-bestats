@@ -29,6 +29,27 @@
       "when": 1788706576818,
       "tag": "0003_marking_tallies_viewer_foreign_key",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789069895884,
+      "tag": "0004_unscored_watch_records",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789069906152,
+      "tag": "0005_a_watched_record_carries_a_score",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789070695087,
+      "tag": "0006_a_watched_row_without_a_score",
+      "breakpoints": true
     }
   ]
 }
