@@ -106,7 +106,7 @@ const answeredStates = async (
 /**
  * One page of one Kind of a Viewer's list in one state — the Shows on their
  * Watchlist, the Movies they have watched — newest marking first, with the
- * size of that whole tab beside it so the page can count what it is paging
+ * size of that whole list beside it so the page can count what it is paging
  * through. The Kind narrows here rather than in the page, because a page that
  * fetched both and threw one away would page through a list it was not
  * showing.
@@ -126,7 +126,7 @@ export const watchRecordsPage = async (
     throw new RangeError(`A list page counts from 1, not ${page}`);
   }
 
-  const inTab = and(
+  const inList = and(
     eq(watchRecords.viewerId, viewerId),
     eq(watchRecords.state, state),
     eq(watchRecords.kind, kind),
@@ -141,11 +141,11 @@ export const watchRecordsPage = async (
         updatedAt: watchRecords.updatedAt,
       })
       .from(watchRecords)
-      .where(inTab)
+      .where(inList)
       .orderBy(desc(watchRecords.updatedAt))
       .limit(PAGE_SIZE)
       .offset((page - 1) * PAGE_SIZE),
-    db.select({ total: count() }).from(watchRecords).where(inTab),
+    db.select({ total: count() }).from(watchRecords).where(inList),
   ]);
 
   return { records, total: tally?.total ?? 0 };
@@ -153,11 +153,11 @@ export const watchRecordsPage = async (
 
 /**
  * How many Watch Records a Viewer holds in each state and Kind, in one
- * grouped query: the counts a list's two tabs wear, so the closed tab admits
- * what waits behind it — and, for an address that names no Kind, the numbers
- * the open tab is chosen from. A pair with no rows is `0` here rather than
- * absent, since a Viewer with no Movies on their Watchlist has none, not a
- * missing count.
+ * grouped query: both numbers a list page shows beside its two Kinds, so the
+ * Kind it is not showing admits what waits there — and, for an address that
+ * names no Kind, the pair the Kind it shows is chosen from. A pair with no
+ * rows is `0` here rather than absent, since a Viewer with no Movies on their
+ * Watchlist has none, not a missing count.
  *
  * The four are written out rather than built from `WATCH_STATES` and `KINDS`,
  * so adding either without deciding what its zero is fails to compile.
