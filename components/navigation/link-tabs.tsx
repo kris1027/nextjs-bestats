@@ -18,10 +18,10 @@ type LinkTab = {
 };
 
 /**
- * The count a tab wears. On the search tabs it is every Match TMDB reported
- * for that Kind, not the first page of them; on the lists it is every Watch
- * Record in that state. Either way the closed tab admits what is waiting
- * behind it.
+ * The count a tab wears, which is one Kind's either way: on the search tabs
+ * every Match TMDB reported for that Kind, not the first page of them; on a
+ * list every Watch Record of that Kind in the state the list shows. Either
+ * way the closed tab admits what is waiting behind it.
  *
  * An Unanswered count wears a dash instead. Nobody said how many, and a `0`
  * there would report a failure as an absence — the same mistake as rendering
@@ -78,8 +78,9 @@ const Tally = ({ tally }: { tally: number | null }): JSX.Element =>
  * generated shape. This is the seam again — restyle one, carry it to the
  * other.
  *
- * `replace` is the caller's: a toggle within one search is a step within
- * that search, and pushes nothing; the two lists are two pages, and do.
+ * `replace` is the caller's, and both callers pass it: a Kind is a step
+ * within one search or one list rather than a page of either. What is a page
+ * still pushes — the `Previous` and `Next` below a list are ordinary links.
  */
 const LinkTabs = ({
   label,
