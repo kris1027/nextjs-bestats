@@ -215,12 +215,11 @@ const ListPage = async ({
     searchParams,
   );
 
-  const { records, total } = await watchRecordsPage(
-    viewerId,
+  const { records, total } = await watchRecordsPage(viewerId, {
     state,
     kind,
     page,
-  );
+  });
 
   // a page past the end is no address at all; page 1 of nothing is the empty
   // state below, since a tab with nothing on it still exists

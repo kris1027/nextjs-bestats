@@ -54,7 +54,11 @@ test('moving a Watch Record makes it the newest marking', async () => {
   await writeWatchRecord(viewerId, GOT, 'planned');
   await writeWatchRecord(viewerId, GOT, 'watched');
 
-  const { records } = await watchRecordsPage(viewerId, 'watched', 'tv', 1);
+  const { records } = await watchRecordsPage(viewerId, {
+    state: 'watched',
+    kind: 'tv',
+    page: 1,
+  });
 
   expect(records.map((record) => record.tmdbId)).toEqual([
     GOT.id,
@@ -134,9 +138,21 @@ test('a list holds one state and one Kind, and counts the whole of that', async 
   await writeWatchRecord(viewerId, BREAKING_BAD, 'watched');
   await writeWatchRecord(viewerId, HEAT, 'watched');
 
-  const watchedShows = await watchRecordsPage(viewerId, 'watched', 'tv', 1);
-  const watchedMovies = await watchRecordsPage(viewerId, 'watched', 'movie', 1);
-  const plannedShows = await watchRecordsPage(viewerId, 'planned', 'tv', 1);
+  const watchedShows = await watchRecordsPage(viewerId, {
+    state: 'watched',
+    kind: 'tv',
+    page: 1,
+  });
+  const watchedMovies = await watchRecordsPage(viewerId, {
+    state: 'watched',
+    kind: 'movie',
+    page: 1,
+  });
+  const plannedShows = await watchRecordsPage(viewerId, {
+    state: 'planned',
+    kind: 'tv',
+    page: 1,
+  });
 
   // the Movie this Viewer has watched is behind the other tab, and is neither
   // in this tab's records nor in the total it pages through
@@ -158,8 +174,16 @@ test('the same TMDB id in each Kind is two rows on two tabs', async () => {
   await writeWatchRecord(viewerId, GOT, 'planned');
   await writeWatchRecord(viewerId, { kind: 'movie', id: GOT.id }, 'planned');
 
-  const shows = await watchRecordsPage(viewerId, 'planned', 'tv', 1);
-  const movies = await watchRecordsPage(viewerId, 'planned', 'movie', 1);
+  const shows = await watchRecordsPage(viewerId, {
+    state: 'planned',
+    kind: 'tv',
+    page: 1,
+  });
+  const movies = await watchRecordsPage(viewerId, {
+    state: 'planned',
+    kind: 'movie',
+    page: 1,
+  });
 
   expect(shows.records.map((record) => record.kind)).toEqual(['tv']);
   expect(movies.records.map((record) => record.kind)).toEqual(['movie']);
@@ -174,9 +198,21 @@ test('a list pages at PAGE_SIZE, newest marking first', async () => {
     await writeWatchRecord(viewerId, { kind: 'movie', id }, 'watched');
   }
 
-  const first = await watchRecordsPage(viewerId, 'watched', 'movie', 1);
-  const second = await watchRecordsPage(viewerId, 'watched', 'movie', 2);
-  const beyond = await watchRecordsPage(viewerId, 'watched', 'movie', 3);
+  const first = await watchRecordsPage(viewerId, {
+    state: 'watched',
+    kind: 'movie',
+    page: 1,
+  });
+  const second = await watchRecordsPage(viewerId, {
+    state: 'watched',
+    kind: 'movie',
+    page: 2,
+  });
+  const beyond = await watchRecordsPage(viewerId, {
+    state: 'watched',
+    kind: 'movie',
+    page: 3,
+  });
 
   expect(first.total).toBe(ids.length);
   expect(first.records).toHaveLength(PAGE_SIZE);
@@ -191,26 +227,42 @@ test('a list pages at PAGE_SIZE, newest marking first', async () => {
 test('a list page that does not count from 1 is refused before Postgres sees it', async () => {
   const viewerId = await viewer();
 
-  await expect(watchRecordsPage(viewerId, 'watched', 'tv', 0)).rejects.toThrow(
-    RangeError,
-  );
-  await expect(watchRecordsPage(viewerId, 'watched', 'tv', -1)).rejects.toThrow(
-    RangeError,
-  );
   await expect(
-    watchRecordsPage(viewerId, 'watched', 'tv', 1.5),
+    watchRecordsPage(viewerId, {
+      state: 'watched',
+      kind: 'tv',
+      page: 0,
+    }),
+  ).rejects.toThrow(RangeError);
+  await expect(
+    watchRecordsPage(viewerId, {
+      state: 'watched',
+      kind: 'tv',
+      page: -1,
+    }),
+  ).rejects.toThrow(RangeError);
+  await expect(
+    watchRecordsPage(viewerId, {
+      state: 'watched',
+      kind: 'tv',
+      page: 1.5,
+    }),
   ).rejects.toThrow(RangeError);
 });
 
 test('a Viewer with nothing recorded has an empty list, not a missing one', async () => {
   const viewerId = await viewer();
 
-  await expect(watchRecordsPage(viewerId, 'planned', 'tv', 1)).resolves.toEqual(
-    {
-      records: [],
-      total: 0,
-    },
-  );
+  await expect(
+    watchRecordsPage(viewerId, {
+      state: 'planned',
+      kind: 'tv',
+      page: 1,
+    }),
+  ).resolves.toEqual({
+    records: [],
+    total: 0,
+  });
 });
 
 test('the tallies split each state by Kind, and a pair with nothing counts 0', async () => {

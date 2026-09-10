@@ -111,6 +111,11 @@ const answeredStates = async (
  * fetched both and threw one away would page through a list it was not
  * showing.
  *
+ * The state, the Kind and the page arrive as one value, because none of the
+ * three names a list without the other two — and because a `where` clause of
+ * bare positional arguments is a `where` clause two of them can be swapped
+ * in silently.
+ *
  * `page` counts from 1, the way the address bar does, and anything else is
  * refused here rather than handed to Postgres as a negative offset: `?page=`
  * is the page's to validate, and this is where forgetting to would surface.
@@ -118,9 +123,7 @@ const answeredStates = async (
  */
 export const watchRecordsPage = async (
   viewerId: string,
-  state: WatchState,
-  kind: Kind,
-  page: number,
+  { state, kind, page }: { state: WatchState; kind: Kind; page: number },
 ): Promise<WatchRecordsPage> => {
   if (!Number.isInteger(page) || page < 1) {
     throw new RangeError(`A list page counts from 1, not ${page}`);
