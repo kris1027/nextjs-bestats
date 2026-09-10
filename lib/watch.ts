@@ -132,7 +132,12 @@ export const PAGE_SIZE = 20;
  */
 export const MARKS_PER_MINUTE = 60;
 
-/** One page of a Viewer's list, and how many the list holds in all. */
+/**
+ * One page of one Kind of a Viewer's list, and how many that Kind holds in
+ * all. The total is the open tab's and not the whole list's: a page is one
+ * Kind's, and so is the page count read off it.
+ * — `docs/adr/0015-the-lists-tabs-are-the-kind.md`
+ */
 export type WatchRecordsPage = {
   records: WatchRecord[];
   total: number;
