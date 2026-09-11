@@ -94,9 +94,10 @@ A `ViewerLookup` is what a page hands its cards: that answer, and the key of
 the Viewer whose states are in it. One value, because a control given the
 states without the key stays lit for a Viewer who has signed out — its state
 outlives a re-render at the same position — and a missing `key` is not a type
-error. So every `MarkingControl` is keyed on the `viewerKey` of the lookup its
-state came from: `media-card.tsx`, `absent-card.tsx` and the detail page all
-read both halves off one. `lib/viewer-key` makes that key, and is pure for
+error. So whatever holds that state is keyed on the `viewerKey` of the lookup
+it came from: the cards key their `MarkableCard` and the detail page its
+`MarkingControl`, and `media-card.tsx`, `absent-card.tsx` and the detail page
+all read both halves off one. `lib/viewer-key` makes that key, and is pure for
 the reason `lib/watch.ts` is: `lib/auth.ts` boots Neon Auth and reads
 `next/headers` at import, so a query that reached it for a string could not
 be loaded outside Next at all. Two callers — `answeredWatchLookup` from the

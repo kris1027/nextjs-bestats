@@ -143,5 +143,6 @@ To give a piece of Media a Watch Record — Planned, or Watched at a Score —
 replacing whichever it had. Marking what a Watch Record already says unmarks
 it, which deletes the record: pressing Planned on a Planned record, or a
 Viewer's own Score on a Watched one. The verb only: the thing it makes is a
-Watch Record, never "a mark".
+Watch Record, never "a mark". What that record says — Planned, or Watched at a
+Score — is its Marking, and that is the only noun the verb lends.
 _Avoid_: Save, add, track, toggle, set
