@@ -128,3 +128,4 @@ const useMarking = (initial: Marking | null): MarkingHandle => {
 };
 
 export { useMarking };
+export type { MarkingHandle };

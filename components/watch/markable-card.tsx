@@ -2,20 +2,12 @@
 
 import type { JSX, ReactNode } from 'react';
 
-import { Bookmark } from 'lucide-react';
-
 import { CardHead } from '@/components/watch/card-head';
 import { MarkingForm } from '@/components/watch/marking-form';
+import { PlannedButton } from '@/components/watch/planned-button';
 import { useMarking } from '@/components/watch/use-marking';
 import type { MediaRef, Rating } from '@/lib/media';
-import { cn } from '@/lib/utils';
-import {
-  MARKING_FIELD,
-  type Marking,
-  markingValue,
-  PLANNED,
-  scoreOf,
-} from '@/lib/watch';
+import { type Marking, scoreOf } from '@/lib/watch';
 
 /**
  * The body of a card whose Media a Viewer can mark: the head, then the one
@@ -55,8 +47,8 @@ const MarkableCard = ({
   /** Anything between the title bar and the control. */
   children?: ReactNode;
 }): JSX.Element => {
-  const { next, shown, error, press } = useMarking(marking);
-  const planned = shown?.state === 'planned';
+  const handle = useMarking(marking);
+  const { next, shown, error } = handle;
 
   return (
     <>
@@ -70,21 +62,7 @@ const MarkableCard = ({
       {children}
       <div className='px-2.5 pt-2.5'>
         <MarkingForm media={media} next={next} error={error}>
-          <button
-            type='submit'
-            name={MARKING_FIELD}
-            value={markingValue(PLANNED)}
-            onClick={press(PLANNED)}
-            aria-pressed={planned}
-            className={cn(
-              'inline-flex items-center justify-center gap-1.5 border border-foreground/40 px-2.5 py-1.5 font-extrabold text-foreground text-xs leading-[1.2] transition-colors hover:bg-foreground/7 active:bg-foreground/14',
-              planned &&
-                'border-primary bg-primary text-primary-foreground hover:bg-primary/85 active:bg-primary/75',
-            )}
-          >
-            <Bookmark size={14} className={cn(planned && 'fill-current')} />
-            Planned
-          </button>
+          <PlannedButton handle={handle} />
         </MarkingForm>
       </div>
     </>

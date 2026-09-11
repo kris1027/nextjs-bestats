@@ -2,29 +2,21 @@
 
 import type { JSX } from 'react';
 
-import { Bookmark, Star } from 'lucide-react';
+import { Star } from 'lucide-react';
 
 import { MarkingForm } from '@/components/watch/marking-form';
+import { PlannedButton } from '@/components/watch/planned-button';
 import { useMarking } from '@/components/watch/use-marking';
 import type { MediaRef } from '@/lib/media';
-import { cn } from '@/lib/utils';
+import { cn, markingButton, markingPressed } from '@/lib/utils';
 import {
   MARKING_FIELD,
   type Marking,
   markingValue,
-  PLANNED,
   SCORES,
   scoreOf,
   watchedAt,
 } from '@/lib/watch';
-
-/** What every button in here wears, pressed or not. */
-const BUTTON =
-  'inline-flex items-center justify-center border border-foreground/40 font-extrabold text-foreground text-xs leading-[1.2] transition-colors hover:bg-foreground/7 active:bg-foreground/14';
-
-/** And what it wears once it is what the Watch Record says. */
-const PRESSED =
-  'border-primary bg-primary text-primary-foreground hover:bg-primary/85 active:bg-primary/75';
 
 /**
  * The whole marking control: Planned, and the ten stars that are the only way
@@ -53,23 +45,13 @@ const MarkingControl = ({
   media: MediaRef;
   marking: Marking | null;
 }): JSX.Element => {
-  const { next, shown, error, press } = useMarking(marking);
+  const handle = useMarking(marking);
+  const { next, shown, error, press } = handle;
   const score = shown && scoreOf(shown);
-  const planned = shown?.state === 'planned';
 
   return (
     <MarkingForm media={media} next={next} error={error}>
-      <button
-        type='submit'
-        name={MARKING_FIELD}
-        value={markingValue(PLANNED)}
-        onClick={press(PLANNED)}
-        aria-pressed={planned}
-        className={cn(BUTTON, 'gap-1.5 px-2.5 py-1.5', planned && PRESSED)}
-      >
-        <Bookmark size={14} className={cn(planned && 'fill-current')} />
-        Planned
-      </button>
+      <PlannedButton handle={handle} />
       {/* the ten stars as one labelled group, so a screen reader meets them
           as a scale rather than as ten unrelated buttons. The legend is read
           but not drawn: the stars say what they are, and the detail page has
@@ -93,7 +75,7 @@ const MarkingControl = ({
               onClick={press(watchedAt(value))}
               aria-pressed={score === value}
               aria-label={`Score ${value} out of 10`}
-              className={cn(BUTTON, 'h-9 flex-1', lit && PRESSED)}
+              className={cn(markingButton, 'h-9 flex-1', lit && markingPressed)}
             >
               <Star size={14} className={cn(lit && 'fill-current')} />
             </button>
