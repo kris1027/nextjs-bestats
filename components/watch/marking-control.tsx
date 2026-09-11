@@ -26,11 +26,12 @@ import {
  * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
  *
  * The detail page is its only caller, and that is what makes the row of ten
- * possible: the slot there is 320px at every viewport, where a card in a grid
- * is 136px at the narrowest screen the app answers for. Ten targets in 136px
- * is 13px apiece, so a card gets `MarkableCard` instead, which shows a Score
- * and cannot set one. One caller is also why there is no container query
- * here — nothing about this control's width is in doubt.
+ * possible: the slot there is `max-w-xs`, so 320px everywhere but the 320px
+ * floor, where the page's `px-4` leaves 288px — 27px a star. A card in a grid
+ * is 136px at that floor and its control 116px inside `px-2.5`, under 10px a
+ * star, so a card gets `MarkableCard` instead, which shows a Score and cannot
+ * set one. One caller is also why there is no container query here — nothing
+ * about this control's width is in doubt.
  *
  * Rendered for every Visitor, signed in or not: a signed-out press leaves
  * through `/sign-in?next=` and comes back to this page, where they press
@@ -56,9 +57,8 @@ const MarkingControl = ({
           as a scale rather than as ten unrelated buttons. The legend is read
           but not drawn: the stars say what they are, and the detail page has
           TMDB's Rating a few lines up that they must not be mistaken for. */}
-      {/* the narrowest the row is ever drawn is a 320px screen, where the
-          page's padding leaves 288px for ten stars: a hairline gap and a
-          taller button are what keep each one a target a thumb can find. */}
+      {/* at that 288px narrowest, a hairline gap and a taller button are
+          what keep each star a target a thumb can find */}
       <fieldset className='flex gap-0.5'>
         <legend className='sr-only'>Your Score</legend>
         {SCORES.map((value) => {

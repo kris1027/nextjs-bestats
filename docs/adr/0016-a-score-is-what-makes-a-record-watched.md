@@ -59,13 +59,18 @@ not hold it there. A press of Planned on a record scored 9 destroys the 9 with
 nothing to undo it. There is still no history — the same sentence 0007 wrote
 about the state now covers the Score.
 
-Scoring happens on the detail page alone. Ten pressable stars need about 320px
-to stay pressable, which is what the detail page's slot is and is more than
-twice what a grid card gets at the 320px floor — `MediaGrid` is two columns
-and `MediaCard` is `calc(50vw - 24px)`, so a card is 136px there. A card shows
+Scoring happens on the detail page alone, because that is the only place ten
+stars are still ten targets. The slot there is `max-w-xs` — 320px — and the
+only screen where it is narrower is the 320px floor, where the page's `px-4`
+gets there first and leaves 288px. Nine 2px gaps out of that is 27px a star,
+on a row 36px tall. A grid card at the same floor is 136px — `MediaGrid` is
+two columns and `MediaCard` is `calc(50vw - 24px)` — and its control sits
+inside `px-2.5`, so the same ten would be under 10px apiece. 27px clears the
+24px WCAG 2.2 asks of a target and 10px is less than half of it, which is the
+whole of the argument: the row does not shrink to fit, it moves. A card shows
 the Score and cannot set one, which means marking something Watched now costs
 a navigation where it used to cost a press. That is the price of not putting a
-13px touch target in a grid.
+10px touch target in a grid.
 
 Unmarking from a card is therefore two presses of Planned: the first moves the
 record and drops the Score, the second deletes it. `AbsentCard` depends on
