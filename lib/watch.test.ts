@@ -10,6 +10,7 @@ import {
   refOf,
   SCORES,
   toLookup,
+  toMarkedMedia,
   toMarking,
   watchedAt,
   watchKey,
@@ -98,8 +99,8 @@ test('watchKey spells a piece of Media the way its URL does', () => {
 
 test('toLookup keeps the same TMDB id in each Kind apart', () => {
   const lookup = toLookup([
-    { kind: 'tv', tmdbId: 1399, state: 'watched', score: 9 },
-    { kind: 'movie', tmdbId: 1399, state: 'planned', score: null },
+    { kind: 'tv', tmdbId: 1399, ...watchedAt(9) },
+    { kind: 'movie', tmdbId: 1399, ...PLANNED },
   ]);
 
   expect(markingOf(lookup, { kind: 'tv', id: 1399 })).toEqual(watchedAt(9));
@@ -107,12 +108,24 @@ test('toLookup keeps the same TMDB id in each Kind apart', () => {
 });
 
 test('toLookup has nothing for Media the Viewer has said nothing about', () => {
-  const lookup = toLookup([
-    { kind: 'tv', tmdbId: 1399, state: 'planned', score: null },
-  ]);
+  const lookup = toLookup([{ kind: 'tv', tmdbId: 1399, ...PLANNED }]);
 
   expect(markingOf(lookup, { kind: 'tv', id: 66732 })).toBe(null);
   expect(markingOf(toLookup([]), { kind: 'tv', id: 1399 })).toBe(null);
+});
+
+test('toMarkedMedia makes a marking of a row and keeps the Media', () => {
+  expect(
+    toMarkedMedia({ kind: 'tv', tmdbId: 1399, state: 'watched', score: 9 }),
+  ).toEqual({ kind: 'tv', tmdbId: 1399, ...watchedAt(9) });
+  expect(
+    toMarkedMedia({
+      kind: 'movie',
+      tmdbId: 603,
+      state: 'planned',
+      score: null,
+    }),
+  ).toEqual({ kind: 'movie', tmdbId: 603, ...PLANNED });
 });
 
 test('refOf spells a Watch Record the way lib/media spells a ref', () => {

@@ -10,7 +10,7 @@ import {
   PAGE_SIZE,
   scoreOf,
   toLookup,
-  toMarking,
+  toMarkedMedia,
   type ViewerLookup,
   type WatchLookup,
   type WatchRecordsPage,
@@ -58,7 +58,7 @@ export const watchLookup = async (
       and(eq(watchRecords.viewerId, viewerId), or(...refs.map(whereMedia))),
     );
 
-  return toLookup(rows);
+  return toLookup(rows.map(toMarkedMedia));
 };
 
 /**
@@ -160,9 +160,7 @@ export const watchRecordsPage = async (
     // the two columns become one marking here, the way a lookup's rows do,
     // so nothing above the queries holds a state and a Score apart
     records: records.map(({ updatedAt, ...row }) => ({
-      ...toMarking(row),
-      kind: row.kind,
-      tmdbId: row.tmdbId,
+      ...toMarkedMedia(row),
       updatedAt,
     })),
     total: tally?.total ?? 0,

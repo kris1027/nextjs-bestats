@@ -82,19 +82,29 @@ export type WatchRecord = MarkedMedia & {
 };
 
 /** A marking and the Media it is about, which is what a lookup holds. */
-type MarkedMedia = Marking & { kind: Kind; tmdbId: number };
+export type MarkedMedia = Marking & { kind: Kind; tmdbId: number };
 
 /**
  * A marking as Postgres stores it: the enum, and a Score that is `null` on a
  * Planned row. `toMarking` is the one place the two become one value, so
- * nothing above the queries ever holds a state and a Score apart. The Score
- * is optional so that a `WatchRecord`, which already carries its marking as
- * one value, still answers this shape.
+ * nothing above the queries ever holds a state and a Score apart.
  */
-export type MarkingColumns = { state: WatchState; score?: number | null };
+export type MarkingColumns = { state: WatchState; score: number | null };
 
 /** A row as the queries select it: which Media, and what the Viewer said. */
 export type WatchRow = { kind: Kind; tmdbId: number } & MarkingColumns;
+
+/**
+ * A row as everything above the queries holds it: the two columns become one
+ * marking, and the Media they are about comes along. The one crossing between
+ * the two shapes, so a caller that already holds a marking — a `WatchRecord`
+ * does — never goes back through the columns to build one.
+ */
+export const toMarkedMedia = ({
+  kind,
+  tmdbId,
+  ...columns
+}: WatchRow): MarkedMedia => ({ ...toMarking(columns), kind, tmdbId });
 
 /**
  * What marking does. Pressing what a Watch Record already says unmarks it —
@@ -205,11 +215,17 @@ export const refOf = (record: { kind: Kind; tmdbId: number }): MediaRef => ({
 });
 
 /**
- * Builds the lookup from one query's rows. A piece of Media with no row is
- * simply absent, which `markingOf` reads as `null`.
+ * Builds the lookup from markings rather than from columns, so what a page
+ * already holds it hands over: a query's rows through `toMarkedMedia`, or a
+ * list's own Watch Records, which are this shape already. A piece of Media
+ * with nothing here is simply absent, which `markingOf` reads as `null`.
  */
-export const toLookup = (rows: readonly WatchRow[]): WatchLookup =>
-  new Map(rows.map((row) => [watchKey(refOf(row)), toMarking(row)]));
+export const toLookup = (items: readonly MarkedMedia[]): WatchLookup =>
+  new Map(items.map((item) => [watchKey(refOf(item)), markingIn(item)]));
+
+/** The marking half of a `MarkedMedia`, without the Media it is about. */
+const markingIn = (item: MarkedMedia): Marking =>
+  item.state === 'planned' ? PLANNED : watchedAt(item.score);
 
 /**
  * A piece of Media's marking in a lookup, or `null` when the Viewer has said
