@@ -45,7 +45,9 @@ const AbsentCard = ({
   // "Show 1399": KIND_WORDS' one spelling of the word, raised in the text
   // itself so a screen reader hears what the eye sees
   const label = `${capitalize(KIND_WORDS[media.kind].one)} ${media.id}`;
-  const poster = <MediaPlaceholder artwork='poster' />;
+  // no href and no Rating: a record stores nothing from TMDB, and there is
+  // nowhere to follow this card to
+  const head = { label, poster: <MediaPlaceholder artwork='poster' /> };
   const line = (
     <p className='px-2.5 pt-2 text-muted-foreground text-xs'>{LINES[answer]}</p>
   );
@@ -57,14 +59,13 @@ const AbsentCard = ({
           key={lookup.viewerKey}
           media={media}
           marking={markingOf(lookup.markings, media)}
-          label={label}
-          poster={poster}
+          head={head}
         >
           {line}
         </MarkableCard>
       ) : (
         <>
-          <CardHead label={label} poster={poster} score={null} />
+          <CardHead {...head} score={null} />
           {line}
         </>
       )}

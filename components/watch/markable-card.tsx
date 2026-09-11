@@ -2,11 +2,11 @@
 
 import type { JSX, ReactNode } from 'react';
 
-import { CardHead } from '@/components/watch/card-head';
+import { CardHead, type CardHeadContent } from '@/components/watch/card-head';
 import { MarkingForm } from '@/components/watch/marking-form';
 import { PlannedButton } from '@/components/watch/planned-button';
 import { useMarking } from '@/components/watch/use-marking';
-import type { MediaRef, Rating } from '@/lib/media';
+import type { MediaRef } from '@/lib/media';
 import { type Marking, scoreOf } from '@/lib/watch';
 
 /**
@@ -32,18 +32,13 @@ import { type Marking, scoreOf } from '@/lib/watch';
 const MarkableCard = ({
   media,
   marking,
-  label,
-  poster,
-  href,
-  tmdbRating,
+  head,
   children,
 }: {
   media: MediaRef;
   marking: Marking | null;
-  label: string;
-  poster: ReactNode;
-  href?: string;
-  tmdbRating?: Rating;
+  /** Passed straight on; the Score on top of it is this component's. */
+  head: CardHeadContent;
   /** Anything between the title bar and the control. */
   children?: ReactNode;
 }): JSX.Element => {
@@ -52,13 +47,7 @@ const MarkableCard = ({
 
   return (
     <>
-      <CardHead
-        label={label}
-        poster={poster}
-        href={href}
-        score={shown && scoreOf(shown)}
-        tmdbRating={tmdbRating}
-      />
+      <CardHead {...head} score={shown && scoreOf(shown)} />
       {children}
       <div className='px-2.5 pt-2.5'>
         <MarkingForm media={media} next={next} error={error}>

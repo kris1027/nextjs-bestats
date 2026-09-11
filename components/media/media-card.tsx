@@ -45,7 +45,14 @@ const MediaCard = ({
     <MediaPlaceholder artwork='poster' />
   );
 
-  const href = `/${item.kind}/${item.id}`;
+  // one head for both branches, so the marked card and the Unanswered one
+  // cannot drift into showing different things
+  const head = {
+    label: item.label,
+    poster,
+    href: `/${item.kind}/${item.id}`,
+    tmdbRating: item,
+  };
 
   return (
     <li className='flex flex-col transition duration-150 ease-out hover:-translate-y-1.5 hover:shadow-lg focus-within:-translate-y-1.5 focus-within:ring-2 focus-within:ring-ring'>
@@ -54,19 +61,10 @@ const MediaCard = ({
           key={lookup.viewerKey}
           media={item}
           marking={markingOf(lookup.markings, item)}
-          label={item.label}
-          poster={poster}
-          href={href}
-          tmdbRating={item}
+          head={head}
         />
       ) : (
-        <CardHead
-          label={item.label}
-          poster={poster}
-          href={href}
-          score={null}
-          tmdbRating={item}
-        />
+        <CardHead {...head} score={null} />
       )}
     </li>
   );

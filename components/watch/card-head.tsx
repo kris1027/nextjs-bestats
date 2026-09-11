@@ -7,6 +7,20 @@ import type { Rating } from '@/lib/media';
 import type { Score } from '@/lib/watch';
 
 /**
+ * Everything the head shows that is not the Viewer's own: a card builds one
+ * of these and both of its branches read it, and `MarkableCard` passes it
+ * through untouched rather than taking the four apart and putting them back.
+ */
+type CardHeadContent = {
+  label: string;
+  poster: ReactNode;
+  /** Absent on a card with nowhere to go, which is what `AbsentCard` is. */
+  href?: string;
+  /** What the badge shows until the Viewer has scored this. */
+  tmdbRating?: Rating;
+};
+
+/**
  * The top of a card: the poster and the title bar, with the one star-and-
  * number that bar holds. No directive of its own, so it stays server-rendered
  * in a card that has no control to draw and comes along into the client
@@ -19,15 +33,9 @@ const CardHead = ({
   href,
   score,
   tmdbRating,
-}: {
-  label: string;
-  poster: ReactNode;
-  /** Absent on a card with nowhere to go, which is what `AbsentCard` is. */
-  href?: string;
+}: CardHeadContent & {
   /** The Viewer's Score, which takes the badge whenever there is one. */
   score: Score | null;
-  /** What the badge shows until then. */
-  tmdbRating?: Rating;
 }): JSX.Element => {
   const head = (
     <>
@@ -92,3 +100,4 @@ const Badge = ({
 );
 
 export { CardHead };
+export type { CardHeadContent };
