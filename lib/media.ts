@@ -55,17 +55,23 @@ export type Artwork = 'poster' | 'backdrop';
 export type MediaRef = { kind: Kind; id: number };
 
 /**
- * Enough of a piece of Media to recognise it in a grid and follow it to its
- * page. `voteCount` is carried for the guard rather than the screen: nobody
- * having voted is the only thing that distinguishes an unrated piece of Media
- * from one TMDB scores at zero.
+ * TMDB's average score for a piece of Media and the votes behind it. One type
+ * because the count never reaches a screen on its own: it is the guard, and
+ * nobody having voted is the only thing that distinguishes an unrated piece
+ * of Media from one TMDB scores at zero.
+ * — `docs/adr/0002-placeholder-facts-are-not-facts.md`
  */
-export type MediaItem = {
+export type Rating = { rating: number; voteCount: number };
+
+/**
+ * Enough of a piece of Media to recognise it in a grid and follow it to its
+ * page, the Rating included — which is why a card can hand itself straight to
+ * anything that draws one.
+ */
+export type MediaItem = Rating & {
   id: number;
   label: string;
   posterUrl: string | null;
-  rating: number;
-  voteCount: number;
   kind: Kind;
 };
 
@@ -118,12 +124,10 @@ export type Trending = Record<Kind, MediaItem[] | null>;
  * which arrive already formatted — so the page never learns which kind it is
  * looking at, and this module stays the only one that knows `tv` means shows.
  */
-export type MediaDetails = {
+export type MediaDetails = Rating & {
   label: string;
   posterUrl: string | null;
   backdropUrl: string | null;
-  rating: number;
-  voteCount: number;
   overview: string;
   facts: string[];
 };

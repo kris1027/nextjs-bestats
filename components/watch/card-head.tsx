@@ -3,6 +3,7 @@ import type { JSX, ReactNode } from 'react';
 
 import { Star } from 'lucide-react';
 
+import type { Rating } from '@/lib/media';
 import type { Score } from '@/lib/watch';
 
 /**
@@ -26,7 +27,7 @@ const CardHead = ({
   /** The Viewer's Score, which takes the badge whenever there is one. */
   score: Score | null;
   /** What the badge shows until then. */
-  tmdbRating?: { rating: number; voteCount: number };
+  tmdbRating?: Rating;
 }): JSX.Element => {
   const head = (
     <>

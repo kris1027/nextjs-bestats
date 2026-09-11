@@ -7,7 +7,7 @@ import { Bookmark } from 'lucide-react';
 import { CardHead } from '@/components/watch/card-head';
 import { MarkingForm } from '@/components/watch/marking-form';
 import { useMarking } from '@/components/watch/use-marking';
-import type { MediaRef } from '@/lib/media';
+import type { MediaRef, Rating } from '@/lib/media';
 import { cn } from '@/lib/utils';
 import {
   MARKING_FIELD,
@@ -51,7 +51,7 @@ const MarkableCard = ({
   label: string;
   poster: ReactNode;
   href?: string;
-  tmdbRating?: { rating: number; voteCount: number };
+  tmdbRating?: Rating;
   /** Anything between the title bar and the control. */
   children?: ReactNode;
 }): JSX.Element => {
