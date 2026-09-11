@@ -3,20 +3,26 @@ import type { JSX } from 'react';
 
 import { MediaPlaceholder } from '@/components/media/media-placeholder';
 import { CardHead } from '@/components/watch/card-head';
-import { MarkableCard } from '@/components/watch/markable-card';
 import type { MediaItem } from '@/lib/media';
-import { markingOf, type ViewerLookup } from '@/lib/watch';
+import { markingOf, scoreOf, type ViewerLookup } from '@/lib/watch';
 
 /**
- * `lookup` is the page's one query for every card on it, and the card reads
- * its own marking out of it. `markings` is `null` for Unanswered — the database
- * did not say — and the card draws its head alone, with no control and no
- * Score, rather than one claiming nothing is marked. A signed-out Visitor's
- * page passes an empty lookup instead, which is a real absence: no Viewer, so
- * no Watch Record.
+ * A card shows what a Viewer said about a piece of Media and gives them no
+ * way to say it: marking is the detail page's alone, and this card is the
+ * link there. `AbsentCard` is the one exception, because Gone Media has no
+ * detail page to send anyone to.
+ * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
  *
- * The lookup carries whose Watch Records those are, and that is the card's
- * key and nothing it renders. See `viewerKey` in `lib/auth`.
+ * `lookup` is the page's one query for every card on it, and the card reads
+ * its own Score out of it. `markings` is `null` for Unanswered — the database
+ * did not say — and the badge then shows TMDB's Rating, which is what it
+ * shows for a Viewer who has not scored this either; an Unanswered lookup
+ * costs a Score that is there, never a wrong one.
+ *
+ * Nothing here outlives a render, so this card takes no `viewerKey`: the
+ * Score arrives as a prop from the server, and the render that follows a
+ * sign-out simply does not carry it. Only a card that holds a marking of its
+ * own needs the key, which is `AbsentCard` and the detail page.
  */
 const MediaCard = ({
   item,
@@ -45,27 +51,17 @@ const MediaCard = ({
     <MediaPlaceholder artwork='poster' />
   );
 
-  // one head for both branches, so the marked card and the Unanswered one
-  // cannot drift into showing different things
-  const head = {
-    label: item.label,
-    poster,
-    href: `/${item.kind}/${item.id}`,
-    tmdbRating: item,
-  };
+  const marking = lookup.markings && markingOf(lookup.markings, item);
 
   return (
     <li className='flex flex-col transition duration-150 ease-out hover:-translate-y-1.5 hover:shadow-lg focus-within:-translate-y-1.5 focus-within:ring-2 focus-within:ring-ring'>
-      {lookup.markings !== null ? (
-        <MarkableCard
-          key={lookup.viewerKey}
-          media={item}
-          marking={markingOf(lookup.markings, item)}
-          head={head}
-        />
-      ) : (
-        <CardHead {...head} score={null} />
-      )}
+      <CardHead
+        label={item.label}
+        poster={poster}
+        href={`/${item.kind}/${item.id}`}
+        score={marking && scoreOf(marking)}
+        tmdbRating={item}
+      />
     </li>
   );
 };

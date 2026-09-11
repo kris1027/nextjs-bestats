@@ -28,10 +28,10 @@ import {
  * The detail page is its only caller, and that is what makes the row of ten
  * possible: the slot there is `max-w-xs`, so 320px everywhere but the 320px
  * floor, where the page's `px-4` leaves 288px — 27px a star. A card in a grid
- * is 136px at that floor and its control 116px inside `px-2.5`, under 10px a
- * star, so a card gets `MarkableCard` instead, which shows a Score and cannot
- * set one. One caller is also why there is no container query here — nothing
- * about this control's width is in doubt.
+ * is 136px at that floor, so a card draws no star row and no control either:
+ * it shows the Score and links here to change it. One caller is also why
+ * there is no container query here — nothing about this control's width is in
+ * doubt.
  *
  * Rendered for every Visitor, signed in or not: a signed-out press leaves
  * through `/sign-in?next=` and comes back to this page, where they press

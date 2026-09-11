@@ -2,24 +2,24 @@ import type { JSX } from 'react';
 
 import { MediaGrid } from '@/components/media/media-grid';
 import { BackButton } from '@/components/ui/back-button';
-import {
-  CardControlSkeleton,
-  MarkingControlSkeleton,
-} from '@/components/watch/control-skeleton';
+import { MarkingControlSkeleton } from '@/components/watch/control-skeleton';
 import { PAGE_SIZE } from '@/lib/watch';
 
 /**
  * A card's shape while the Media behind it is being fetched: the poster's
- * aspect, the title bar's height, and the control's. The same height as the
- * card that replaces it, so nothing moves when it lands.
+ * aspect and the title bar's height, which is the whole of a card now that
+ * marking left it. The same height as the card that replaces it, so nothing
+ * moves when it lands.
+ *
+ * A list page's grid can hold an `AbsentCard`, which does still draw a
+ * control, and this stands a control's height short for that one card. The
+ * other way round — reserving the height on every grid for a card that
+ * almost never appears — would move every card on Trending and on search.
  */
 const MediaCardSkeleton = (): JSX.Element => (
   <li className='flex flex-col'>
     <div className='aspect-2/3 animate-pulse bg-muted' />
     <div className='h-7 animate-pulse bg-muted/60' />
-    <div className='px-2.5 pt-2.5'>
-      <CardControlSkeleton />
-    </div>
   </li>
 );
 

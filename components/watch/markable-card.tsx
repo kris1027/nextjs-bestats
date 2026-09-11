@@ -11,23 +11,26 @@ import { type Marking, scoreOf } from '@/lib/watch';
 
 /**
  * The body of a card whose Media a Viewer can mark: the head, then the one
- * control a card has room for. Both cards in the app are this — `MediaCard`
- * hands it a poster and a link, `AbsentCard` a placeholder and a line about
- * the absence — and both keep their own `<li>`.
+ * control a card has room for. `AbsentCard` is its only caller, because it is
+ * the only card that marks anything — a `MediaCard` links to the detail page
+ * and lets that page do it, while Gone Media has no detail page to link to.
+ * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
+ *
+ * One caller and still its own file: inlining it would make `absent-card.tsx`
+ * a client component whole, and the placeholder and the line it draws would
+ * leave the server with it. Taking the poster as a prop is the same trick —
+ * the client subtree spans the markup without owning what fills it.
  *
  * One component rather than a badge and a button apart, because the two have
  * to agree the instant a press lands and can only share the optimistic
  * marking inside one client subtree. The title bar is inside the link and the
  * button has to be outside it — a button inside a link is nested interactive
- * content — so this spans them both and takes the poster as a prop, which
- * leaves the `<Image>` itself server-rendered.
- * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
+ * content — so this spans them both.
  *
  * A card cannot set a Score: ten pressable stars need the detail page's
- * width, so marking something Watched from here means following the link.
- * Pressing Planned on a scored record moves it and drops the Score, and
- * pressing Planned again unmarks it — which is how a Watch Record is removed
- * from a list, and the only way at all for one whose Media is Gone.
+ * width. Pressing Planned on a scored record moves it and drops the Score,
+ * and pressing Planned again unmarks it — which is the only way at all to
+ * remove a Watch Record whose Media is Gone.
  */
 const MarkableCard = ({
   media,

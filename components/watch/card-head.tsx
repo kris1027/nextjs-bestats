@@ -7,9 +7,9 @@ import type { Rating } from '@/lib/media';
 import type { Score } from '@/lib/watch';
 
 /**
- * Everything the head shows that is not the Viewer's own: a card builds one
- * of these and both of its branches read it, and `MarkableCard` passes it
- * through untouched rather than taking the four apart and putting them back.
+ * Everything the head shows that is not the Viewer's own. `AbsentCard` builds
+ * one and both of its branches read it, and `MarkableCard` passes it through
+ * untouched rather than taking the four apart and putting them back.
  */
 type CardHeadContent = {
   label: string;
@@ -24,8 +24,9 @@ type CardHeadContent = {
  * The top of a card: the poster and the title bar, with the one star-and-
  * number that bar holds. No directive of its own, so it stays server-rendered
  * in a card that has no control to draw and comes along into the client
- * subtree of one that does — which is what lets `MarkableCard` and a card
- * with an Unanswered lookup share this markup rather than keep two copies.
+ * subtree of one that does — which is what lets `MediaCard`, which has no
+ * control at all, and `MarkableCard`, which has one, share this markup
+ * rather than keep two copies of it.
  */
 const CardHead = ({
   label,
