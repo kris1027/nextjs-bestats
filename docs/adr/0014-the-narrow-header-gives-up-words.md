@@ -81,14 +81,15 @@ height on every platform that does not overlay them — a cost to everyone to
 close a case almost nobody reaches.
 
 **Two more pairs have to agree, and one fails quietly.** Beside the `Bookmark`
-map above, the branch left `@min-[200px]` written literally in
-`components/watch/marking-control.tsx` and again in `control-skeleton.tsx`,
-which exists to hold the height the control takes; and a grid's `grid-cols-*`
-against the `sizes` of the posters in it. The second is the one to watch. A
-skeleton of the wrong height is visible the moment anyone looks, but a lying
-`sizes` has no symptom on screen at all — the markup stays right while every
-phone fetches a poster far wider than it draws. Both are in `CLAUDE.md`; only
-the second needed an argument there.
+map above, each marking control's height against the skeleton in
+`control-skeleton.tsx` that holds room for it — one skeleton each, since
+`docs/adr/0016-a-score-is-what-makes-a-record-watched.md` made the control
+two shapes and took the `@min-[200px]` this ADR first named here with it; and
+a grid's `grid-cols-*` against the `sizes` of the posters in it. The second is
+the one to watch. A skeleton of the wrong height is visible the moment anyone
+looks, but a lying `sizes` has no symptom on screen at all — the markup stays
+right while every phone fetches a poster far wider than it draws. Both are in
+`CLAUDE.md`; only the second needed an argument there.
 
 **The tabs' padding is a third.** `LinkTabs` narrowed to `px-2.5` below `sm:`
 to fit the 320px row while `TabsTrigger` keeps `px-4`, so the home page's tabs
