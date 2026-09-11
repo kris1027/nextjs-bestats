@@ -191,14 +191,22 @@ does, since resolving Watch Records against TMDB is a page's job and not
   there should not be one. Nothing checks any of this, so a new width is
   measured in a browser rather than reasoned about.
   — `docs/adr/0014-the-narrow-header-gives-up-words.md`
-- A control sized by its container asks about its container: `@container` on
-  the wrapper and `@min-[…]` on what stacks, never `sm:`. A card's marking
-  control is 151px in a grid at one viewport and 244px in it at another, while
-  the detail page's slot is 320px at every viewport there is, so a viewport
-  breakpoint would split the one that had room. The star row escapes this by
-  having a single caller: ten pressable targets need the detail page's width,
-  which is why a card cannot draw them at all. Each control's skeleton mirrors
-  its own query, since it holds the height that control takes.
+- A control that two places draw at two widths is two components, not one
+  that adapts. The marking control was one, with a container query on it, and
+  is now `PlannedButton` — which a card and the detail page both draw — and
+  the star row, which only the detail page can: ten targets need the 288px
+  that page has at the 320px floor, and a card's control has 116px there.
+  Splitting won because the two differ in what they can do and not only in
+  how wide they are, and the widths are measured in a browser as always.
+  — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
+- Should a control have to adapt after all, it asks its container and never
+  the viewport: `@container` on the wrapper and `@min-[…]` on what stacks,
+  never `sm:`. A card is 151px in a grid at one viewport and 244px at another
+  while the detail page's slot beside it barely moves, so a viewport
+  breakpoint would split the one that had room. Nothing in the repo asks this
+  at present; the rule is here for the next control that has to.
+- Each control's skeleton mirrors its own query, since it holds the height
+  that control takes.
 - A grid's column count and the `sizes` of its images are one decision said in
   two places. Change `grid-cols-*` without changing `sizes` and the markup
   still looks right while every phone fetches a poster far wider than it
