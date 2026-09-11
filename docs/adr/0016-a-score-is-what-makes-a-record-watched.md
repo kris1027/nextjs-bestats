@@ -64,25 +64,35 @@ stars are still ten targets. The slot there is `max-w-xs` — 320px — and the
 only screen where it is narrower is the 320px floor, where the page's `px-4`
 gets there first and leaves 288px. Nine 2px gaps out of that is 27px a star,
 on a row 36px tall. A grid card at the same floor is 136px — `MediaGrid` is
-two columns and `MediaCard` is `calc(50vw - 24px)` — and its control sits
+two columns and `MediaCard` is `calc(50vw - 24px)` — and a control there sits
 inside `px-2.5`, so the same ten would be under 10px apiece. 27px clears the
 24px WCAG 2.2 asks of a target and 10px is less than half of it, which is the
-whole of the argument: the row does not shrink to fit, it moves. A card shows
-the Score and cannot set one, which means marking something Watched now costs
-a navigation where it used to cost a press. That is the price of not putting a
-10px touch target in a grid.
+whole of the argument: the row does not shrink to fit, it moves.
 
-Unmarking from a card is therefore two presses of Planned: the first moves the
-record and drops the Score, the second deletes it. `AbsentCard` depends on
-this. Gone Media 404s on the detail page and the card deliberately has no link
-to one, so Planned is the only control a Gone record ever has, and it is still
-enough to remove it.
+Marking then left the card altogether rather than staying there as the half a
+card had room for. A Planned button beside a star row nobody could reach from
+the same place meant a card could put a record into one state and never into
+the other, and it bought that with a client subtree around markup that
+otherwise had nothing to do. A card says what the Viewer said and links to the
+page that changes it, which costs a navigation where marking used to cost a
+press. That is the price of not putting a 10px touch target in a grid.
+
+`AbsentCard` is the exception, and it is the reason the Planned button still
+exists outside the detail page at all. Gone Media 404s there and the card
+deliberately has no link to one, so a Watch Record whose Media is Gone can be
+reached from nowhere else. Removing it is two presses of Planned: the first
+moves the record and drops the Score, the second deletes it. It is the only
+card that marks anything, and the only caller `MarkableCard` has.
 
 A card shows one star and one number: TMDB's Rating until the Viewer has
 scored the Media, their own Score after. Two ten-point scores a few pixels
 apart in a 136px title bar is exactly the confusion `CONTEXT.md` separates
 Rating from Score to avoid. The cost is that a scored card no longer shows
 what everyone else thought; the detail page still shows both, where there is
-room to tell them apart. Because the badge and the Planned button must agree
-the instant a press lands, they share one optimistic marking, which puts a
-client boundary around a slice of the card that was server-rendered.
+room to tell them apart.
+
+On a `MediaCard` that badge is a server render and nothing more, since only a
+navigation can change what it says. On an `AbsentCard` the badge and the
+Planned button have to agree the instant a press lands, so they share one
+optimistic marking — which is what `MarkableCard` spans, and the one client
+boundary marking still puts around a card.
