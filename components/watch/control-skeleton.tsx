@@ -1,21 +1,18 @@
 import type { JSX } from 'react';
 
 /**
- * The marking control's shape while the Watch Record behind it is being
- * read: two button-sized blocks and the live region's height, so a card or
- * a detail page is the same height before and after the control lands.
- *
- * The container query is the control's, mirrored. It is what decides whether
- * those blocks sit in one row or two, so a copy that stacks at a different
- * width is a card that changes height when the real control lands — the one
- * thing this component exists to prevent. Change the one, change the other.
+ * The detail page's marking control while the Watch Record behind it is being
+ * read: the Planned button's height, the row of ten stars', and the live
+ * region's, so the page is the same height before and after the control
+ * lands. The only control skeleton in the repo, since the detail page is the
+ * only place a control is waited for — a card's, on `AbsentCard`, arrives
+ * with the list that renders it.
+ * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
  */
 const MarkingControlSkeleton = (): JSX.Element => (
-  <div className='@container flex flex-col gap-1.5' aria-hidden='true'>
-    <div className='flex flex-col gap-1.5 @min-[200px]:flex-row'>
-      <div className='h-7 flex-1 animate-pulse bg-muted' />
-      <div className='h-7 flex-1 animate-pulse bg-muted' />
-    </div>
+  <div className='flex flex-col gap-1.5' aria-hidden='true'>
+    <div className='h-7 animate-pulse bg-muted' />
+    <div className='h-9 animate-pulse bg-muted' />
     <div className='min-h-4' />
   </div>
 );

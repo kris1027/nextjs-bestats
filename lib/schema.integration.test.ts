@@ -9,6 +9,7 @@ import { disposableViewers, dropViewer, newViewer } from '@/lib/test-viewers';
  * The invariant is the schema's to keep, not the writing code's, so these
  * assertions go through Drizzle to Postgres and never through `lib/watch`.
  * — `docs/adr/0007-watchlist-and-watched-are-one-record.md`
+ * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
  */
 
 const viewer = disposableViewers();
@@ -21,10 +22,54 @@ test('a Viewer cannot record the same Media twice', async () => {
     .values({ viewerId, kind: 'tv', tmdbId: 1399, state: 'planned' });
 
   await expect(
+    db.insert(watchRecords).values({
+      viewerId,
+      kind: 'tv',
+      tmdbId: 1399,
+      state: 'watched',
+      score: 9,
+    }),
+  ).rejects.toThrow();
+});
+
+test('a Watched record without a Score is refused', async () => {
+  const viewerId = await viewer();
+
+  await expect(
     db
       .insert(watchRecords)
       .values({ viewerId, kind: 'tv', tmdbId: 1399, state: 'watched' }),
   ).rejects.toThrow();
+});
+
+test('a Planned record carrying a Score is refused', async () => {
+  const viewerId = await viewer();
+
+  await expect(
+    db.insert(watchRecords).values({
+      viewerId,
+      kind: 'tv',
+      tmdbId: 1399,
+      state: 'planned',
+      score: 9,
+    }),
+  ).rejects.toThrow();
+});
+
+test('a Score outside one to ten is refused at either end', async () => {
+  const viewerId = await viewer();
+
+  for (const score of [0, 11, -1]) {
+    await expect(
+      db.insert(watchRecords).values({
+        viewerId,
+        kind: 'tv',
+        tmdbId: 1399,
+        state: 'watched',
+        score,
+      }),
+    ).rejects.toThrow();
+  }
 });
 
 test('the same TMDB id in each Kind is two different Media', async () => {
@@ -72,7 +117,7 @@ test('deleting a Viewer takes their Watch Records with it', async () => {
 
   await db
     .insert(watchRecords)
-    .values({ viewerId, kind: 'tv', tmdbId: 1396, state: 'watched' });
+    .values({ viewerId, kind: 'tv', tmdbId: 1396, state: 'watched', score: 9 });
 
   await dropViewer(viewerId);
 

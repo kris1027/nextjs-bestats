@@ -6,8 +6,11 @@ import type { Kind, MediaRef } from '@/lib/media';
 import { markingTallies, watchRecords } from '@/lib/schema';
 import { viewerKeyOf } from '@/lib/viewer-key';
 import {
+  type Marking,
   PAGE_SIZE,
+  scoreOf,
   toLookup,
+  toMarkedMedia,
   type ViewerLookup,
   type WatchLookup,
   type WatchRecordsPage,
@@ -31,7 +34,7 @@ const whereMedia = (ref: MediaRef) =>
   and(eq(watchRecords.kind, ref.kind), eq(watchRecords.tmdbId, ref.id));
 
 /**
- * The states one Viewer holds for the Media on one page, in one query. Keyed
+ * The markings one Viewer holds for the Media on one page, in one query. Keyed
  * by the page rather than fetching the Viewer's whole history, so the cost
  * belongs to the page — forty rows at most on Trending — and not to how much
  * the Viewer has watched.
@@ -48,13 +51,14 @@ export const watchLookup = async (
       kind: watchRecords.kind,
       tmdbId: watchRecords.tmdbId,
       state: watchRecords.state,
+      score: watchRecords.score,
     })
     .from(watchRecords)
     .where(
       and(eq(watchRecords.viewerId, viewerId), or(...refs.map(whereMedia))),
     );
 
-  return toLookup(rows);
+  return toLookup(rows.map(toMarkedMedia));
 };
 
 /**
@@ -72,22 +76,22 @@ export const watchLookup = async (
  * cannot know whose it is has nothing to press. Said here once rather than
  * as a ternary on every page.
  *
- * The key comes back with the states because this is the one place holding
+ * The key comes back with the markings because this is the one place holding
  * the answer both are read from. A page that pairs them itself is pairing
  * two values it fetched apart, and a mismatched pair is not a type error: it
- * renders one Viewer's states under another's key, which is the sign-out bug
+ * renders one Viewer's markings under another's key, which is the sign-out bug
  * `viewerKey` exists to stop.
  */
 export const answeredWatchLookup = async (
   asked: ViewerAnswer,
   refs: readonly MediaRef[],
 ): Promise<ViewerLookup> => ({
-  states: await answeredStates(asked, refs),
+  markings: await answeredMarkings(asked, refs),
   viewerKey: viewerKeyOf(asked),
 });
 
-/** The states half of `answeredWatchLookup`, whose `null` is Unanswered. */
-const answeredStates = async (
+/** The markings half of `answeredWatchLookup`, whose `null` is Unanswered. */
+const answeredMarkings = async (
   asked: ViewerAnswer,
   refs: readonly MediaRef[],
 ): Promise<WatchLookup | null> => {
@@ -141,6 +145,7 @@ export const watchRecordsPage = async (
         kind: watchRecords.kind,
         tmdbId: watchRecords.tmdbId,
         state: watchRecords.state,
+        score: watchRecords.score,
         updatedAt: watchRecords.updatedAt,
       })
       .from(watchRecords)
@@ -151,7 +156,15 @@ export const watchRecordsPage = async (
     db.select({ total: count() }).from(watchRecords).where(inList),
   ]);
 
-  return { records, total: tally?.total ?? 0 };
+  return {
+    // the two columns become one marking here, the way a lookup's rows do,
+    // so nothing above the queries holds a state and a Score apart
+    records: records.map(({ updatedAt, ...row }) => ({
+      ...toMarkedMedia(row),
+      updatedAt,
+    })),
+    total: tally?.total ?? 0,
+  };
 };
 
 /**
@@ -221,26 +234,35 @@ export const tallyMarking = async (viewerId: string): Promise<number> => {
 };
 
 /**
- * The write half of marking: the Watch Record for a piece of Media, in
- * `state`, whether or not one existed. One statement: the primary key is the
- * triple, so a second marking is
- * a conflict that becomes the move. `updated_at` is set here by hand, because
- * Drizzle's `$onUpdate` fires for `update` and not for an upsert — and set
- * from Postgres's clock, not this process's, so a move and an insert are
- * ordered by the one clock the lists sort on.
+ * The write half of marking: the Watch Record for a piece of Media, saying
+ * what `marking` says, whether or not one existed. One statement: the primary
+ * key is the triple, so a second marking is a conflict that becomes the move.
+ * `updated_at` is set here by hand, because Drizzle's `$onUpdate` fires for
+ * `update` and not for an upsert — and set from Postgres's clock, not this
+ * process's, so a move and an insert are ordered by the one clock the lists
+ * sort on.
  * — `docs/adr/0007-watchlist-and-watched-are-one-record.md`
+ *
+ * Both columns are written every time, the Score included, because moving a
+ * record to Planned has to clear the Score it used to carry — the check
+ * constraint refuses the row otherwise, which is the schema catching what a
+ * forgotten `score: null` would have left behind.
+ * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
  */
 export const writeWatchRecord = async (
   viewerId: string,
   ref: MediaRef,
-  state: WatchState,
+  marking: Marking,
 ): Promise<void> => {
+  const { state } = marking;
+  const score = scoreOf(marking);
+
   await db
     .insert(watchRecords)
-    .values({ viewerId, kind: ref.kind, tmdbId: ref.id, state })
+    .values({ viewerId, kind: ref.kind, tmdbId: ref.id, state, score })
     .onConflictDoUpdate({
       target: [watchRecords.viewerId, watchRecords.kind, watchRecords.tmdbId],
-      set: { state, updatedAt: sql`now()` },
+      set: { state, score, updatedAt: sql`now()` },
     });
 };
 

@@ -1,0 +1,160 @@
+{
+  "id": "e8e25b82-d4c3-471a-b62a-3df1aba6912d",
+  "prevId": "b3ccc8e4-96ca-4a33-af8e-07c49ee0017b",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.marking_tallies": {
+      "name": "marking_tallies",
+      "schema": "",
+      "columns": {
+        "viewer_id": {
+          "name": "viewer_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "window_start": {
+          "name": "window_start",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "tally": {
+          "name": "tally",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.watch_records": {
+      "name": "watch_records",
+      "schema": "",
+      "columns": {
+        "viewer_id": {
+          "name": "viewer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "media_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tmdb_id": {
+          "name": "tmdb_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "watch_state",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "score": {
+          "name": "score",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "watch_records_viewer_state_idx": {
+          "name": "watch_records_viewer_state_idx",
+          "columns": [
+            {
+              "expression": "viewer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "state",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "updated_at",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "watch_records_viewer_id_kind_tmdb_id_pk": {
+          "name": "watch_records_viewer_id_kind_tmdb_id_pk",
+          "columns": ["viewer_id", "kind", "tmdb_id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "watch_records_score_matches_state": {
+          "name": "watch_records_score_matches_state",
+          "value": "(\"watch_records\".\"state\" = 'planned' and \"watch_records\".\"score\" is null)\n       or (\"watch_records\".\"state\" = 'watched' and \"watch_records\".\"score\" between 1 and 10)"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.media_kind": {
+      "name": "media_kind",
+      "schema": "public",
+      "values": ["tv", "movie"]
+    },
+    "public.watch_state": {
+      "name": "watch_state",
+      "schema": "public",
+      "values": ["planned", "watched"]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

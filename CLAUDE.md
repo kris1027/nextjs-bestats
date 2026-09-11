@@ -86,22 +86,24 @@ component may import it, and `lib/watch-actions.ts` for the action, and
 nothing else in the module. The queries take a Viewer id and never decide
 whose it is — only the action reads `lib/auth` to find out.
 `answeredWatchLookup` takes the whole answer and comes back with a
-`ViewerLookup` whose `states` of `null` is Unanswered and means no controls,
+`ViewerLookup` whose `markings` of `null` is Unanswered and means no controls,
 whether the database or the sign-in was what did not answer. `lib/watch`
 reads `lib/media` for `Kind` and its guards, never the other way.
 
 A `ViewerLookup` is what a page hands its cards: that answer, and the key of
-the Viewer whose states are in it. One value, because a control given the
-states without the key stays lit for a Viewer who has signed out — its state
+the Viewer whose markings are in it. One value, because a control given the
+markings without the key stays lit for a Viewer who has signed out — its state
 outlives a re-render at the same position — and a missing `key` is not a type
-error. So every `MarkingControl` is keyed on the `viewerKey` of the lookup its
-state came from: `media-card.tsx`, `absent-card.tsx` and the detail page all
-read both halves off one. `lib/viewer-key` makes that key, and is pure for
-the reason `lib/watch.ts` is: `lib/auth.ts` boots Neon Auth and reads
-`next/headers` at import, so a query that reached it for a string could not
-be loaded outside Next at all. Two callers — `answeredWatchLookup` from the
-answer it was handed, `watch-record-list.tsx` from the Viewer `viewer()` gave
-it — and a third is worth looking twice at.
+error. So whatever holds that state is keyed on the `viewerKey` of the lookup
+it came from: `absent-card.tsx` keys its `MarkableCard` and the detail page
+its `MarkingControl`, and both read the two halves off one value.
+`media-card.tsx` takes the same lookup and reads only the markings, because a
+card that draws no control holds no state to unmount. `lib/viewer-key` makes
+that key, and is pure for the reason `lib/watch.ts` is: `lib/auth.ts` boots
+Neon Auth and reads `next/headers` at import, so a query that reached it for a
+string could not be loaded outside Next at all. Two callers —
+`answeredWatchLookup` from the answer it was handed, `watch-record-list.tsx`
+from the Viewer `viewer()` gave it — and a third is worth looking twice at.
 
 `watch-record-list.tsx` is `components/watch/`'s exception: the body of both
 list routes, it reads `viewer()`, the queries and `lib/media` the way any page
@@ -133,6 +135,15 @@ does, since resolving Watch Records against TMDB is a page's job and not
   per Viewer per piece of Media, keyed `(viewerId, kind, tmdbId)` — composite
   because a TMDB id is unique only within a Kind. Unmarking deletes the row.
   — `docs/adr/0007-watchlist-and-watched-are-one-record.md`
+- A Watched record always carries a Score of 1 to 10 and a Planned one never
+  does; the check constraint on `watch_records` is what says so, not the code
+  that writes it. Giving a Score is how a record becomes Watched, so a move
+  back to Planned destroys it. Marking is the detail page's alone — a card
+  shows a Marking and cannot set one — and a card's one star is TMDB's Rating
+  until the Viewer scores the Media, theirs after. `AbsentCard` is the single
+  exception, since Gone Media 404s on the detail page and its card has no link
+  to one, so its Planned button is the only way such a record is ever removed.
+  — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
 - A Watch Record stores nothing from TMDB — no label, no poster path, no
   snapshot. Rendering a list means asking TMDB for each item on it.
   — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
@@ -183,11 +194,22 @@ does, since resolving Watch Records against TMDB is a page's job and not
   there should not be one. Nothing checks any of this, so a new width is
   measured in a browser rather than reasoned about.
   — `docs/adr/0014-the-narrow-header-gives-up-words.md`
-- A control sized by its container asks about its container: `@container` on
-  the wrapper and `@min-[…]` on what stacks, never `sm:`. The marking control
-  has two callers at one viewport — 151px in a grid card, 320px in the detail
-  page's slot — so a viewport breakpoint would split the one that had room.
-  The skeleton mirrors the query, since it holds the height the control takes.
+- A control that two places draw at two widths is two components, not one
+  that adapts. The marking control was one, with a container query on it, and
+  is now `PlannedButton` — which `AbsentCard` and the detail page draw — and
+  the star row, which only the detail page can: ten targets need the 288px
+  that page has at the 320px floor, and a card's control has 116px there.
+  Splitting won because the two differ in what they can do and not only in
+  how wide they are, and the widths are measured in a browser as always.
+  — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
+- Should a control have to adapt after all, it asks its container and never
+  the viewport: `@container` on the wrapper and `@min-[…]` on what stacks,
+  never `sm:`. A card is 151px in a grid at one viewport and 244px at another
+  while the detail page's slot beside it barely moves, so a viewport
+  breakpoint would split the one that had room. Nothing in the repo asks this
+  at present; the rule is here for the next control that has to.
+- Each control's skeleton mirrors its own query, since it holds the height
+  that control takes.
 - A grid's column count and the `sizes` of its images are one decision said in
   two places. Change `grid-cols-*` without changing `sizes` and the markup
   still looks right while every phone fetches a poster far wider than it
@@ -213,6 +235,11 @@ does, since resolving Watch Records against TMDB is a page's job and not
 - Server Actions live in `lib/<module>-actions.ts` beside their module, since a
   `'use server'` file may export only async functions and cannot share a file
   with the rules it calls.
+- A hook any page might want lives in `lib/`, like `lib/use-address.ts`. A
+  hook that belongs to one family of components lives beside them, like
+  `components/watch/use-marking.ts`, which the two marking controls share and
+  nothing outside `components/watch/` can use. Hooks being in two places is
+  that split and not an accident.
 - A form that posts to a Server Action keeps that action as its `action` and
   plain named submit buttons, so it posts before hydration. A client handler
   that has to run first — an optimistic flip — goes on the button's `onClick`

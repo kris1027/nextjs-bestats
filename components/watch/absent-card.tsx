@@ -1,10 +1,11 @@
 import type { JSX } from 'react';
 
 import { MediaPlaceholder } from '@/components/media/media-placeholder';
-import { MarkingControl } from '@/components/watch/marking-control';
+import { CardHead } from '@/components/watch/card-head';
+import { MarkableCard } from '@/components/watch/markable-card';
 import { capitalize } from '@/lib/format';
 import { type Absence, KIND_WORDS, type MediaRef } from '@/lib/media';
-import { stateOf, type ViewerLookup } from '@/lib/watch';
+import { markingOf, type ViewerLookup } from '@/lib/watch';
 
 /** What each absence says. Gone is TMDB's answer; Unanswered may change. */
 const LINES: Record<Absence, string> = {
@@ -16,15 +17,20 @@ const LINES: Record<Absence, string> = {
  * The card for a Watch Record whose Media TMDB gave no Media Item for. A
  * record stores nothing from TMDB, so all the card can name is the Kind and
  * the id, and it says which absence this is. No link: the detail page would
- * only say the same thing. The marking control stays, because unmarking from
- * here is the only way a Viewer can ever remove a Gone record.
+ * only say the same thing, and for Gone Media it answers `notFound()`.
  * — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
  *
- * The card reads its own state and its control's key out of `lookup`, the
- * way a `MediaCard` does: the pair is one value so this card cannot be given
- * one Viewer's state under another's key. Only the lists render it, and a
- * Visitor is sent to sign in before one is drawn, so the key here is always
- * a Viewer's and `states` is never Unanswered — the guard is the same one a
+ * The control stays, because it is the only one a Gone record will ever have.
+ * A card cannot score, so a Gone record that is Watched is removed the way
+ * any card's is: Planned, which drops the Score, then Planned again, which
+ * deletes the row. Nothing else can reach it.
+ * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
+ *
+ * The card reads its own marking and its key out of `lookup`, the way a
+ * `MediaCard` does: the pair is one value so this card cannot be given one
+ * Viewer's markings under another's key. Only the lists render it, and a
+ * Visitor is sent to sign in before one is drawn, so the key here is always a
+ * Viewer's and `markings` is never Unanswered — the guard is the same one a
  * card makes, said here for the type rather than for the reader.
  */
 const AbsentCard = ({
@@ -35,27 +41,36 @@ const AbsentCard = ({
   media: MediaRef;
   answer: Absence;
   lookup: ViewerLookup;
-}): JSX.Element => (
-  <li className='flex flex-col'>
-    <MediaPlaceholder artwork='poster' />
-    <div className='bg-primary px-2.5 py-1.5 text-primary-foreground'>
-      {/* "Show 1399": KIND_WORDS' one spelling of the word, raised in the
-          text itself so a screen reader hears what the eye sees */}
-      <h2 className='truncate font-extrabold text-[13px] leading-[1.2]'>
-        {capitalize(KIND_WORDS[media.kind].one)} {media.id}
-      </h2>
-    </div>
+}): JSX.Element => {
+  // "Show 1399": KIND_WORDS' one spelling of the word, raised in the text
+  // itself so a screen reader hears what the eye sees
+  const label = `${capitalize(KIND_WORDS[media.kind].one)} ${media.id}`;
+  // no href and no Rating: a record stores nothing from TMDB, and there is
+  // nowhere to follow this card to
+  const head = { label, poster: <MediaPlaceholder artwork='poster' /> };
+  const line = (
     <p className='px-2.5 pt-2 text-muted-foreground text-xs'>{LINES[answer]}</p>
-    {lookup.states !== null ? (
-      <div className='px-2.5 pt-2.5'>
-        <MarkingControl
+  );
+
+  return (
+    <li className='flex flex-col'>
+      {lookup.markings !== null ? (
+        <MarkableCard
           key={lookup.viewerKey}
           media={media}
-          state={stateOf(lookup.states, media)}
-        />
-      </div>
-    ) : null}
-  </li>
-);
+          marking={markingOf(lookup.markings, media)}
+          head={head}
+        >
+          {line}
+        </MarkableCard>
+      ) : (
+        <>
+          <CardHead {...head} score={null} />
+          {line}
+        </>
+      )}
+    </li>
+  );
+};
 
 export { AbsentCard };

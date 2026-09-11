@@ -241,8 +241,8 @@ const ListPage = async ({
   const refs = records.map(refOf);
   // in the refs' order, so an answer and its record share an index
   const answers = await mediaItems(refs);
-  // the page's own records are its lookup: every card on it has a state
-  const lookup = { states: toLookup(records), viewerKey };
+  // the page's own records are its lookup: every card on it has a marking
+  const lookup = { markings: toLookup(records), viewerKey };
 
   return (
     <>

@@ -1,5 +1,6 @@
 import { afterEach, expect, test, vi } from 'vitest';
 
+import { MARKING_FIELD } from '@/lib/watch';
 import { mark } from '@/lib/watch-actions';
 
 /**
@@ -44,7 +45,7 @@ const press = (): FormData => {
 
   formData.set('kind', 'tv');
   formData.set('id', '236235');
-  formData.set('state', 'planned');
+  formData.set(MARKING_FIELD, 'planned');
   formData.set('next', '/tv/236235');
 
   return formData;
@@ -107,4 +108,16 @@ test('the press is counted before anything is read or written', async () => {
   expect(queries.tallyMarking).toHaveBeenCalledWith('a-viewer');
   expect(queries.watchLookup).not.toHaveBeenCalled();
   expect(queries.writeWatchRecord).not.toHaveBeenCalled();
+});
+
+test('a marking our own form could not have posted is a throw, not a message', async () => {
+  const tampered = press();
+
+  tampered.set(MARKING_FIELD, '11');
+
+  // thrown rather than returned: every value a button can post is a marking,
+  // so this is a form nobody in the app rendered, and there is nothing to
+  // tell the Visitor that would help them
+  await expect(mark(tampered)).rejects.toThrow('Not a marking: 11');
+  expect(queries.tallyMarking).not.toHaveBeenCalled();
 });

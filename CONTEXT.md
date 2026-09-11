@@ -81,11 +81,12 @@ something.
 _Avoid_: Deleted, removed, missing, 404
 
 **Rating**:
-TMDB's average score for a piece of Media, out of ten. Media nobody has voted
-on has no Rating: TMDB reports a `0`, which is a placeholder standing in for
-an absent score rather than a score of zero, so it is left out the way an
-absent Fact is.
-_Avoid_: Score, stars, vote
+TMDB's average score for a piece of Media, out of ten. Everyone's, and never
+one Viewer's — what a Viewer thinks of a piece of Media is a Score. Media
+nobody has voted on has no Rating: TMDB reports a `0`, which is a placeholder
+standing in for an absent score rather than a score of zero, so it is left out
+the way an absent Fact is.
+_Avoid_: Stars, vote, review
 
 **Artwork**:
 A picture TMDB supplies for a piece of Media — a Poster or a Backdrop.
@@ -109,8 +110,8 @@ _Avoid_: User, account, member, profile
 
 **Watch Record**:
 One Viewer's recorded relationship to one piece of Media. It is in exactly one
-state — Planned or Watched — and a piece of Media a Viewer has said nothing
-about has no Watch Record at all, which is not a third state.
+state — Planned, or Watched with a Score — and a piece of Media a Viewer has
+said nothing about has no Watch Record at all, which is not a third state.
 _Avoid_: Entry, mark, status, tracking
 
 **Planned**:
@@ -118,10 +119,19 @@ The state of a Watch Record for Media a Viewer means to watch.
 _Avoid_: Todo, saved, wishlist, want
 
 **Watched**:
-The state of a Watch Record for Media a Viewer has watched. It replaces Planned
-rather than joining it, because you no longer mean to watch what you have
-watched.
+The state of a Watch Record for Media a Viewer has watched, which always
+carries their Score: watching something and saying what you thought of it are
+one act here, and there is no way to record the first without the second. It
+replaces Planned rather than joining it, because you no longer mean to watch
+what you have watched, and the Score does not survive the move back.
 _Avoid_: Seen, done, finished
+
+**Score**:
+What one Viewer thinks of a piece of Media, in whole stars from 1 to 10. A
+Score is the Viewer's own and TMDB never sees it, which is what separates it
+from a Rating; giving one is what makes a Watch Record Watched, so a Score
+never sits on a Planned record and a Watched record never lacks one.
+_Avoid_: Rating, vote, review, grade
 
 **Watchlist**:
 A Viewer's Planned Watch Records — the Media they mean to watch. Watched Media
@@ -129,8 +139,10 @@ is not on it.
 _Avoid_: Queue, saved, list, favourites
 
 **Mark**:
-To give a piece of Media a Watch Record in a state, Planned or Watched,
-replacing whichever it had. Marking the state a Watch Record already has
-unmarks it, which deletes the record. The verb only: the thing it makes is a
-Watch Record, never "a mark".
+To give a piece of Media a Watch Record — Planned, or Watched at a Score —
+replacing whichever it had. Marking what a Watch Record already says unmarks
+it, which deletes the record: pressing Planned on a Planned record, or a
+Viewer's own Score on a Watched one. The verb only: the thing it makes is a
+Watch Record, never "a mark". What that record says — Planned, or Watched at a
+Score — is its Marking, and that is the only noun the verb lends.
 _Avoid_: Save, add, track, toggle, set

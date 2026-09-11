@@ -1,10 +1,12 @@
 import { sql } from 'drizzle-orm';
 import {
+  check,
   index,
   integer,
   pgEnum,
   pgTable,
   primaryKey,
+  smallint,
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
@@ -41,6 +43,12 @@ export const watchState = pgEnum('watch_state', [
  * `movie/1399` are different Media.
  * — `docs/adr/0007-watchlist-and-watched-are-one-record.md`
  *
+ * A Watched row carries a Score and a Planned row carries none, which the
+ * check constraint below keeps rather than the code that writes it: giving a
+ * Score is what makes a record Watched, so the two columns have two legal
+ * pairs out of the four they can spell.
+ * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
+ *
  * Nothing from TMDB is stored: no label, no poster path, no snapshot.
  * — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
  */
@@ -55,6 +63,10 @@ export const watchRecords = pgTable(
     kind: mediaKind('kind').notNull(),
     tmdbId: integer('tmdb_id').notNull(),
     state: watchState('state').notNull(),
+    // the Viewer's own one to ten, and `null` on a Planned row. A `smallint`
+    // because ten is the largest it will ever hold; the range is the check
+    // constraint's to enforce, since no integer type is 1..10.
+    score: smallint('score'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     // the moment of the last marking, which is what the lists order by — from
     // Postgres's clock, like the default and the upsert, so no two rows are
@@ -75,6 +87,21 @@ export const watchRecords = pgTable(
       table.viewerId,
       table.state,
       table.updatedAt.desc(),
+    ),
+    // the two pairs the domain has, out of the four these columns can spell.
+    // Written as SQL rather than as a rule the writers remember, so a Watched
+    // row without a Score is a rejected statement and never a row a reader
+    // has to interpret.
+    //
+    // `is not null` before the range, and not for tidiness: a check constraint
+    // passes on NULL as well as on true, and `null between 1 and 10` is NULL,
+    // so without it the one row this constraint exists to forbid — Watched,
+    // no Score — is the one row it would have let through.
+    check(
+      'watch_records_score_matches_state',
+      sql`(${table.state} = 'planned' and ${table.score} is null)
+       or (${table.state} = 'watched' and ${table.score} is not null
+           and ${table.score} between 1 and 10)`,
     ),
   ],
 );

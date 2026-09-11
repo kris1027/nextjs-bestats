@@ -6,14 +6,12 @@ import type { MediaItem } from '@/lib/media';
 import { type ViewerLookup, watchKey } from '@/lib/watch';
 
 /**
- * `lookup` passes straight through: each card reads its own state from it,
- * and the Viewer those states belong to travels on it.
+ * `lookup` passes straight through: each card reads its own Score from it.
  *
  * A card is keyed on `watchKey` — the Kind and the id — and never the id
  * alone. A TMDB id is unique only within a Kind, so on `/search`, where the
  * two Kinds swap under the same tree position, a Show and a Movie sharing an
- * id would share a key: React would keep the card, and its marking control
- * would keep a state seeded for the other Kind.
+ * id would share a key and React would keep one card for both.
  */
 const MediaList = ({
   media,
