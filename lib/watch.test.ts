@@ -39,17 +39,18 @@ test('a different Score rescores rather than unmarks', () => {
 test('every marking is reachable from every other in one press', () => {
   const markings = [PLANNED, ...SCORES.map(watchedAt)];
 
-  for (const current of [null, ...markings]) {
-    for (const pressed of markings) {
-      expect(marked(current, pressed)).toEqual(
-        current !== null &&
-          current.state === pressed.state &&
-          markingValue(current) === markingValue(pressed)
-          ? null
-          : pressed,
-      );
-    }
-  }
+  // Media with no Watch Record agrees with nothing, so all eleven mark it
+  for (const pressed of markings)
+    expect(marked(null, pressed)).toEqual(pressed);
+
+  // and a record is unmarked by its own marking and no other. Which one that
+  // is, is its place in the list — restating `markingsAgree` as the
+  // expectation would be an oracle that cannot disagree with the code.
+  markings.forEach((current, held) => {
+    markings.forEach((pressed, index) => {
+      expect(marked(current, pressed)).toEqual(held === index ? null : pressed);
+    });
+  });
 });
 
 test('isScore admits one to ten whole and nothing else', () => {
