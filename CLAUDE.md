@@ -232,6 +232,11 @@ does, since resolving Watch Records against TMDB is a page's job and not
 - Server Actions live in `lib/<module>-actions.ts` beside their module, since a
   `'use server'` file may export only async functions and cannot share a file
   with the rules it calls.
+- A hook any page might want lives in `lib/`, like `lib/use-address.ts`. A
+  hook that belongs to one family of components lives beside them, like
+  `components/watch/use-marking.ts`, which the two marking controls share and
+  nothing outside `components/watch/` can use. Hooks being in two places is
+  that split and not an accident.
 - A form that posts to a Server Action keeps that action as its `action` and
   plain named submit buttons, so it posts before hydration. A client handler
   that has to run first — an optimistic flip — goes on the button's `onClick`
