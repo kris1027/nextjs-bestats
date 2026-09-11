@@ -6,8 +6,8 @@ import type { MediaItem } from '@/lib/media';
 import { type ViewerLookup, watchKey } from '@/lib/watch';
 
 /**
- * `lookup` passes straight through: each card reads its own state from it,
- * and the Viewer those states belong to travels on it.
+ * `lookup` passes straight through: each card reads its own marking from it,
+ * and the Viewer those markings belong to travels on it.
  *
  * A card is keyed on `watchKey` — the Kind and the id — and never the id
  * alone. A TMDB id is unique only within a Kind, so on `/search`, where the

@@ -86,13 +86,13 @@ component may import it, and `lib/watch-actions.ts` for the action, and
 nothing else in the module. The queries take a Viewer id and never decide
 whose it is — only the action reads `lib/auth` to find out.
 `answeredWatchLookup` takes the whole answer and comes back with a
-`ViewerLookup` whose `states` of `null` is Unanswered and means no controls,
+`ViewerLookup` whose `markings` of `null` is Unanswered and means no controls,
 whether the database or the sign-in was what did not answer. `lib/watch`
 reads `lib/media` for `Kind` and its guards, never the other way.
 
 A `ViewerLookup` is what a page hands its cards: that answer, and the key of
-the Viewer whose states are in it. One value, because a control given the
-states without the key stays lit for a Viewer who has signed out — its state
+the Viewer whose markings are in it. One value, because a control given the
+markings without the key stays lit for a Viewer who has signed out — its state
 outlives a re-render at the same position — and a missing `key` is not a type
 error. So whatever holds that state is keyed on the `viewerKey` of the lookup
 it came from: the cards key their `MarkableCard` and the detail page its

@@ -30,7 +30,7 @@ const LINES: Record<Absence, string> = {
  * `MediaCard` does: the pair is one value so this card cannot be given one
  * Viewer's markings under another's key. Only the lists render it, and a
  * Visitor is sent to sign in before one is drawn, so the key here is always a
- * Viewer's and `states` is never Unanswered — the guard is the same one a
+ * Viewer's and `markings` is never Unanswered — the guard is the same one a
  * card makes, said here for the type rather than for the reader.
  */
 const AbsentCard = ({
@@ -52,11 +52,11 @@ const AbsentCard = ({
 
   return (
     <li className='flex flex-col'>
-      {lookup.states !== null ? (
+      {lookup.markings !== null ? (
         <MarkableCard
           key={lookup.viewerKey}
           media={media}
-          marking={markingOf(lookup.states, media)}
+          marking={markingOf(lookup.markings, media)}
           label={label}
           poster={poster}
         >

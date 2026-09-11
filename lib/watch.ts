@@ -190,7 +190,7 @@ export type WatchLookup = ReadonlyMap<string, Marking>;
  */
 export type ViewerLookup = {
   /** `null` is Unanswered — the database did not say, so no controls. */
-  states: WatchLookup | null;
+  markings: WatchLookup | null;
   viewerKey: string;
 };
 

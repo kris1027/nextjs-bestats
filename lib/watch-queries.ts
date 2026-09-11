@@ -76,22 +76,22 @@ export const watchLookup = async (
  * cannot know whose it is has nothing to press. Said here once rather than
  * as a ternary on every page.
  *
- * The key comes back with the states because this is the one place holding
+ * The key comes back with the markings because this is the one place holding
  * the answer both are read from. A page that pairs them itself is pairing
  * two values it fetched apart, and a mismatched pair is not a type error: it
- * renders one Viewer's states under another's key, which is the sign-out bug
+ * renders one Viewer's markings under another's key, which is the sign-out bug
  * `viewerKey` exists to stop.
  */
 export const answeredWatchLookup = async (
   asked: ViewerAnswer,
   refs: readonly MediaRef[],
 ): Promise<ViewerLookup> => ({
-  states: await answeredStates(asked, refs),
+  markings: await answeredMarkings(asked, refs),
   viewerKey: viewerKeyOf(asked),
 });
 
-/** The states half of `answeredWatchLookup`, whose `null` is Unanswered. */
-const answeredStates = async (
+/** The markings half of `answeredWatchLookup`, whose `null` is Unanswered. */
+const answeredMarkings = async (
   asked: ViewerAnswer,
   refs: readonly MediaRef[],
 ): Promise<WatchLookup | null> => {

@@ -9,7 +9,7 @@ import { markingOf, type ViewerLookup } from '@/lib/watch';
 
 /**
  * `lookup` is the page's one query for every card on it, and the card reads
- * its own marking out of it. `states` is `null` for Unanswered — the database
+ * its own marking out of it. `markings` is `null` for Unanswered — the database
  * did not say — and the card draws its head alone, with no control and no
  * Score, rather than one claiming nothing is marked. A signed-out Visitor's
  * page passes an empty lookup instead, which is a real absence: no Viewer, so
@@ -49,11 +49,11 @@ const MediaCard = ({
 
   return (
     <li className='flex flex-col transition duration-150 ease-out hover:-translate-y-1.5 hover:shadow-lg focus-within:-translate-y-1.5 focus-within:ring-2 focus-within:ring-ring'>
-      {lookup.states !== null ? (
+      {lookup.markings !== null ? (
         <MarkableCard
           key={lookup.viewerKey}
           media={item}
-          marking={markingOf(lookup.states, item)}
+          marking={markingOf(lookup.markings, item)}
           label={item.label}
           poster={poster}
           href={href}

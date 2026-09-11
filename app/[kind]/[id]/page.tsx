@@ -74,13 +74,13 @@ const Control = async ({
   const asked = await answeredViewer();
   const lookup = await answeredWatchLookup(asked, [media]);
 
-  if (lookup.states === null) return null;
+  if (lookup.markings === null) return null;
 
   return (
     <MarkingControl
       key={lookup.viewerKey}
       media={media}
-      marking={markingOf(lookup.states, media)}
+      marking={markingOf(lookup.markings, media)}
     />
   );
 };

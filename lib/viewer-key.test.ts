@@ -34,7 +34,7 @@ test('signing out changes the key, which is what unmounts the control', () => {
 });
 
 // the collision the bare id allowed: a Viewer with this id and every Visitor
-// keyed alike, so signing out left that Viewer's states lit
+// keyed alike, so signing out left that Viewer's markings lit
 test('a Viewer whose id is the Visitor key does not take it', () => {
   expect(viewerKey({ id: 'visitor' })).not.toBe(
     viewerKeyOf({ answer: 'visitor' }),

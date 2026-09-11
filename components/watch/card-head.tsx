@@ -69,7 +69,7 @@ const CardHead = ({
 
 /**
  * The one star-and-number a title bar holds. The label says which of the two
- * it is, since nothing about the mark itself does.
+ * it is, since nothing about the number itself does.
  */
 const Badge = ({
   label,
