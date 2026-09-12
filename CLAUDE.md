@@ -25,8 +25,7 @@ staging area, so it lints the whole repo, and it runs both projects.
 Formatting, quote style, import order, `no-explicit-any` and strictness live
 in `biome.json` and `tsconfig.json`. Don't restate them; change the config.
 `biome.json` excludes `drizzle/`: drizzle-kit regenerates those files
-wholesale, so formatting them means a diff on every `db:generate`. The
-hand-written migrations in there follow the same rules as the rest.
+wholesale, so formatting them means a diff on every `db:generate`.
 
 ## Tests
 
@@ -167,7 +166,10 @@ does, since resolving Watch Records against TMDB is a page's job and not
   — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
 - Environment variables come from Neon, not from typing: `neon checkout main`
   writes every one but `NEON_AUTH_COOKIE_SECRET`, which `.env.example` names.
-  There is one branch, so `main` is the only thing to check out.
+  There is one branch, so `main` is the only thing to check out. That secret
+  cannot be missing — `createNeonAuth` asserts it at import, so the whole app
+  stops there, public half included — while the base URL is not asserted at
+  all, so an unset one is an outage Unanswered draws.
   — `docs/adr/0013-local-development-shares-productions-branch.md`
 - Never edit or commit `.env.local`.
 - A Viewer cannot delete themselves, and `/settings` went with the button that
@@ -195,7 +197,6 @@ does, since resolving Watch Records against TMDB is a page's job and not
   cache is `lib/tmdb`'s and by directive, never a fetch option, and a theme
   preference can never be a cookie.
   — `docs/adr/0010-the-shell-is-prerendered.md`
-
 - The layout is drawn for a 390px screen and must not overflow a 320px one:
   nothing scrolls sideways there, nothing is clipped, and every control can
   still be pressed. The floor answers for content a Viewer will actually
