@@ -9,23 +9,17 @@ import {
 } from '@neondatabase/auth/server';
 
 /**
- * Neon's Managed Better Auth, and the only module that sees the session it
- * hands back. Viewers live in the `neon_auth` schema of this same database,
- * which is what lets `watch_records.viewer_id` be a real foreign key rather
- * than an id we hope still refers to someone.
- * — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
+ * The two keys, read once for both instances below — two constructions of one
+ * upstream, not two owners of it. They are read differently on purpose, and
+ * the `?? ''` on each means a different thing.
  *
- * `viewer()` below is where the glossary's word takes over, so `app/` and
- * `components/` never read a `user` of their own.
+ * Nothing validates the base URL, so an unset one fails later, inside the
+ * request, and comes back as Unanswered — which is right, since an auth host
+ * that cannot be reached is an outage and Unanswered is how this module draws
+ * one. The public half of the app — Trending, search, detail pages, none of
+ * which know a Viewer exists — goes on rendering.
  *
- * The two keys are read differently on purpose, and the `?? ''` on each means
- * a different thing. Nothing validates `baseUrl`, so an unset one fails later,
- * inside the request, and comes back as Unanswered — which is right, since an
- * auth host that cannot be reached is an outage and Unanswered is how this
- * module draws one. The public half of the app — Trending, search, detail
- * pages, none of which know a Viewer exists — goes on rendering.
- *
- * `cookies.secret` is not lenient and cannot be: `createNeonAuth` asserts it
+ * The cookie secret is not lenient and cannot be: `createNeonAuth` asserts it
  * at import, so an unset one takes the whole app down there. That is the
  * better failure. It is the one variable `neon checkout main` does not write,
  * so it is the one a fresh clone is missing, and stopping with a message that
@@ -34,9 +28,22 @@ import {
  * the package's message is what a developer reads.
  * — `docs/adr/0013-local-development-shares-productions-branch.md`
  */
+const baseUrl = process.env.NEON_AUTH_BASE_URL ?? '';
+const cookieSecret = process.env.NEON_AUTH_COOKIE_SECRET ?? '';
+
+/**
+ * Neon's Managed Better Auth, and the only module that sees the session it
+ * hands back. Viewers live in the `neon_auth` schema of this same database,
+ * which is what lets `watch_records.viewer_id` be a real foreign key rather
+ * than an id we hope still refers to someone.
+ * — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
+ *
+ * `viewer()` below is where the glossary's word takes over, so `app/` and
+ * `components/` never read a `user` of their own.
+ */
 export const auth = createNeonAuth({
-  baseUrl: process.env.NEON_AUTH_BASE_URL ?? '',
-  cookies: { secret: process.env.NEON_AUTH_COOKIE_SECRET ?? '' },
+  baseUrl,
+  cookies: { secret: cookieSecret },
 });
 
 /**
@@ -56,8 +63,8 @@ export const auth = createNeonAuth({
  * cookie is minted and this instance never mints one.
  */
 const reader = createAuthServer({
-  baseUrl: process.env.NEON_AUTH_BASE_URL ?? '',
-  cookieSecret: process.env.NEON_AUTH_COOKIE_SECRET ?? '',
+  baseUrl,
+  cookieSecret,
   // `createNextRequestContext` from `@neondatabase/auth/next/server`, copied
   // line for line and then given the one `setCookie` this module exists for:
   // it reads request cookies off the header store, and wants `cookies()` only
