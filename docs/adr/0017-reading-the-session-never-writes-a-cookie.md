@@ -86,11 +86,22 @@ hundred seconds every page load already goes upstream — about 800ms against
 200ms warm, in development — and this decision neither adds that cost nor
 removes it. It only makes the reply get parsed.
 
-**A Viewer's cookie stops being slid forward by reading pages.** It is still
-extended by signing in and by the actions, which write. A Viewer who only ever
-read pages would be signed out at seven days from issue rather than kept alive
-indefinitely, which is what already happens today, since the write that would
-have extended it is the one that throws.
+**A Viewer's cookie stops being slid forward at all**, and not only by reading
+pages. The sign-in exchange extends it; nothing else does. `signOut` clears it
+and `signIn.social` sets only the challenge cookie, and `mark` — the one other
+Server Action that asks who a request belongs to — asks `answeredViewer`, so
+it reads through the reader exactly as a render does.
+
+That is deliberate and not an oversight. `answeredViewer` and `viewer` are the
+only two doors into the session `app/`, `components/` and the actions have,
+and a Server Action handed a third would make the refresh land or not depending
+on which door was opened first within a request, since `askViewer` is `cache()`d
+and an action's reply re-renders the page that called it. One door that never
+writes is worth more than a refresh that happens on some requests.
+
+So a Viewer who only ever read pages is signed out at seven days from issue
+rather than kept alive indefinitely — which is what already happens today,
+since the write that would have extended it is the one that throws.
 
 **Nothing automated can catch a regression here.** `lib/auth.ts` boots Neon
 Auth and reads `next/headers` at import, so Vitest cannot load it — the same

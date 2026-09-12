@@ -188,8 +188,10 @@ does, since resolving Watch Records against TMDB is a page's job and not
   method a `setCookie` of `cookieStore.set`, which Next refuses while a page
   renders, so a render that asked `auth` would lose the Viewer's half of the
   app on every session refresh — once a day, silently, caught as Unanswered.
-  A render asks `reader`, whose `setCookie` does nothing; only a Server Action
-  and the sign-in exchange may write.
+  A render asks `reader`, whose `setCookie` does nothing, and so does the
+  marking action, which asks `answeredViewer` the way a render does. Only
+  `lib/auth-actions.ts` and the sign-in exchange hold `auth` and write, so the
+  sign-in exchange is the only thing that still extends a session.
   — `docs/adr/0017-reading-the-session-never-writes-a-cookie.md`
 - `cacheComponents` is on, so a page's request-time reads — `cookies()`,
   `params`, `searchParams`, a database query — sit inside a Suspense boundary
