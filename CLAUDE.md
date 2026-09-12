@@ -78,7 +78,13 @@ Visitor or Unanswered, for the header and the public pages, which leave the
 Viewer's half out when the sign-in could not be checked; `viewer()` throws on
 Unanswered, for the pages that can neither redirect nor render without
 knowing. `lib/media` never learns that Viewers exist.
+
+It owns that instance twice over, and the two are not interchangeable. `auth`
+writes cookies and is for `proxy.ts`, the API route and `lib/auth-actions.ts`;
+`reader` cannot write and is what `askViewer` reads through. Merging them
+breaks signing in and out with no type error and no failing test.
 — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
+— `docs/adr/0017-reading-the-session-never-writes-a-cookie.md`
 
 `lib/watch` holds Watch Records. `lib/watch.ts` is its pure half, so it never
 imports `lib/db`, whose import throws without `DATABASE_URL`; a client
@@ -175,6 +181,13 @@ does, since resolving Watch Records against TMDB is a page's job and not
   `/signed-in` alone trades a verifier for a session cookie, and neither it nor
   the proxy reads a Viewer.
   — `docs/adr/0011-a-sign-in-completes-at-one-route.md`
+- Reading the session never writes a cookie. Neon's adapter hands every server
+  method a `setCookie` of `cookieStore.set`, which Next refuses while a page
+  renders, so a render that asked `auth` would lose the Viewer's half of the
+  app on every session refresh — once a day, silently, caught as Unanswered.
+  A render asks `reader`, whose `setCookie` does nothing; only a Server Action
+  and the sign-in exchange may write.
+  — `docs/adr/0017-reading-the-session-never-writes-a-cookie.md`
 - `cacheComponents` is on, so a page's request-time reads — `cookies()`,
   `params`, `searchParams`, a database query — sit inside a Suspense boundary
   the page draws itself, with a skeleton the height of what replaces it as the
