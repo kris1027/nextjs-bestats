@@ -34,10 +34,10 @@ because the write throws.
 
 ## Why there are two instances and not one
 
-`auth` stays exactly as it was, because three of its four callers must write.
+`auth` stays exactly as it was, because two of its four callers must write.
 `proxy.ts` and `app/api/auth/[...path]` take the raw request and never touch
-the context at all, but `lib/auth-actions.ts` does: `signOut` has to clear the
-session cookie, and `signIn.social` has to set the session challenge cookie
+the context at all, but both of `lib/auth-actions.ts`'s do: `signOut` has to
+clear the session cookie, and `signIn.social` has to set the challenge cookie
 that `processAuthMiddleware` looks for before it will exchange a verifier. An
 app whose only auth instance dropped cookie writes could not sign anyone in or
 out, and would say so with no type error and no failing test — the sign-in
