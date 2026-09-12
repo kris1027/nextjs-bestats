@@ -58,8 +58,12 @@ export const auth = createNeonAuth({
 const reader = createAuthServer({
   baseUrl: process.env.NEON_AUTH_BASE_URL ?? '',
   cookieSecret: process.env.NEON_AUTH_COOKIE_SECRET ?? '',
-  // the adapter's own context, less the cookie store: it reads request cookies
-  // off the header store, and wants `cookies()` only so that it can `set`
+  // `createNextRequestContext` from `@neondatabase/auth/next/server`, copied
+  // line for line and then given the one `setCookie` this module exists for:
+  // it reads request cookies off the header store, and wants `cookies()` only
+  // so that it can `set`. Everything else here is the adapter's, the `origin`
+  // walk included, so an upgrade is diffed against that function rather than
+  // reasoned about — nothing in the types or the tests sees it drift.
   context: async (): Promise<RequestContext> => {
     const headerStore = await headers();
 
