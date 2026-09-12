@@ -78,7 +78,13 @@ Visitor or Unanswered, for the header and the public pages, which leave the
 Viewer's half out when the sign-in could not be checked; `viewer()` throws on
 Unanswered, for the pages that can neither redirect nor render without
 knowing. `lib/media` never learns that Viewers exist.
+
+It owns that instance twice over, and the two are not interchangeable. `auth`
+writes cookies and is for `proxy.ts`, the API route and `lib/auth-actions.ts`;
+`reader` cannot write and is what `askViewer` reads through. Merging them
+breaks signing in and out with no type error and no failing test.
 — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
+— `docs/adr/0017-reading-the-session-never-writes-a-cookie.md`
 
 `lib/watch` holds Watch Records. `lib/watch.ts` is its pure half, so it never
 imports `lib/db`, whose import throws without `DATABASE_URL`; a client
@@ -161,7 +167,10 @@ does, since resolving Watch Records against TMDB is a page's job and not
   — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
 - Environment variables come from Neon, not from typing: `neon checkout main`
   writes every one but `NEON_AUTH_COOKIE_SECRET`, which `.env.example` names.
-  There is one branch, so `main` is the only thing to check out.
+  There is one branch, so `main` is the only thing to check out. That secret
+  cannot be missing — `createNeonAuth` asserts it at import, so the whole app
+  stops there, public half included — while the base URL is not asserted at
+  all, so an unset one is an outage Unanswered draws.
   — `docs/adr/0013-local-development-shares-productions-branch.md`
 - Never edit or commit `.env.local`.
 - A Viewer cannot delete themselves, and `/settings` went with the button that
@@ -175,6 +184,15 @@ does, since resolving Watch Records against TMDB is a page's job and not
   `/signed-in` alone trades a verifier for a session cookie, and neither it nor
   the proxy reads a Viewer.
   — `docs/adr/0011-a-sign-in-completes-at-one-route.md`
+- Reading the session never writes a cookie. Neon's adapter hands every server
+  method a `setCookie` of `cookieStore.set`, which Next refuses while a page
+  renders, so a render that asked `auth` would lose the Viewer's half of the
+  app on every session refresh — once a day, silently, caught as Unanswered.
+  A render asks `reader`, whose `setCookie` does nothing, and so does the
+  marking action, which asks `answeredViewer` the way a render does. Only
+  `lib/auth-actions.ts` and the sign-in exchange hold `auth` and write, so the
+  sign-in exchange is the only thing that still extends a session.
+  — `docs/adr/0017-reading-the-session-never-writes-a-cookie.md`
 - `cacheComponents` is on, so a page's request-time reads — `cookies()`,
   `params`, `searchParams`, a database query — sit inside a Suspense boundary
   the page draws itself, with a skeleton the height of what replaces it as the
@@ -182,7 +200,6 @@ does, since resolving Watch Records against TMDB is a page's job and not
   cache is `lib/tmdb`'s and by directive, never a fetch option, and a theme
   preference can never be a cookie.
   — `docs/adr/0010-the-shell-is-prerendered.md`
-
 - The layout is drawn for a 390px screen and must not overflow a 320px one:
   nothing scrolls sideways there, nothing is clipped, and every control can
   still be pressed. The floor answers for content a Viewer will actually
