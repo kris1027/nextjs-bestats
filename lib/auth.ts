@@ -1,7 +1,12 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { cache } from 'react';
 
 import { createNeonAuth } from '@neondatabase/auth/next/server';
+import {
+  createAuthServer,
+  extractNeonAuthCookies,
+  type RequestContext,
+} from '@neondatabase/auth/server';
 
 /**
  * Neon's Managed Better Auth, and the only module that sees the session it
@@ -32,6 +37,46 @@ import { createNeonAuth } from '@neondatabase/auth/next/server';
 export const auth = createNeonAuth({
   baseUrl: process.env.NEON_AUTH_BASE_URL ?? '',
   cookies: { secret: process.env.NEON_AUTH_COOKIE_SECRET ?? '' },
+});
+
+/**
+ * The same upstream, read through a context that cannot write. Neon's Next
+ * adapter gives every server method a `setCookie` of `cookieStore.set`, which
+ * Next refuses while a page renders — so a session refresh, the one reply that
+ * carries a `Set-Cookie`, took the Viewer's half of the app down once a day
+ * until this existed.
+ * — `docs/adr/0017-reading-the-session-never-writes-a-cookie.md`
+ *
+ * `auth` above keeps its writing context and every caller that needs one:
+ * `signOut` clears the session cookie and `signIn.social` sets the challenge
+ * cookie the verifier exchange looks for, so one instance for both jobs would
+ * stop sign-in completing with nothing to show for it.
+ *
+ * No `sessionDataTtl`, because that number is read when the `session_data`
+ * cookie is minted and this instance never mints one.
+ */
+const reader = createAuthServer({
+  baseUrl: process.env.NEON_AUTH_BASE_URL ?? '',
+  cookieSecret: process.env.NEON_AUTH_COOKIE_SECRET ?? '',
+  // the adapter's own context, less the cookie store: it reads request cookies
+  // off the header store, and wants `cookies()` only so that it can `set`
+  context: async (): Promise<RequestContext> => {
+    const headerStore = await headers();
+
+    return {
+      getCookies: () => extractNeonAuthCookies(headerStore),
+      // Silent: a dropped refresh is this decision rather than a failure, and
+      // it costs the Viewer nothing — the refresh keeps the same token and
+      // only extends `expiresAt`, so the cookie the browser holds stays good.
+      setCookie: () => {},
+      getHeader: (name) => headerStore.get(name) ?? null,
+      getOrigin: () =>
+        headerStore.get('origin') ||
+        headerStore.get('referer')?.split('/').slice(0, 3).join('/') ||
+        '',
+      getFramework: () => 'nextjs',
+    };
+  },
 });
 
 /** A Viewer, as much of one as anything outside this module needs. */
@@ -70,15 +115,15 @@ const logUnanswered = (reason: unknown): void => {
  * an answer about this request's cookie, and that answer is "a Visitor".
  */
 const askViewer = cache(async (): Promise<ViewerAnswer> => {
-  // Outside the try, and before Neon's wrapper reads the same cookies: while
-  // a route is being prerendered this promise hangs and then rejects, which
-  // is how the renderer learns to take the Suspense fallback here. Neon's
-  // wrapper catches that rejection itself and goes upstream instead, and a
-  // catch of ours would log a build as an outage.
+  // Outside the try, and before the reader reads the request at all: while a
+  // route is being prerendered this promise hangs and then rejects, which is
+  // how the renderer learns to take the Suspense fallback here. The reader's
+  // own `headers()` would reject inside the try instead, with nothing between
+  // it and us to catch it, and a catch of ours would log a build as an outage.
   await cookies();
 
   try {
-    const { data: session, error } = await auth.getSession();
+    const { data: session, error } = await reader.getSession();
 
     if (error && error.status >= 500) {
       logUnanswered(error);
