@@ -13,10 +13,21 @@ import { createNeonAuth } from '@neondatabase/auth/next/server';
  * `viewer()` below is where the glossary's word takes over, so `app/` and
  * `components/` never read a `user` of their own.
  *
- * Configuration is read leniently rather than asserted, because this module is
- * reached from the root layout. Throwing on a missing key would take the
- * public half of the app — Trending, search, detail pages, none of which know
- * a Viewer exists — down with the configuration of sign-in.
+ * The two keys are read differently on purpose, and the `?? ''` on each means
+ * a different thing. Nothing validates `baseUrl`, so an unset one fails later,
+ * inside the request, and comes back as Unanswered — which is right, since an
+ * auth host that cannot be reached is an outage and Unanswered is how this
+ * module draws one. The public half of the app — Trending, search, detail
+ * pages, none of which know a Viewer exists — goes on rendering.
+ *
+ * `cookies.secret` is not lenient and cannot be: `createNeonAuth` asserts it
+ * at import, so an unset one takes the whole app down there. That is the
+ * better failure. It is the one variable `neon checkout main` does not write,
+ * so it is the one a fresh clone is missing, and stopping with a message that
+ * names it beats serving an app nobody can sign in to. The `?? ''` is
+ * delegation rather than lenience — it hands the assertion to the package so
+ * the package's message is what a developer reads.
+ * — `docs/adr/0013-local-development-shares-productions-branch.md`
  */
 export const auth = createNeonAuth({
   baseUrl: process.env.NEON_AUTH_BASE_URL ?? '',
