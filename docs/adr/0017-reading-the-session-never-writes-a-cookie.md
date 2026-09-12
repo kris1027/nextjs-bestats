@@ -81,10 +81,18 @@ before the reply is parsed, so there is nothing to answer with.
 
 **The session-data cache is written by the sign-in exchange and nothing else,
 and that was already true.** Neon mints `session_data` only from a reply
-carrying the session token, so a render never minted one. Past its three
-hundred seconds every page load already goes upstream — about 800ms against
-200ms warm, in development — and this decision neither adds that cost nor
-removes it. It only makes the reply get parsed.
+carrying the session token, so a render never kept one. Past its three hundred
+seconds every page load already goes upstream — about 800ms against 200ms warm,
+in development — and this decision neither adds that cost nor removes it.
+
+**It does add a cost of its own, on the one render a day that meets a refresh.**
+The refusal used to escape before Neon's mint block; a `setCookie` that does
+nothing lets `getSession` reach it, and `mintSessionDataFromResponse` fetches
+the session a second time to sign a `session_data` cookie that the same no-op
+then drops. So that render makes two upstream calls where it used to make one,
+and keeps neither cookie. Worth knowing before anyone reads a slow daily render
+as a new bug; worth paying, because the alternative is the one it replaces —
+the Viewer's half of the app going blank.
 
 **A Viewer's cookie stops being slid forward at all**, and not only by reading
 pages. The sign-in exchange extends it; nothing else does. `signOut` clears it

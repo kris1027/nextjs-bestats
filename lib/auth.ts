@@ -59,8 +59,10 @@ export const auth = createNeonAuth({
  * cookie the verifier exchange looks for, so one instance for both jobs would
  * stop sign-in completing with nothing to show for it.
  *
- * No `sessionDataTtl`, because that number is read when the `session_data`
- * cookie is minted and this instance never mints one.
+ * No `sessionDataTtl`, because the `session_data` cookie this does mint — on a
+ * refresh reply, the only kind that carries a session token — goes straight to
+ * a `setCookie` that drops it. The number would set the expiry of a cookie no
+ * browser ever receives.
  */
 const reader = createAuthServer({
   baseUrl,
@@ -76,9 +78,11 @@ const reader = createAuthServer({
 
     return {
       getCookies: () => extractNeonAuthCookies(headerStore),
-      // Silent: a dropped refresh is this decision rather than a failure, and
-      // it costs the Viewer nothing — the refresh keeps the same token and
-      // only extends `expiresAt`, so the cookie the browser holds stays good.
+      // Silent: a dropped refresh is this decision rather than a failure. The
+      // refresh keeps the same token and only extends `expiresAt`, so the
+      // cookie the browser holds stays good. It is not free, though: letting
+      // `getSession` past this point lets Neon mint `session_data`, which goes
+      // upstream a second time for a cookie this then drops as well.
       setCookie: () => {},
       getHeader: (name) => headerStore.get(name) ?? null,
       getOrigin: () =>
