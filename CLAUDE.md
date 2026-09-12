@@ -25,7 +25,8 @@ staging area, so it lints the whole repo, and it runs both projects.
 Formatting, quote style, import order, `no-explicit-any` and strictness live
 in `biome.json` and `tsconfig.json`. Don't restate them; change the config.
 `biome.json` excludes `drizzle/`: drizzle-kit regenerates those files
-wholesale, so formatting them means a diff on every `db:generate`.
+wholesale, so formatting them means a diff on every `db:generate`. The
+hand-written migrations in there follow the same rules as the rest.
 
 ## Tests
 
