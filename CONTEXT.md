@@ -33,8 +33,15 @@ though TMDB declares it only on Trending results, so elsewhere the caller
 carries it.
 _Avoid_: Type, category, format
 
+**Season**:
+A numbered run of a Show's Episodes, in the order they are meant to be
+watched. TMDB keeps a Show's specials as a season too, numbered 0; they belong
+to no run, so they follow the seasons that do and never decide which Episode
+comes next.
+_Avoid_: Series, volume, part
+
 **Episode**:
-One instalment of a Show, numbered within one of its seasons. Not Media: a
+One instalment of a Show, numbered within one of its Seasons. Not Media: a
 Viewer records watching an Episode, and how far a Viewer has got through a
 Show is read off the Episodes they have watched rather than recorded about the
 Show itself.
