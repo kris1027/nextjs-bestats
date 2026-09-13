@@ -57,6 +57,12 @@ What a piece of Media's detail page shows. Shows and Movies reach it as the
 same shape, so the page never learns which Kind it is rendering.
 _Avoid_: Full media, page data
 
+**Listing**:
+What a row in a list of Seasons or Episodes shows: the number, the name and its
+Facts, enough to follow the row to its page. Not a Media Item, which is what a
+card shows, since neither a Season nor an Episode is Media on a card.
+_Avoid_: Item, entry, row
+
 **Fact**:
 One short, finished statement about a piece of Media, a Season or an Episode —
 its release, its length, how many seasons it ran. Facts are the only part of
