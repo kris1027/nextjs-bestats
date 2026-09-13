@@ -153,6 +153,11 @@ export type ShowName = { id: number; label: string };
  * does: its number, its name and its Facts, formatted and possibly none, the
  * way a detail page's are. One type because the two lists are one shape. Not
  * an Item: a Media Item is what a card shows, and neither is Media on a card.
+ *
+ * A listed date is bare where a detail page's is labelled — "February 17,
+ * 2022" in a row, "Air date: February 17, 2022" on the Episode's page. A row
+ * puts the date beside the name it belongs to, which is all a label would
+ * say; a detail page's Facts stand in a row of their own, where it is not.
  */
 export type Listing = { number: number; label: string; facts: string[] };
 
