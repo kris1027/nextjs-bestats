@@ -72,7 +72,7 @@ const DetailFrameSkeleton = ({
       aria-hidden='true'
       className='relative -mt-[calc(var(--backdrop-h)/3)] grid gap-8 px-4 pb-8 sm:grid-cols-[208px_1fr] sm:px-8 lg:grid-cols-[260px_1fr]'
     >
-      <div className='w-42 sm:w-52 lg:w-65'>
+      <div className='w-42 self-start sm:w-52 lg:w-65'>
         <div className='aspect-2/3 animate-pulse bg-muted' />
       </div>
       <div className='flex flex-col gap-4 sm:pt-[calc(var(--backdrop-h)/3+1rem)]'>

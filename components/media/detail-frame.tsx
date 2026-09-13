@@ -58,8 +58,10 @@ const DetailFrame = ({
         that said `px-8` at every width: 64px of a 390px screen, spent on
         margin, in the page a shared link lands on. */}
     <div className='relative -mt-[calc(var(--backdrop-h)/3)] grid gap-8 px-4 pb-8 sm:grid-cols-[208px_1fr] sm:px-8 lg:grid-cols-[260px_1fr]'>
-      {/* the slot owns the poster's size, so both branches match */}
-      <div className='w-42 shadow-lg sm:w-52 lg:w-65'>
+      {/* the slot owns the poster's size, so both branches match; self-start
+          because a grid item stretches to its row, and beside a Show's
+          seasons the row is far taller than the poster */}
+      <div className='w-42 self-start shadow-lg sm:w-52 lg:w-65'>
         {posterUrl ? (
           <Image
             src={posterUrl}
