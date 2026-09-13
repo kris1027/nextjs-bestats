@@ -149,13 +149,12 @@ export type EpisodeRef = { showId: number; season: number; episode: number };
 export type ShowName = { id: number; label: string };
 
 /**
- * A season as a Show's page lists it. Its Facts are formatted and may be
- * none, the way a detail page's are.
+ * A season as a Show's page lists it, or an Episode as its season's page
+ * does: its number, its name and its Facts, formatted and possibly none, the
+ * way a detail page's are. One type because the two lists are one shape. Not
+ * an Item: a Media Item is what a card shows, and neither is Media on a card.
  */
-export type SeasonItem = { number: number; label: string; facts: string[] };
-
-/** An Episode as its season's page lists it. */
-export type EpisodeItem = { number: number; label: string; facts: string[] };
+export type Listing = { number: number; label: string; facts: string[] };
 
 /** What a season's page renders: the season, and its Episodes in order. */
 export type SeasonDetails = {
@@ -164,7 +163,7 @@ export type SeasonDetails = {
   label: string;
   posterUrl: string | null;
   overview: string;
-  episodes: EpisodeItem[];
+  episodes: Listing[];
 };
 
 /**
@@ -391,7 +390,7 @@ export const mediaDetails = async (
  * count that is not yet a finished statement.
  * — `docs/adr/0002-placeholder-facts-are-not-facts.md`
  */
-const toSeasonItem = (season: TmdbSeasonSummary): SeasonItem => {
+const toSeasonListing = (season: TmdbSeasonSummary): Listing => {
   const aired = season.air_date ? formatDate(season.air_date) : null;
 
   return {
@@ -418,26 +417,26 @@ const airDate = (episode: TmdbEpisode): string | null =>
 // — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
 const NO_AIR_DATE = 'No air date announced';
 
-const toEpisodeItem = (episode: TmdbEpisode): EpisodeItem => ({
+const toEpisodeListing = (episode: TmdbEpisode): Listing => ({
   number: episode.episode_number,
   label: episode.name,
   facts: toFacts(airDate(episode) ?? NO_AIR_DATE),
 });
 
 // specials are in no viewing order, so they follow the seasons that are
-const bySeasonOrder = (a: { number: number }, b: { number: number }): number =>
+const bySeasonOrder = (a: Listing, b: Listing): number =>
   (a.number === 0 ? 1 : 0) - (b.number === 0 ? 1 : 0) || a.number - b.number;
 
 /**
  * A Show's seasons, specials last, or `null` when TMDB has no such Show. The
  * same request the Show's detail page already made, so it costs nothing more.
  */
-export const showSeasons = async (id: number): Promise<SeasonItem[] | null> => {
+export const showSeasons = async (id: number): Promise<Listing[] | null> => {
   const show = await findTMDB<TmdbShowDetails>(`/tv/${id}`);
 
   if (!show) return null;
 
-  return show.seasons.map(toSeasonItem).sort(bySeasonOrder);
+  return show.seasons.map(toSeasonListing).sort(bySeasonOrder);
 };
 
 /**
@@ -485,7 +484,7 @@ export const seasonDetails = async (
     label: season.name,
     posterUrl: poster ? posterUrl(poster) : null,
     overview: season.overview,
-    episodes: season.episodes.map(toEpisodeItem),
+    episodes: season.episodes.map(toEpisodeListing),
   };
 };
 
