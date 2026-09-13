@@ -409,10 +409,15 @@ const toSeasonItem = (season: TmdbSeasonSummary): SeasonItem => {
 const airDate = (episode: TmdbEpisode): string | null =>
   episode.air_date ? formatDate(episode.air_date) : null;
 
+// Unlike an absent Fact, an absent air date is stated: an Episode without one
+// cannot be scored, and a page that left the date out would not say why.
+// — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+const NO_AIR_DATE = 'No air date announced';
+
 const toEpisodeItem = (episode: TmdbEpisode): EpisodeItem => ({
   number: episode.episode_number,
   label: episode.name,
-  facts: toFacts(airDate(episode)),
+  facts: toFacts(airDate(episode) ?? NO_AIR_DATE),
 });
 
 // specials are in no viewing order, so they follow the seasons that are
@@ -509,7 +514,7 @@ export const episodeDetails = async (
     voteCount: episode.vote_count,
     overview: episode.overview,
     facts: toFacts(
-      aired && `Air date: ${aired}`,
+      aired ? `Air date: ${aired}` : NO_AIR_DATE,
       formatRuntime(episode.runtime),
     ),
   };

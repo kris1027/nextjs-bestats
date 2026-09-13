@@ -184,6 +184,25 @@ test('seasonDetails reads the Show and the season out of one request', async () 
   ]);
 });
 
+test('seasonDetails says so for an Episode TMDB has no air date for', async () => {
+  tmdb.findTMDB.mockResolvedValue({
+    ...show,
+    'season/1': season({
+      episodes: [
+        episode({ episode_number: 1 }),
+        episode({ episode_number: 2, air_date: null }),
+      ],
+    }),
+  });
+
+  const details = await seasonDetails(95396, 1);
+
+  expect(details?.episodes.map((item) => item.facts)).toEqual([
+    ['February 17, 2022'],
+    ['No air date announced'],
+  ]);
+});
+
 test('seasonDetails is null for a season the Show does not have', async () => {
   // TMDB answers the Show and leaves the appended season out
   tmdb.findTMDB.mockResolvedValue({ ...show });
@@ -225,7 +244,7 @@ test("episodeDetails falls back to the Show's poster", async () => {
   expect(details?.posterUrl).toBe('poster/show.jpg');
 });
 
-test('episodeDetails leaves out an air date TMDB does not have', async () => {
+test('episodeDetails says so when TMDB has no air date', async () => {
   tmdb.findTMDB.mockResolvedValue({
     ...show,
     'season/1': season({
@@ -239,7 +258,7 @@ test('episodeDetails leaves out an air date TMDB does not have', async () => {
     episode: 1,
   });
 
-  expect(details?.facts).toEqual([]);
+  expect(details?.facts).toEqual(['No air date announced']);
 });
 
 test('episodeDetails is null for a position the season does not have', async () => {
