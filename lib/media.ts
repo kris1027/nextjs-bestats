@@ -10,10 +10,15 @@ import {
   findTMDB,
   posterUrl,
   type SearchResponse,
+  stillUrl,
+  type TmdbEpisode,
   type TmdbMovie,
   type TmdbMovieDetails,
+  type TmdbSeason,
+  type TmdbSeasonSummary,
   type TmdbShow,
   type TmdbShowDetails,
+  type TmdbShowWithSeason,
   type TrendingResponse,
 } from '@/lib/tmdb';
 
@@ -132,6 +137,56 @@ export type MediaDetails = Rating & {
   facts: string[];
 };
 
+/**
+ * Where an Episode sits in its Show: the season, and its number within it.
+ * This is how an address names an Episode and not how anything else should:
+ * TMDB renumbers Episodes, so a position is only good for finding one now.
+ * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
+ */
+export type EpisodeRef = { showId: number; season: number; episode: number };
+
+/** A Show as a season or an Episode page names it: enough to link back. */
+export type ShowName = { id: number; label: string };
+
+/**
+ * A season as a Show's page lists it, or an Episode as its season's page
+ * does: its number, its name and its Facts, formatted and possibly none, the
+ * way a detail page's are. One type because the two lists are one shape. Not
+ * an Item: a Media Item is what a card shows, and neither is Media on a card.
+ *
+ * A listed date is bare where a detail page's is labelled — "February 17,
+ * 2022" in a row, "Air date: February 17, 2022" on the Episode's page. A row
+ * puts the date beside the name it belongs to, which is all a label would
+ * say; a detail page's Facts stand in a row of their own, where it is not.
+ */
+export type Listing = { number: number; label: string; facts: string[] };
+
+/** What a season's page renders: the season, and its Episodes in order. */
+export type SeasonDetails = {
+  show: ShowName;
+  number: number;
+  label: string;
+  posterUrl: string | null;
+  overview: string;
+  episodes: Listing[];
+};
+
+/**
+ * What an Episode's page renders. The poster is the season's, or the Show's
+ * where the season has none, since an Episode has no poster of its own; the
+ * still is the Episode's and stands where a backdrop would.
+ */
+export type EpisodeDetails = Rating & {
+  show: ShowName;
+  season: { number: number; label: string };
+  number: number;
+  label: string;
+  posterUrl: string | null;
+  stillUrl: string | null;
+  overview: string;
+  facts: string[];
+};
+
 /** Guards the `kind` route segment, which arrives as an opaque string. */
 export const isKind = (value: string): value is Kind =>
   KINDS.some((kind) => kind === value);
@@ -157,6 +212,33 @@ const ID_PATTERN = /^[1-9]\d{0,8}$/;
  * what cannot exist before either makes a request or a query.
  */
 export const isMediaId = (value: string): boolean => ID_PATTERN.test(value);
+
+// season 0 is TMDB's specials, so a season may be 0 where an id may not
+const SEASON_PATTERN = /^(0|[1-9]\d{0,3})$/;
+const EPISODE_PATTERN = /^[1-9]\d{0,4}$/;
+
+/** Guards the `season` route segment. */
+export const isSeasonNumber = (value: string): boolean =>
+  SEASON_PATTERN.test(value);
+
+/** Guards the `episode` route segment; specials count from 1 as well. */
+export const isEpisodeNumber = (value: string): boolean =>
+  EPISODE_PATTERN.test(value);
+
+/** Where a piece of Media's detail page is. */
+export const mediaAddress = ({ kind, id }: MediaRef): string =>
+  `/${kind}/${id}`;
+
+/** Where a season's page is. */
+export const seasonAddress = (showId: number, season: number): string =>
+  `${mediaAddress({ kind: 'tv', id: showId })}/season/${season}`;
+
+/** Where an Episode's page is. */
+export const episodeAddress = ({
+  showId,
+  season,
+  episode,
+}: EpisodeRef): string => `${seasonAddress(showId, season)}/episode/${episode}`;
 
 /**
  * Whether a Kind has Media to put on a page. Not the same question as whether
@@ -305,6 +387,152 @@ export const mediaDetails = async (
   if (!media) return null;
 
   return 'name' in media ? toShowDetails(media) : toMovieDetails(media);
+};
+
+/**
+ * A season's Facts on a Show's page. The count waits on an air date for the
+ * reason `toShowDetails` does: a season TMDB has only announced carries a
+ * count that is not yet a finished statement.
+ * — `docs/adr/0002-placeholder-facts-are-not-facts.md`
+ */
+const toSeasonListing = (season: TmdbSeasonSummary): Listing => {
+  const aired = season.air_date ? formatDate(season.air_date) : null;
+
+  return {
+    number: season.season_number,
+    label: season.name,
+    facts: aired
+      ? toFacts(
+          aired,
+          formatCount(season.episode_count, {
+            one: 'episode',
+            other: 'episodes',
+          }),
+        )
+      : [],
+  };
+};
+
+/** An Episode's air date, where TMDB has one. */
+const airDate = (episode: TmdbEpisode): string | null =>
+  episode.air_date ? formatDate(episode.air_date) : null;
+
+// Unlike an absent Fact, an absent air date is stated: an Episode without one
+// cannot be scored, and a page that left the date out would not say why.
+// — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+const NO_AIR_DATE = 'No air date announced';
+
+const toEpisodeListing = (episode: TmdbEpisode): Listing => ({
+  number: episode.episode_number,
+  label: episode.name,
+  facts: toFacts(airDate(episode) ?? NO_AIR_DATE),
+});
+
+// specials are in no viewing order, so they follow the seasons that are
+const bySeasonOrder = (a: Listing, b: Listing): number =>
+  (a.number === 0 ? 1 : 0) - (b.number === 0 ? 1 : 0) || a.number - b.number;
+
+/**
+ * A Show's seasons, specials last, or `null` when TMDB has no such Show. The
+ * same request the Show's detail page already made, so it costs nothing more.
+ */
+export const showSeasons = async (id: number): Promise<Listing[] | null> => {
+  const show = await findTMDB<TmdbShowDetails>(`/tv/${id}`);
+
+  if (!show) return null;
+
+  return show.seasons.map(toSeasonListing).sort(bySeasonOrder);
+};
+
+/**
+ * A Show and one of its seasons as TMDB sent them, before either page maps
+ * the season: the Show's name, the season's wire shape, and the poster the
+ * season wears, which is the Show's where the season has none.
+ */
+type ShowSeason = {
+  show: ShowName;
+  season: TmdbSeason;
+  poster: string | null;
+};
+
+/**
+ * The Show and one of its seasons, in one request. `null` is TMDB's 404 for
+ * the Show or its silence about the season, which is the same answer to an
+ * address: nobody is there. A season page and every Episode page in it read
+ * this one path, so they share its cache.
+ */
+const findShowSeason = async (
+  showId: number,
+  number: number,
+): Promise<ShowSeason | null> => {
+  const found = await findTMDB<TmdbShowWithSeason>(
+    `/tv/${showId}?append_to_response=season/${number}`,
+  );
+  const season = found?.[`season/${number}`];
+
+  if (!found || !season) return null;
+
+  return {
+    show: { id: found.id, label: found.name },
+    season,
+    poster: season.poster_path ?? found.poster_path,
+  };
+};
+
+/** What a season's page renders, or `null` when there is no such season. */
+export const seasonDetails = async (
+  showId: number,
+  number: number,
+): Promise<SeasonDetails | null> => {
+  const found = await findShowSeason(showId, number);
+
+  if (!found) return null;
+
+  const { show, season, poster } = found;
+
+  return {
+    show,
+    number: season.season_number,
+    label: season.name,
+    posterUrl: poster ? posterUrl(poster) : null,
+    overview: season.overview,
+    episodes: season.episodes.map(toEpisodeListing),
+  };
+};
+
+/**
+ * What an Episode's page renders, or `null` when TMDB lists no Episode at
+ * that position. Read out of its season rather than from the Episode's own
+ * endpoint, which says nothing of the Show or the season it belongs to.
+ */
+export const episodeDetails = async (
+  ref: EpisodeRef,
+): Promise<EpisodeDetails | null> => {
+  const found = await findShowSeason(ref.showId, ref.season);
+  const episode = found?.season.episodes.find(
+    (candidate) => candidate.episode_number === ref.episode,
+  );
+
+  if (!found || !episode) return null;
+
+  const { show, season, poster } = found;
+  const aired = airDate(episode);
+
+  return {
+    show,
+    season: { number: season.season_number, label: season.name },
+    number: episode.episode_number,
+    label: episode.name,
+    posterUrl: poster ? posterUrl(poster) : null,
+    stillUrl: episode.still_path ? stillUrl(episode.still_path) : null,
+    rating: episode.vote_average,
+    voteCount: episode.vote_count,
+    overview: episode.overview,
+    facts: toFacts(
+      aired ? `Air date: ${aired}` : NO_AIR_DATE,
+      formatRuntime(episode.runtime),
+    ),
+  };
 };
 
 /**

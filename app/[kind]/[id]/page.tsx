@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { type JSX, Suspense } from 'react';
 
+import { LinkRows } from '@/components/media/link-rows';
 import { MediaDetail } from '@/components/media/media-detail';
 import { MediaDetailSkeleton } from '@/components/media/media-skeleton';
 import { MarkingControlSkeleton } from '@/components/watch/control-skeleton';
@@ -13,6 +14,8 @@ import {
   type MediaDetails,
   type MediaRef,
   mediaDetails,
+  seasonAddress,
+  showSeasons,
 } from '@/lib/media';
 import { markingOf } from '@/lib/watch';
 import { answeredWatchLookup } from '@/lib/watch-queries';
@@ -86,6 +89,31 @@ const Control = async ({
 };
 
 /**
+ * A Show's seasons, each a link to its page. Nothing when TMDB lists none,
+ * which a Show that has never aired can do. The Show's page asked for the
+ * same path a moment ago, so this is its cache and not a second request.
+ */
+const Seasons = async ({ id }: { id: number }): Promise<JSX.Element | null> => {
+  const seasons = await showSeasons(id);
+
+  if (!seasons || seasons.length === 0) return null;
+
+  return (
+    <section className='flex flex-col gap-3 pt-4'>
+      <h2 className='font-black text-xl'>Seasons</h2>
+      <LinkRows
+        label='Seasons'
+        rows={seasons.map((season) => ({
+          href: seasonAddress(id, season.number),
+          label: season.label,
+          facts: season.facts,
+        }))}
+      />
+    </section>
+  );
+};
+
+/**
  * The Media, once TMDB has answered. Behind the page's boundary because
  * the address is read at request time; the skeleton holds the frame.
  */
@@ -108,7 +136,9 @@ const Found = async ({
           <Control media={ref} />
         </Suspense>
       }
-    />
+    >
+      {ref.kind === 'tv' ? <Seasons id={ref.id} /> : null}
+    </MediaDetail>
   );
 };
 
