@@ -10,6 +10,7 @@ import {
   episodeAddress,
   isMediaId,
   isSeasonNumber,
+  mediaAddress,
   type SeasonDetails,
   seasonDetails,
 } from '@/lib/media';
@@ -56,7 +57,7 @@ const Found = async ({
 
   if (!season) notFound();
 
-  const show = `/tv/${season.show.id}`;
+  const show = mediaAddress({ kind: 'tv', id: season.show.id });
 
   return (
     <>

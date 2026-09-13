@@ -6,6 +6,7 @@ import {
   isEpisodeNumber,
   isMediaId,
   isSeasonNumber,
+  mediaAddress,
   openKind,
   seasonDetails,
   showSeasons,
@@ -78,6 +79,11 @@ test('isEpisodeNumber counts from 1, specials included', () => {
   expect(isEpisodeNumber('0')).toBe(false);
   expect(isEpisodeNumber('01')).toBe(false);
   expect(isEpisodeNumber('')).toBe(false);
+});
+
+test("mediaAddress is the detail page's address for either Kind", () => {
+  expect(mediaAddress({ kind: 'tv', id: 95396 })).toBe('/tv/95396');
+  expect(mediaAddress({ kind: 'movie', id: 550 })).toBe('/movie/550');
 });
 
 test('episodeAddress nests an Episode under its season', () => {

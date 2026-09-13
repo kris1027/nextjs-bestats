@@ -221,9 +221,13 @@ export const isSeasonNumber = (value: string): boolean =>
 export const isEpisodeNumber = (value: string): boolean =>
   EPISODE_PATTERN.test(value);
 
+/** Where a piece of Media's detail page is. */
+export const mediaAddress = ({ kind, id }: MediaRef): string =>
+  `/${kind}/${id}`;
+
 /** Where a season's page is. */
 export const seasonAddress = (showId: number, season: number): string =>
-  `/tv/${showId}/season/${season}`;
+  `${mediaAddress({ kind: 'tv', id: showId })}/season/${season}`;
 
 /** Where an Episode's page is. */
 export const episodeAddress = ({

@@ -3,7 +3,7 @@ import type { JSX } from 'react';
 
 import { DetailFrame, DetailRating } from '@/components/media/detail-frame';
 import { Tag } from '@/components/ui/tag';
-import { type EpisodeDetails, seasonAddress } from '@/lib/media';
+import { type EpisodeDetails, mediaAddress, seasonAddress } from '@/lib/media';
 
 /**
  * An Episode's page: its still where a backdrop would be, and above its name
@@ -25,7 +25,7 @@ const EpisodeDetail = ({
     >
       <p className='flex flex-wrap gap-x-2 text-sm'>
         <Link
-          href={`/tv/${episode.show.id}`}
+          href={mediaAddress({ kind: 'tv', id: episode.show.id })}
           className='font-extrabold underline-offset-4 hover:underline'
         >
           {episode.show.label}
