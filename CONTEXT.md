@@ -53,15 +53,16 @@ follow it to its page.
 _Avoid_: Card, result, summary
 
 **Media Details**:
-What a detail page shows. Shows and Movies reach it as the same shape, so the
-page never learns which Kind it is rendering.
+What a piece of Media's detail page shows. Shows and Movies reach it as the
+same shape, so the page never learns which Kind it is rendering.
 _Avoid_: Full media, page data
 
 **Fact**:
-One short, finished statement about a piece of Media — its release, its length,
-how many seasons it ran. Facts are the only part of Media Details that differ
-by Kind, and a Fact TMDB has no value for is absent rather than blank —
-including where TMDB supplies a placeholder in place of one.
+One short, finished statement about a piece of Media, a Season or an Episode —
+its release, its length, how many seasons it ran. Facts are the only part of
+Media Details that differ by Kind, and a Fact TMDB has no value for is absent
+rather than blank — including where TMDB supplies a placeholder in place of
+one.
 _Avoid_: Attribute, metadata, field, stat
 
 **Query**:
@@ -95,15 +96,16 @@ something.
 _Avoid_: Deleted, removed, missing, 404
 
 **Rating**:
-TMDB's average score for a piece of Media, out of ten. Everyone's, and never
-one Viewer's — what a Viewer thinks of a piece of Media is a Score. Media
-nobody has voted on has no Rating: TMDB reports a `0`, which is a placeholder
-standing in for an absent score rather than a score of zero, so it is left out
-the way an absent Fact is.
+TMDB's average score for a piece of Media or an Episode, out of ten.
+Everyone's, and never one Viewer's — what a Viewer thinks of a piece of Media
+is a Score. Media nobody has voted on has no Rating: TMDB reports a `0`, which
+is a placeholder standing in for an absent score rather than a score of zero,
+so it is left out the way an absent Fact is.
 _Avoid_: Stars, vote, review
 
 **Artwork**:
-A picture TMDB supplies for a piece of Media — a Poster or a Backdrop.
+A picture TMDB supplies — a Poster or a Backdrop for a piece of Media, or a
+Still for an Episode.
 _Avoid_: Image, art, kind
 
 **Trending**:
