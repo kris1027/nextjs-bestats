@@ -5,6 +5,7 @@ import { Star } from 'lucide-react';
 
 import { MediaPlaceholder } from '@/components/media/media-placeholder';
 import { BackButton } from '@/components/ui/back-button';
+import { Tag } from '@/components/ui/tag';
 import { formatCount } from '@/lib/format';
 import type { Rating } from '@/lib/media';
 
@@ -99,4 +100,44 @@ const DetailRating = ({ rating, voteCount }: Rating): JSX.Element | null =>
     </div>
   ) : null;
 
-export { DetailFrame, DetailRating };
+/**
+ * A detail page's name and, beneath it, its Rating and Facts. What a piece of
+ * Media's page and an Episode's say first, in the same words, so it is drawn
+ * once; each page puts what is its own around it.
+ */
+const DetailHeading = ({
+  label,
+  rating,
+  voteCount,
+  facts,
+}: Rating & { label: string; facts: string[] }): JSX.Element => (
+  <>
+    <h1 className='break-words font-black text-3xl leading-[1.05] lg:text-[40px]'>
+      {label}
+    </h1>
+
+    <div className='flex flex-wrap items-center gap-6'>
+      <DetailRating rating={rating} voteCount={voteCount} />
+      {/* facts arrive formatted and unique, so each is its own key */}
+      {facts.map((fact) => (
+        <Tag key={fact}>{fact}</Tag>
+      ))}
+    </div>
+  </>
+);
+
+/**
+ * The rule under a detail page's heading and the overview below it, which
+ * TMDB may leave empty — then the rule stands alone.
+ */
+const DetailOverview = ({ overview }: { overview: string }): JSX.Element => (
+  <>
+    <div className='my-2 h-0.5 bg-foreground/40' />
+
+    {overview ? (
+      <p className='max-w-[62ch] text-base leading-relaxed'>{overview}</p>
+    ) : null}
+  </>
+);
+
+export { DetailFrame, DetailHeading, DetailOverview };

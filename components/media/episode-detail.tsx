@@ -1,8 +1,11 @@
 import Link from 'next/link';
 import type { JSX } from 'react';
 
-import { DetailFrame, DetailRating } from '@/components/media/detail-frame';
-import { Tag } from '@/components/ui/tag';
+import {
+  DetailFrame,
+  DetailHeading,
+  DetailOverview,
+} from '@/components/media/detail-frame';
 import { type EpisodeDetails, mediaAddress, seasonAddress } from '@/lib/media';
 
 /**
@@ -42,25 +45,14 @@ const EpisodeDetail = ({
         <span className='opacity-60'>Episode {episode.number}</span>
       </p>
 
-      <h1 className='break-words font-black text-3xl leading-[1.05] lg:text-[40px]'>
-        {episode.label}
-      </h1>
+      <DetailHeading
+        label={episode.label}
+        rating={episode.rating}
+        voteCount={episode.voteCount}
+        facts={episode.facts}
+      />
 
-      <div className='flex flex-wrap items-center gap-6'>
-        <DetailRating rating={episode.rating} voteCount={episode.voteCount} />
-        {/* facts arrive formatted and unique, so each is its own key */}
-        {episode.facts.map((fact) => (
-          <Tag key={fact}>{fact}</Tag>
-        ))}
-      </div>
-
-      <div className='my-2 h-0.5 bg-foreground/40' />
-
-      {episode.overview ? (
-        <p className='max-w-[62ch] text-base leading-relaxed'>
-          {episode.overview}
-        </p>
-      ) : null}
+      <DetailOverview overview={episode.overview} />
     </DetailFrame>
   );
 };
