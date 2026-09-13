@@ -75,8 +75,10 @@ const DetailFrame = ({
         )}
       </div>
 
-      {/* clears the overlap so the text starts 1rem below the backdrop */}
-      <div className='flex flex-col gap-4 sm:pt-[calc(var(--backdrop-h)/3+1rem)]'>
+      {/* clears the overlap so the text starts 1rem below the backdrop;
+          min-w-0 because a grid item is otherwise as wide as its longest
+          unbreakable run, and the heading's break-words never gets to act */}
+      <div className='flex min-w-0 flex-col gap-4 sm:pt-[calc(var(--backdrop-h)/3+1rem)]'>
         {children}
       </div>
     </div>
