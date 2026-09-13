@@ -40,6 +40,57 @@ export type TmdbShowDetails = {
   number_of_episodes: number;
   number_of_seasons: number;
   overview: string;
+  seasons: TmdbSeasonSummary[];
+};
+
+/**
+ * A season as `/tv/{id}` lists it. Season 0 is where TMDB keeps a Show's
+ * specials. `air_date` is `null` for a season TMDB has announced and nothing
+ * more, which is also when `episode_count` is 0.
+ */
+export type TmdbSeasonSummary = {
+  id: number;
+  season_number: number;
+  name: string;
+  episode_count: number;
+  air_date: string | null;
+};
+
+/** A season as `/tv/{id}/season/{n}` reports it, Episodes and all. */
+export type TmdbSeason = {
+  id: number;
+  season_number: number;
+  name: string;
+  overview: string;
+  poster_path: string | null;
+  air_date: string | null;
+  episodes: TmdbEpisode[];
+};
+
+/**
+ * An Episode as a season lists it. The list carries every field the Episode's
+ * own endpoint does but its crew, so the list is what an Episode page reads.
+ */
+export type TmdbEpisode = {
+  id: number;
+  season_number: number;
+  episode_number: number;
+  name: string;
+  overview: string;
+  air_date: string | null;
+  runtime: number | null;
+  still_path: string | null;
+  vote_average: number;
+  vote_count: number;
+};
+
+/**
+ * `/tv/{id}` with one season appended, which is the Show and that season in
+ * one request. The key is `season/{n}` as TMDB spells it, and it is missing
+ * when the Show has no such season — the request itself still succeeds.
+ */
+export type TmdbShowWithSeason = TmdbShowDetails & {
+  [season: `season/${number}`]: TmdbSeason | undefined;
 };
 
 /** A Movie as `/movie/{id}` reports it. */
@@ -137,3 +188,9 @@ const imageUrl = (artwork: 'poster' | 'backdrop', path: string): string => {
 
 export const posterUrl = (path: string): string => imageUrl('poster', path);
 export const backdropUrl = (path: string): string => imageUrl('backdrop', path);
+
+/**
+ * An Episode's still is a 16:9 frame and lands in a backdrop's slot, so it is
+ * fetched at a backdrop's size: TMDB serves any of its sizes for any image.
+ */
+export const stillUrl = (path: string): string => imageUrl('backdrop', path);
