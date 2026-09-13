@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { type JSX, Suspense } from 'react';
 
 import { EpisodeDetail } from '@/components/media/episode-detail';
-import { MediaDetailSkeleton } from '@/components/media/media-skeleton';
+import { EpisodeDetailSkeleton } from '@/components/media/media-skeleton';
 import {
   type EpisodeDetails,
   episodeDetails,
@@ -79,7 +79,7 @@ const EpisodePage = ({
 }: {
   params: Promise<RouteParams>;
 }): JSX.Element => (
-  <Suspense fallback={<MediaDetailSkeleton control={false} />}>
+  <Suspense fallback={<EpisodeDetailSkeleton />}>
     <Found params={params} />
   </Suspense>
 );
