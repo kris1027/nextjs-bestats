@@ -10,13 +10,18 @@ import type { MediaDetails } from '@/lib/media';
  * Unanswered. A slot rather than a prop of `MediaDetails`, which carries no
  * Kind or id on purpose: this component renders a piece of Media and never
  * learns that Watch Records exist.
+ *
+ * `children` follows the overview, and is where a Show's page lists its
+ * seasons: the page knows the Kind it rendered, and this component does not.
  */
 const MediaDetail = ({
   media,
   control,
+  children,
 }: {
   media: MediaDetails;
   control?: ReactNode;
+  children?: ReactNode;
 }): JSX.Element => {
   return (
     <DetailFrame
@@ -45,6 +50,8 @@ const MediaDetail = ({
           {media.overview}
         </p>
       ) : null}
+
+      {children}
     </DetailFrame>
   );
 };

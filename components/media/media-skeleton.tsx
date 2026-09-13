@@ -51,8 +51,15 @@ const MediaGridSkeleton = (): JSX.Element => (
  * text's clearance — with blocks where the picture and the words go, and
  * the real back button where it will be, since going back needs nothing
  * from TMDB.
+ *
+ * An Episode's page is drawn in the same frame and has no marking control
+ * yet, so it leaves `control` off and the skeleton holds no height for one.
  */
-const MediaDetailSkeleton = (): JSX.Element => (
+const MediaDetailSkeleton = ({
+  control = true,
+}: {
+  control?: boolean;
+}): JSX.Element => (
   <main className='mx-auto w-full max-w-300 flex-1 [--backdrop-h:17.5rem] sm:[--backdrop-h:22rem] lg:[--backdrop-h:26.25rem]'>
     <output aria-busy='true' className='sr-only'>
       Loading
@@ -77,9 +84,11 @@ const MediaDetailSkeleton = (): JSX.Element => (
           &nbsp;
         </div>
         <div className='h-7 w-1/2 animate-pulse bg-muted' />
-        <div className='max-w-xs'>
-          <MarkingControlSkeleton />
-        </div>
+        {control ? (
+          <div className='max-w-xs'>
+            <MarkingControlSkeleton />
+          </div>
+        ) : null}
         <div className='my-2 h-0.5 bg-foreground/40' />
         <div className='flex max-w-[62ch] flex-col gap-2'>
           <div className='h-4 animate-pulse bg-muted' />
@@ -91,4 +100,35 @@ const MediaDetailSkeleton = (): JSX.Element => (
   </main>
 );
 
-export { MediaGridSkeleton, MediaDetailSkeleton };
+/**
+ * What a season's page shows while TMDB is asked for it: a line for the Show,
+ * the heading, the overview's lines and a column of rows. Nine rows, which is
+ * a season of television more often than any other count, so the fallback is
+ * near the height of what replaces it.
+ */
+const SeasonSkeleton = (): JSX.Element => (
+  <>
+    <output aria-busy='true' className='sr-only'>
+      Loading
+    </output>
+    <div aria-hidden='true' className='flex flex-col gap-6'>
+      <div className='h-5 w-1/3 animate-pulse bg-muted' />
+      <div className='w-1/2 animate-pulse bg-muted text-3xl leading-[1.05]'>
+        &nbsp;
+      </div>
+      <div className='flex max-w-[62ch] flex-col gap-2'>
+        <div className='h-4 animate-pulse bg-muted' />
+        <div className='h-4 w-3/4 animate-pulse bg-muted' />
+      </div>
+      <div className='flex flex-col gap-px'>
+        {Array.from({ length: 9 }, (_, index) => (
+          // nothing distinguishes one block from another but its position
+          // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity
+          <div key={index} className='h-12 animate-pulse bg-muted/60' />
+        ))}
+      </div>
+    </div>
+  </>
+);
+
+export { MediaGridSkeleton, MediaDetailSkeleton, SeasonSkeleton };
