@@ -82,14 +82,37 @@ const DetailFrameSkeleton = ({
   </main>
 );
 
-/** A detail page's heading and the row of its Rating and Facts. */
-const HeadingSkeleton = (): JSX.Element => (
+/**
+ * A detail page's heading and the row of its Rating and Facts. The row wraps,
+ * so a block of fixed height stood a line or two short on a phone: instead
+ * it holds `DetailRating` and a `Tag` for each of `facts` in their own box
+ * sizes, with the words kept invisible, and wraps where the real row does.
+ * `facts` are typical of the page, since the real ones are what is awaited.
+ */
+const HeadingSkeleton = ({ facts }: { facts: string[] }): JSX.Element => (
   <>
     {/* the heading's own type size, so the block is one line of it */}
     <div className='w-2/3 animate-pulse bg-muted text-3xl leading-[1.05] lg:text-[40px]'>
       &nbsp;
     </div>
-    <div className='h-7 w-1/2 animate-pulse bg-muted' />
+    <div className='flex flex-wrap items-center gap-6'>
+      <div className='flex animate-pulse items-center gap-1.5 bg-muted'>
+        <span className='invisible flex items-center gap-1.5'>
+          <span className='size-5' />
+          <span className='font-extrabold text-lg'>8.4</span>
+          <span className='text-sm'>(1,234 votes)</span>
+        </span>
+      </div>
+      {facts.map((fact) => (
+        // `Tag`'s own box, border included, so the block is its size
+        <span
+          key={fact}
+          className='inline-flex animate-pulse border border-transparent bg-muted px-2.5 py-0.75 text-[11px] tracking-wide'
+        >
+          <span className='invisible'>{fact}</span>
+        </span>
+      ))}
+    </div>
   </>
 );
 
@@ -113,10 +136,14 @@ const OverviewSkeleton = (): JSX.Element => (
  * but this fallback is drawn before the address is read, so it cannot know
  * which Kind it stands for and holds no height for the list. The list lands
  * below everything else on the page, so nothing already drawn moves for it.
+ *
+ * The same blindness picks its Facts: a Movie's two. A Show's three wrap onto
+ * a third line on the narrowest phones, so there a Show's page moves by one
+ * row of Facts; a guess of three would move every Movie's page instead.
  */
 const MediaDetailSkeleton = (): JSX.Element => (
   <DetailFrameSkeleton>
-    <HeadingSkeleton />
+    <HeadingSkeleton facts={['Released: October 15, 1999', '2h 19m']} />
     <div className='max-w-xs'>
       <MarkingControlSkeleton />
     </div>
@@ -133,7 +160,7 @@ const EpisodeDetailSkeleton = (): JSX.Element => (
   <DetailFrameSkeleton>
     {/* the line's own type size, so the block is one line of it */}
     <div className='w-1/2 animate-pulse bg-muted text-sm'>&nbsp;</div>
-    <HeadingSkeleton />
+    <HeadingSkeleton facts={['Air date: February 17, 2022', '57m']} />
     <OverviewSkeleton />
   </DetailFrameSkeleton>
 );
