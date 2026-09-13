@@ -62,7 +62,8 @@ One short, finished statement about a piece of Media, a Season or an Episode —
 its release, its length, how many seasons it ran. Facts are the only part of
 Media Details that differ by Kind, and a Fact TMDB has no value for is absent
 rather than blank — including where TMDB supplies a placeholder in place of
-one.
+one. An Episode's air date is the exception: where TMDB has none, the absence
+is stated, since an Episode without one cannot be scored.
 _Avoid_: Attribute, metadata, field, stat
 
 **Query**:
