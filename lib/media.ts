@@ -440,19 +440,26 @@ export const showSeasons = async (id: number): Promise<Listing[] | null> => {
 };
 
 /**
+ * A Show and one of its seasons as TMDB sent them, before either page maps
+ * the season: the Show's name, the season's wire shape, and the poster the
+ * season wears, which is the Show's where the season has none.
+ */
+type ShowSeason = {
+  show: ShowName;
+  season: TmdbSeason;
+  poster: string | null;
+};
+
+/**
  * The Show and one of its seasons, in one request. `null` is TMDB's 404 for
  * the Show or its silence about the season, which is the same answer to an
  * address: nobody is there. A season page and every Episode page in it read
  * this one path, so they share its cache.
  */
-const findSeason = async (
+const findShowSeason = async (
   showId: number,
   number: number,
-): Promise<{
-  show: ShowName;
-  season: TmdbSeason;
-  poster: string | null;
-} | null> => {
+): Promise<ShowSeason | null> => {
   const found = await findTMDB<TmdbShowWithSeason>(
     `/tv/${showId}?append_to_response=season/${number}`,
   );
@@ -472,7 +479,7 @@ export const seasonDetails = async (
   showId: number,
   number: number,
 ): Promise<SeasonDetails | null> => {
-  const found = await findSeason(showId, number);
+  const found = await findShowSeason(showId, number);
 
   if (!found) return null;
 
@@ -496,7 +503,7 @@ export const seasonDetails = async (
 export const episodeDetails = async (
   ref: EpisodeRef,
 ): Promise<EpisodeDetails | null> => {
-  const found = await findSeason(ref.showId, ref.season);
+  const found = await findShowSeason(ref.showId, ref.season);
   const episode = found?.season.episodes.find(
     (candidate) => candidate.episode_number === ref.episode,
   );
