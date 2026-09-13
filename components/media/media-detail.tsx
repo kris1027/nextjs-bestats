@@ -29,7 +29,7 @@ const MediaDetail = ({
       posterUrl={media.posterUrl}
       back='/'
     >
-      <h1 className='font-black text-3xl leading-[1.05] lg:text-[40px]'>
+      <h1 className='break-words font-black text-3xl leading-[1.05] lg:text-[40px]'>
         {media.label}
       </h1>
 
