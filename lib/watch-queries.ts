@@ -349,22 +349,39 @@ export const clearWatchRecord = async (
 
 /**
  * The write half of scoring an Episode: its Watch Record at `marking`'s
- * Score, whether or not one existed. One statement, as `writeWatchRecord` is,
- * with `updated_at` set by hand for the reason given there. The Show's id is
- * written on the insert only: an Episode does not change Shows.
+ * Score, whether or not one existed, with `updated_at` set by hand for the
+ * reason `writeWatchRecord` gives. The Show's id is written on the insert
+ * only: an Episode does not change Shows.
+ *
+ * The Show's Planned record goes in the same batch, since Planned lasts only
+ * until the first Episode. One batch because the HTTP driver has no
+ * interactive transactions, and a Score written without the delete would
+ * leave the Show Planned and under way at once.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const writeEpisodeRecord = async (
   viewerId: string,
   episode: { episodeId: number; showId: number },
   marking: EpisodeMarking,
 ): Promise<void> => {
-  await db
-    .insert(episodeRecords)
-    .values({ viewerId, ...episode, score: marking.score })
-    .onConflictDoUpdate({
-      target: [episodeRecords.viewerId, episodeRecords.episodeId],
-      set: { score: marking.score, updatedAt: sql`now()` },
-    });
+  await db.batch([
+    db
+      .insert(episodeRecords)
+      .values({ viewerId, ...episode, score: marking.score })
+      .onConflictDoUpdate({
+        target: [episodeRecords.viewerId, episodeRecords.episodeId],
+        set: { score: marking.score, updatedAt: sql`now()` },
+      }),
+    db
+      .delete(watchRecords)
+      .where(
+        and(
+          eq(watchRecords.viewerId, viewerId),
+          whereMedia({ kind: 'tv', id: episode.showId }),
+          eq(watchRecords.state, 'planned'),
+        ),
+      ),
+  ]);
 };
 
 /** Unscores an Episode: the row goes, since an Episode has no other state. */
