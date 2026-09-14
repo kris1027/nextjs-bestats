@@ -112,14 +112,20 @@ type OpenList = {
 
 /**
  * Which list is open and what its pages are cut from: on the Watchlist and
- * Upcoming, everything the Viewer is tracking, placed and paged in memory; on
- * the Watched list nothing, since Postgres still pages it. One value, so which
- * list it is and whether there are placements cannot disagree.
+ * Upcoming, everything the Viewer is tracking, placed and paged in memory, and
+ * the day it was placed against, which its cards' dates are read against too;
+ * on the Watched list nothing, since Postgres still pages it. One value, so
+ * which list it is and whether there are placements cannot disagree.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
-type ListContents =
-  | { list: PlacedList; placements: Placement[] }
-  | { list: 'watched' };
+type ListContents = PlacedContents | { list: 'watched' };
+
+/** The Watchlist's or Upcoming's half of `ListContents`. */
+type PlacedContents = {
+  list: PlacedList;
+  placements: Placement[];
+  today: Date;
+};
 
 /**
  * The answer `mediaItems` gave for the ref at `index`. Answers come back one
@@ -172,11 +178,12 @@ const trackedAnswer = async (
  * TMDB's to say; the `lib/tmdb` cache is what keeps a second visit cheap.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
-const placeTracked = async (viewerId: string): Promise<Placement[]> => {
+const placeTracked = async (
+  viewerId: string,
+  today: Date,
+): Promise<Placement[]> => {
   const tracked = withinCeiling(await trackedMedia(viewerId));
   const answers = await mediaItems(tracked.map((item) => item.ref));
-  // read once, so every item is placed against the same day
-  const today = new Date();
 
   return Promise.all(
     tracked.map(async (item, index): Promise<Placement> => {
@@ -227,10 +234,17 @@ const openList = cache(
       );
     }
 
+    // read once, so every item is placed, and every card dated, against the
+    // same day even when the request straddles midnight
+    const today = new Date();
     const contents: ListContents =
       list === 'watched'
         ? { list }
-        : { list, placements: await placeTracked(currentViewer.id) };
+        : {
+            list,
+            placements: await placeTracked(currentViewer.id, today),
+            today,
+          };
     const tallies =
       contents.list === 'watched'
         ? await watchedTallies(currentViewer.id)
@@ -383,8 +397,7 @@ const leadOf = (
  */
 const placedEntries = async (
   viewerId: string,
-  placements: readonly Placement[],
-  list: PlacedList,
+  { list, placements, today }: PlacedContents,
   { kind, page }: { kind: Kind; page: number },
 ): Promise<ListEntries> => {
   const { items, total } = placedPage(placements, list, { kind, page });
@@ -392,7 +405,6 @@ const placedEntries = async (
   // a Show under way has no record, so the markings are asked for rather than
   // read off the page, and such a card simply has none
   const markings = await watchLookup(viewerId, refs);
-  const today = new Date();
 
   return {
     entries: items.map((item) => ({
@@ -456,10 +468,7 @@ const ListPage = async ({
   const { entries, markings, total } =
     contents.list === 'watched'
       ? await watchedEntries(viewerId, { kind, page })
-      : await placedEntries(viewerId, contents.placements, contents.list, {
-          kind,
-          page,
-        });
+      : await placedEntries(viewerId, contents, { kind, page });
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   if (page > pages) notFound();
