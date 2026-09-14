@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { expect, test, vi } from 'vitest';
 
 import { db } from '@/lib/db';
-import { watchRecords } from '@/lib/schema';
+import { episodeRecords, watchRecords } from '@/lib/schema';
 import { expireMarkingWindow } from '@/lib/test-marking';
 import { disposableViewers } from '@/lib/test-viewers';
 import {
@@ -11,7 +11,7 @@ import {
   PLANNED,
   watchedAt,
 } from '@/lib/watch';
-import { mark } from '@/lib/watch-actions';
+import { mark, scoreEpisode } from '@/lib/watch-actions';
 import { tallyMarking } from '@/lib/watch-queries';
 
 /**
@@ -31,6 +31,17 @@ vi.mock('@/lib/auth', () => ({
           viewer: { id: currentViewer.id, name: 'Action Viewer', image: null },
         }
       : { answer: 'visitor' },
+}));
+
+// CI's integration job has no TMDB token, and whether TMDB answers is not
+// what these tests are about: scoring is handed an aired Episode here
+vi.mock('@/lib/media', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/media')>()),
+  episodeDetails: async () => ({
+    id: 3396429,
+    airDate: '2022-02-17',
+    show: { id: 95396, label: 'Severance' },
+  }),
 }));
 
 const viewer = disposableViewers();
@@ -182,3 +193,64 @@ test(`the press after ${MARKS_PER_MINUTE} in a minute is refused, and the one be
   expect(await mark(press('tv', '1399', 'planned'))).toEqual({ marking: null });
   // sixty round trips to Neon from a CI runner outrun the 5s default
 }, 30_000);
+
+/** What an Episode page's star row posts. */
+const scoring = (value: string): FormData => {
+  const formData = new FormData();
+
+  formData.set('show', '95396');
+  formData.set('season', '1');
+  formData.set('episode', '2');
+  formData.set(MARKING_FIELD, value);
+  formData.set('next', '/tv/95396/season/1/episode/2');
+
+  return formData;
+};
+
+const episodesOf = (viewerId: string) =>
+  db.select().from(episodeRecords).where(eq(episodeRecords.viewerId, viewerId));
+
+test("a Score records the Episode by TMDB's id, and the same Score again unscores it", async () => {
+  currentViewer.id = await viewer();
+
+  expect(await scoreEpisode(scoring('8'))).toEqual({ marking: watchedAt(8) });
+
+  const rows = await episodesOf(currentViewer.id);
+
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({
+    episodeId: 3396429,
+    showId: 95396,
+    score: 8,
+  });
+
+  expect(await scoreEpisode(scoring('8'))).toEqual({ marking: null });
+  expect(await episodesOf(currentViewer.id)).toHaveLength(0);
+});
+
+test('a different Score rescores an Episode rather than adding a record', async () => {
+  currentViewer.id = await viewer();
+
+  await scoreEpisode(scoring('8'));
+
+  expect(await scoreEpisode(scoring('3'))).toEqual({ marking: watchedAt(3) });
+
+  const rows = await episodesOf(currentViewer.id);
+
+  expect(rows).toHaveLength(1);
+  expect(rows[0]?.score).toBe(3);
+});
+
+test("scoring an Episode leaves the Show's own Watch Record alone", async () => {
+  currentViewer.id = await viewer();
+
+  await mark(press('tv', '95396', 'planned'));
+  await scoreEpisode(scoring('8'));
+
+  // the Planned record goes in #24, when the Watchlist can show the Show at
+  // its next Episode instead; until then it keeps the Show on the Watchlist
+  const rows = await rowsOf(currentViewer.id);
+
+  expect(rows).toHaveLength(1);
+  expect(rows[0]?.state).toBe('planned');
+});

@@ -43,11 +43,26 @@ export const isScore = (value: number): value is Score =>
  */
 export type Marking = { state: 'planned' } | { state: 'watched'; score: Score };
 
+/** The Watched half of `Marking`, which is the half that carries a Score. */
+export type WatchedMarking = Extract<Marking, { state: 'watched' }>;
+
+/**
+ * What an Episode's Watch Record says, which is only ever Watched at a Score:
+ * an Episode is never Planned, so the marking an Episode can hold is the half
+ * of `Marking` that carries one. `marked` needs nothing else to run on it.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ */
+export type EpisodeMarking = WatchedMarking;
+
+/** Narrows a marking to one an Episode can hold. */
+export const isEpisodeMarking = (marking: Marking): marking is EpisodeMarking =>
+  marking.state === 'watched';
+
 /** The Planned marking, which has nothing to vary. */
 export const PLANNED: Marking = { state: 'planned' };
 
 /** The Watched marking at a Score, which is the only way to reach Watched. */
-export const watchedAt = (score: Score): Marking => ({
+export const watchedAt = (score: Score): WatchedMarking => ({
   state: 'watched',
   score,
 });
@@ -203,6 +218,32 @@ export type ViewerLookup = {
   markings: WatchLookup | null;
   viewerKey: string;
 };
+
+/**
+ * One Viewer's markings for the Episodes a page draws, by TMDB's id for each
+ * Episode — the id and not the position, since the id is what a record is
+ * keyed on. An Episode with nothing here has no Watch Record.
+ */
+export type EpisodeLookup = ReadonlyMap<number, EpisodeMarking>;
+
+/**
+ * An Episode page's lookup and the key of the Viewer whose markings are in it:
+ * `ViewerLookup` for Episodes, and one value for the same reason.
+ */
+export type ViewerEpisodeLookup = {
+  /** `null` is Unanswered — the database did not say, so no controls. */
+  markings: EpisodeLookup | null;
+  viewerKey: string;
+};
+
+/**
+ * An Episode's marking in a lookup, or `null` when the Viewer has not scored
+ * it — no record, not a state.
+ */
+export const episodeMarkingOf = (
+  lookup: EpisodeLookup,
+  episodeId: number,
+): EpisodeMarking | null => lookup.get(episodeId) ?? null;
 
 /**
  * The ref a Watch Record names: the same pair, spelled the way `lib/media`

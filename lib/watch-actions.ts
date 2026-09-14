@@ -3,9 +3,21 @@
 import { redirect } from 'next/navigation';
 
 import { answeredViewer } from '@/lib/auth';
-import { isKind, isMediaId, type MediaRef } from '@/lib/media';
+import {
+  type EpisodeRef,
+  episodeDetails,
+  hasAired,
+  isEpisodeNumber,
+  isKind,
+  isMediaId,
+  isSeasonNumber,
+  type MediaRef,
+} from '@/lib/media';
 import { nextPath, signInAddress } from '@/lib/next-path';
 import {
+  type EpisodeMarking,
+  episodeMarkingOf,
+  isEpisodeMarking,
   MARKING_FIELD,
   MARKS_PER_MINUTE,
   type Marking,
@@ -15,9 +27,12 @@ import {
   watchKey,
 } from '@/lib/watch';
 import {
+  clearEpisodeRecord,
   clearWatchRecord,
+  episodeLookup,
   tallyMarking,
   watchLookup,
+  writeEpisodeRecord,
   writeWatchRecord,
 } from '@/lib/watch-queries';
 
@@ -124,4 +139,105 @@ export const mark = async (formData: FormData): Promise<MarkResult> => {
  */
 export const markFromForm = async (formData: FormData): Promise<void> => {
   await mark(formData);
+};
+
+/**
+ * What `scoreEpisode` hands back: `MarkResult` narrowed to what an Episode's
+ * record can say, which is a Score or nothing.
+ */
+export type ScoreResult =
+  | { marking: EpisodeMarking | null }
+  | { error: string };
+
+/**
+ * Scores an Episode for the Viewer this request belongs to, which is how they
+ * record watching it — or unscores it, when the Score pressed is the one it
+ * already holds.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ *
+ * The form names the Episode by its position, the way its page's address
+ * does, and not by the id its record is keyed on: TMDB is asked for the
+ * Episode at that position, and the id, the Show and whether it has aired all
+ * come from that answer rather than from a hidden field. So a form cannot
+ * score an Episode under the wrong Show, and an Episode that has not aired is
+ * refused here and not only by the page leaving its stars out.
+ *
+ * The order is `mark`'s: the Viewer, then the input, which throws because our
+ * own form cannot produce it, then the press is counted before anything
+ * costs a request.
+ */
+export const scoreEpisode = async (
+  formData: FormData,
+): Promise<ScoreResult> => {
+  const asked = await pressingViewer(formData);
+
+  if ('error' in asked) return asked;
+
+  const show = String(formData.get('show') ?? '');
+  const season = String(formData.get('season') ?? '');
+  const number = String(formData.get('episode') ?? '');
+  const field = String(formData.get(MARKING_FIELD) ?? '');
+  const pressed = markingFrom(field);
+
+  if (!isMediaId(show)) throw new Error(`Not a TMDB id: ${show}`);
+  if (!isSeasonNumber(season)) throw new Error(`Not a season: ${season}`);
+  if (!isEpisodeNumber(number)) throw new Error(`Not an Episode: ${number}`);
+  // Planned is a marking, but not one an Episode can hold, and no button on
+  // an Episode's page posts it
+  if (!pressed || !isEpisodeMarking(pressed)) {
+    throw new Error(`Not a Score: ${field}`);
+  }
+
+  const ref: EpisodeRef = {
+    showId: Number(show),
+    season: Number(season),
+    episode: Number(number),
+  };
+  const where = `tv/${show} S${season}E${number}`;
+
+  try {
+    if ((await tallyMarking(asked.id)) > MARKS_PER_MINUTE) {
+      return { error: 'Slow down. Try again in a minute.' };
+    }
+
+    const episode = await episodeDetails(ref);
+
+    if (!episode) {
+      return { error: 'TMDB no longer lists that episode.' };
+    }
+
+    if (!hasAired(episode.airDate, new Date())) {
+      return { error: 'That episode has not aired yet.' };
+    }
+
+    const lookup = await episodeLookup(asked.id, [episode.id]);
+    const marking = marked(episodeMarkingOf(lookup, episode.id), pressed);
+
+    // `marked` hands back what was pressed or nothing, and what was pressed
+    // is a Score, so this narrowing only restates what it already is
+    if (marking && isEpisodeMarking(marking)) {
+      await writeEpisodeRecord(
+        asked.id,
+        { episodeId: episode.id, showId: episode.show.id },
+        marking,
+      );
+
+      return { marking };
+    }
+
+    await clearEpisodeRecord(asked.id, episode.id);
+
+    return { marking: null };
+  } catch (cause) {
+    console.error(`Scoring ${where} failed:`, cause);
+
+    return { error: 'Could not score that. Try again in a moment.' };
+  }
+};
+
+/** `scoreEpisode` for the form before hydration, as `markFromForm` is. */
+export const scoreEpisodeFromForm = async (
+  formData: FormData,
+): Promise<void> => {
+  await scoreEpisode(formData);
 };
