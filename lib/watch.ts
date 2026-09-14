@@ -314,3 +314,50 @@ export type WatchRecordsPage = {
  * mean asking twice.
  */
 export type WatchTallies = Record<WatchState, Record<Kind, number>>;
+
+/**
+ * A season of a Show as `nextEpisode` reads it: its number, and its Episodes
+ * in order, each with TMDB's id — which is what a record holds — and its
+ * number, which is what an address holds.
+ */
+export type SeasonEpisodes = {
+  number: number;
+  episodes: readonly { id: number; number: number }[];
+};
+
+/** Where an Episode sits in its Show, without the Show. */
+export type EpisodePosition = { season: number; episode: number };
+
+/**
+ * The Episode a Viewer watches next: the one after the furthest they have
+ * scored, and the Show's first when they have scored none. Furthest, not the
+ * earliest unscored, so a Viewer who joined at season three is not sent back
+ * to season one. Specials neither count nor come next, and a scored id TMDB
+ * no longer lists is passed over rather than guessed at.
+ *
+ * `null` is TMDB listing nothing after the furthest — waiting or finished,
+ * which this cannot tell apart without the Show's status. Seasons arrive in
+ * viewing order, as `showSeasons` gives them.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ */
+export const nextEpisode = (
+  seasons: readonly SeasonEpisodes[],
+  scored: ReadonlySet<number>,
+): EpisodePosition | null => {
+  // TMDB keeps Specials as season 0, which belongs to no run
+  const inOrder = seasons
+    .filter((season) => season.number !== 0)
+    .flatMap((season) =>
+      season.episodes.map((episode) => ({
+        id: episode.id,
+        position: { season: season.number, episode: episode.number },
+      })),
+    );
+  // one past the furthest scored, or the first when none is: -1 + 1
+  const furthest = inOrder.reduce(
+    (found, { id }, index) => (scored.has(id) ? index : found),
+    -1,
+  );
+
+  return inOrder[furthest + 1]?.position ?? null;
+};

@@ -6,6 +6,7 @@ import {
   markingFrom,
   markingOf,
   markingValue,
+  nextEpisode,
   PLANNED,
   refOf,
   SCORES,
@@ -131,4 +132,58 @@ test('toMarkedMedia makes a marking of a row and keeps the Media', () => {
 
 test('refOf spells a Watch Record the way lib/media spells a ref', () => {
   expect(refOf({ kind: 'tv', tmdbId: 1399 })).toEqual({ kind: 'tv', id: 1399 });
+});
+
+// Episode ids are season * 100 + number, so a failure names the Episode
+const season = (number: number, episodes: number) => ({
+  number,
+  episodes: Array.from({ length: episodes }, (_, index) => ({
+    id: number * 100 + index + 1,
+    number: index + 1,
+  })),
+});
+
+test('the next Episode of a Show the Viewer has scored nothing of is its first', () => {
+  expect(nextEpisode([season(1, 3), season(2, 3)], new Set())).toEqual({
+    season: 1,
+    episode: 1,
+  });
+});
+
+test('the next Episode follows the furthest scored, not the earliest unscored', () => {
+  // S1E2 was never scored, and S2E2 is still the Episode after S2E1
+  expect(
+    nextEpisode([season(1, 3), season(2, 3)], new Set([101, 103, 201])),
+  ).toEqual({ season: 2, episode: 2 });
+});
+
+test('the next Episode after the last of a season is the first of the next', () => {
+  expect(nextEpisode([season(1, 3), season(2, 3)], new Set([103]))).toEqual({
+    season: 2,
+    episode: 1,
+  });
+});
+
+test('a scored Special never counts towards the furthest Episode', () => {
+  expect(
+    nextEpisode([season(1, 3), season(2, 3), season(0, 2)], new Set([201, 2])),
+  ).toEqual({ season: 2, episode: 2 });
+});
+
+test('a Special is never the next Episode', () => {
+  expect(nextEpisode([season(0, 2), season(1, 3)], new Set())).toEqual({
+    season: 1,
+    episode: 1,
+  });
+  expect(nextEpisode([season(1, 3), season(0, 2)], new Set([103]))).toBe(null);
+});
+
+test('a Show has no next Episode once its last listed one is scored', () => {
+  expect(nextEpisode([season(1, 3), season(2, 3)], new Set([203]))).toBe(null);
+});
+
+test('a scored Episode TMDB no longer lists never counts towards the furthest', () => {
+  expect(
+    nextEpisode([season(1, 3), season(2, 3)], new Set([102, 999])),
+  ).toEqual({ season: 1, episode: 3 });
 });
