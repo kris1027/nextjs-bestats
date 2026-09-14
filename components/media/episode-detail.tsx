@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { JSX } from 'react';
+import type { JSX, ReactNode } from 'react';
 
 import {
   DetailFrame,
@@ -15,8 +15,15 @@ import { type EpisodeDetails, mediaAddress, seasonAddress } from '@/lib/media';
  */
 const EpisodeDetail = ({
   episode,
+  control,
 }: {
   episode: EpisodeDetails;
+  /**
+   * What the page puts under the heading: the Episode's star row, or a line
+   * saying why there is none. A slot for the reason `MediaDetail`'s is one —
+   * this component renders an Episode and never learns Watch Records exist.
+   */
+  control?: ReactNode;
 }): JSX.Element => {
   const season = seasonAddress(episode.show.id, episode.season.number);
 
@@ -51,6 +58,8 @@ const EpisodeDetail = ({
         voteCount={episode.voteCount}
         facts={episode.facts}
       />
+
+      {control ? <div className='max-w-xs'>{control}</div> : null}
 
       <DetailOverview overview={episode.overview} />
     </DetailFrame>

@@ -4,13 +4,20 @@ import { type JSX, Suspense } from 'react';
 
 import { EpisodeDetail } from '@/components/media/episode-detail';
 import { EpisodeDetailSkeleton } from '@/components/media/media-skeleton';
+import { EpisodeScoreSkeleton } from '@/components/watch/control-skeleton';
+import { EpisodeScoreControl } from '@/components/watch/episode-score-control';
+import { answeredViewer } from '@/lib/auth';
 import {
   type EpisodeDetails,
+  type EpisodeRef,
   episodeDetails,
+  hasAired,
   isEpisodeNumber,
   isMediaId,
   isSeasonNumber,
 } from '@/lib/media';
+import { episodeMarkingOf } from '@/lib/watch';
+import { answeredEpisodeLookup } from '@/lib/watch-queries';
 
 type RouteParams = {
   kind: string;
@@ -61,6 +68,32 @@ export const generateMetadata = async ({
   };
 };
 
+/**
+ * The star row for this Episode, behind a boundary of its own: it alone waits
+ * on the Viewer and the database, and the Episode should not. Nothing when
+ * the lookup went Unanswered, the same as the Show's page.
+ */
+const Control = async ({
+  episode,
+  id,
+}: {
+  episode: EpisodeRef;
+  id: number;
+}): Promise<JSX.Element | null> => {
+  const asked = await answeredViewer();
+  const lookup = await answeredEpisodeLookup(asked, [id]);
+
+  if (lookup.markings === null) return null;
+
+  return (
+    <EpisodeScoreControl
+      key={lookup.viewerKey}
+      episode={episode}
+      marking={episodeMarkingOf(lookup.markings, id)}
+    />
+  );
+};
+
 /** The Episode, once TMDB has answered; behind the page's boundary. */
 const Found = async ({
   params,
@@ -71,7 +104,30 @@ const Found = async ({
 
   if (!episode) notFound();
 
-  return <EpisodeDetail episode={episode} />;
+  const ref: EpisodeRef = {
+    showId: episode.show.id,
+    season: episode.season.number,
+    episode: episode.number,
+  };
+
+  return (
+    <EpisodeDetail
+      episode={episode}
+      control={
+        // an Episode that has not aired cannot have been watched, so there
+        // is nothing to score yet; its air date is a Fact a line above
+        hasAired(episode.airDate, new Date()) ? (
+          <Suspense fallback={<EpisodeScoreSkeleton />}>
+            <Control episode={ref} id={episode.id} />
+          </Suspense>
+        ) : (
+          <p className='text-sm opacity-60'>
+            You can score this episode once it has aired.
+          </p>
+        )
+      }
+    />
+  );
 };
 
 const EpisodePage = ({

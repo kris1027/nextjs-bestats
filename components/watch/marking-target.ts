@@ -1,5 +1,11 @@
-import type { MediaRef } from '@/lib/media';
-import { type MarkResult, mark, markFromForm } from '@/lib/watch-actions';
+import type { EpisodeRef, MediaRef } from '@/lib/media';
+import {
+  type MarkResult,
+  mark,
+  markFromForm,
+  scoreEpisode,
+  scoreEpisodeFromForm,
+} from '@/lib/watch-actions';
 
 /**
  * What a marking control presses: the action its hydrated buttons call and
@@ -22,4 +28,23 @@ const mediaTarget = ({ kind, id }: MediaRef): MarkingTarget => ({
   fields: { kind, id: String(id) },
 });
 
-export { mediaTarget, type MarkingTarget };
+/**
+ * An Episode, scored. Named by its position, which is what the action asks
+ * TMDB about; the id its record is keyed on comes from that answer.
+ * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
+ */
+const episodeTarget = ({
+  showId,
+  season,
+  episode,
+}: EpisodeRef): MarkingTarget => ({
+  press: scoreEpisode,
+  post: scoreEpisodeFromForm,
+  fields: {
+    show: String(showId),
+    season: String(season),
+    episode: String(episode),
+  },
+});
+
+export { episodeTarget, mediaTarget, type MarkingTarget };
