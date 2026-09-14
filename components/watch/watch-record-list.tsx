@@ -105,16 +105,21 @@ type OpenList = {
   viewerKey: string;
   /** This list's two tallies, which the tabs wear and the Kind is read off. */
   tallies: Record<Kind, number>;
-  /**
-   * Everything the Viewer is tracking, placed, on the Watchlist and Upcoming,
-   * which are paged in memory. `null` on the Watched list, which Postgres
-   * still pages.
-   * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
-   */
-  placements: Placement[] | null;
+  contents: ListContents;
   kind: Kind;
   page: number;
 };
+
+/**
+ * Which list is open and what its pages are cut from: on the Watchlist and
+ * Upcoming, everything the Viewer is tracking, placed and paged in memory; on
+ * the Watched list nothing, since Postgres still pages it. One value, so which
+ * list it is and whether there are placements cannot disagree.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
+ */
+type ListContents =
+  | { list: PlacedList; placements: Placement[] }
+  | { list: 'watched' };
 
 /**
  * The answer `mediaItems` gave for the ref at `index`. Answers come back one
@@ -222,18 +227,20 @@ const openList = cache(
       );
     }
 
-    const placements =
-      list === 'watched' ? null : await placeTracked(currentViewer.id);
+    const contents: ListContents =
+      list === 'watched'
+        ? { list }
+        : { list, placements: await placeTracked(currentViewer.id) };
     const tallies =
-      placements && list !== 'watched'
-        ? placedTallies(placements, list)
-        : await watchedTallies(currentViewer.id);
+      contents.list === 'watched'
+        ? await watchedTallies(currentViewer.id)
+        : placedTallies(contents.placements, contents.list);
 
     return {
       viewerId: currentViewer.id,
       viewerKey: viewerKey(currentViewer),
       tallies,
-      placements,
+      contents,
       // what this Viewer holds is this page's answer to what `openKind` asks,
       // so a Watchlist that is all Movies opens on Movies
       kind: named ?? openKind({ tv: tallies.tv > 0, movie: tallies.movie > 0 }),
@@ -438,7 +445,7 @@ const ListPage = async ({
   list: List;
   searchParams: Promise<SearchParams>;
 }): Promise<JSX.Element> => {
-  const { viewerId, viewerKey, placements, kind, page } = await openList(
+  const { viewerId, viewerKey, contents, kind, page } = await openList(
     list,
     searchParams,
   );
@@ -447,9 +454,12 @@ const ListPage = async ({
   // 404s; page 1 of nothing is the empty state below, since a tab with nothing on
   // it still exists
   const { entries, markings, total } =
-    placements && list !== 'watched'
-      ? await placedEntries(viewerId, placements, list, { kind, page })
-      : await watchedEntries(viewerId, { kind, page });
+    contents.list === 'watched'
+      ? await watchedEntries(viewerId, { kind, page })
+      : await placedEntries(viewerId, contents.placements, contents.list, {
+          kind,
+          page,
+        });
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   if (page > pages) notFound();
