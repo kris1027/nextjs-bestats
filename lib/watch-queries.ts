@@ -458,27 +458,37 @@ export const writeEpisodeRecord = async (
 };
 
 /**
- * Whether a Viewer is under way with a Show: they have scored at least one of
- * its Episodes. Read off the Episodes' records, since an under-way Show has no
- * record of its own.
+ * `writeWatchRecord` for a Planned Show, refused while the Viewer is under way
+ * with it: `false`, and nothing written, once any of its Episodes is scored.
+ * The check and the write are one statement, because the HTTP driver has no
+ * interactive transactions and an Episode scored between a read and a write
+ * would leave the Show Planned and under way at once.
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ *
+ * SQL rather than the builder, since an `insert … select` with no table to
+ * select from is not something Drizzle can spell. The casts are there because
+ * a parameter in a select list reaches Postgres as text.
  */
-export const showUnderWay = async (
+export const writePlannedShow = async (
   viewerId: string,
   showId: number,
 ): Promise<boolean> => {
-  const [row] = await db
-    .select({ episodeId: episodeRecords.episodeId })
-    .from(episodeRecords)
-    .where(
-      and(
-        eq(episodeRecords.viewerId, viewerId),
-        eq(episodeRecords.showId, showId),
-      ),
+  const { rows } = await db.execute(sql`
+    insert into ${watchRecords} (viewer_id, kind, tmdb_id, state, score)
+    select ${viewerId}::uuid, 'tv'::media_kind, ${showId}::integer,
+      'planned'::watch_state, null
+    where not exists (
+      select 1 from ${episodeRecords}
+      where ${episodeRecords.viewerId} = ${viewerId}::uuid
+        and ${episodeRecords.showId} = ${showId}::integer
     )
-    .limit(1);
+    on conflict (viewer_id, kind, tmdb_id)
+    do update set state = excluded.state, score = excluded.score,
+      updated_at = now()
+    returning 1
+  `);
 
-  return row !== undefined;
+  return rows.length > 0;
 };
 
 /** Unscores an Episode: the row goes, since an Episode has no other state. */

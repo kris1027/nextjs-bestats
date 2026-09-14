@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from 'vitest';
 
-import { MARKING_FIELD, watchedAt } from '@/lib/watch';
+import { MARKING_FIELD, PLANNED, watchedAt } from '@/lib/watch';
 import { mark, scoreEpisode } from '@/lib/watch-actions';
 
 /**
@@ -29,7 +29,7 @@ const queries = vi.hoisted(() => ({
   episodeLookup: vi.fn(),
   writeEpisodeRecord: vi.fn(),
   clearEpisodeRecord: vi.fn(),
-  showUnderWay: vi.fn(),
+  writePlannedShow: vi.fn(),
 }));
 
 vi.mock('@/lib/watch-queries', () => queries);
@@ -102,7 +102,9 @@ test('a write that throws after the reads succeed is reported the same way', asy
   vi.spyOn(console, 'error').mockImplementation(() => {});
   queries.tallyMarking.mockResolvedValue(1);
   queries.watchLookup.mockResolvedValue(new Map());
-  queries.writeWatchRecord.mockRejectedValue(new Error('the write failed'));
+  // the press is Planned on a Show, so the write is the one that refuses a
+  // Show under way
+  queries.writePlannedShow.mockRejectedValue(new Error('the write failed'));
 
   expect(await mark(press())).toEqual({
     error: 'Could not mark that. Try again in a moment.',
@@ -120,7 +122,7 @@ test('the press is counted before anything is read or written', async () => {
   // is exactly what happened — failing open would be worse, so this stands.
   expect(queries.tallyMarking).toHaveBeenCalledWith('a-viewer');
   expect(queries.watchLookup).not.toHaveBeenCalled();
-  expect(queries.writeWatchRecord).not.toHaveBeenCalled();
+  expect(queries.writePlannedShow).not.toHaveBeenCalled();
 });
 
 test('a marking our own form could not have posted is a throw, not a message', async () => {
@@ -138,14 +140,25 @@ test('a marking our own form could not have posted is a throw, not a message', a
 test('Planned is refused on a Show the Viewer is under way with, and nothing is written', async () => {
   queries.tallyMarking.mockResolvedValue(1);
   queries.watchLookup.mockResolvedValue(new Map());
-  queries.showUnderWay.mockResolvedValue(true);
+  // the write refuses in the same statement that would have made it, so an
+  // Episode scored after the page was drawn cannot slip between the two
+  queries.writePlannedShow.mockResolvedValue(false);
 
   // a stale page still drawing Planned: the Show's Episodes say where the
   // Viewer is now, and Planned would say they had not started
   expect(await mark(press())).toEqual({
     error: 'You are already watching this show.',
   });
-  expect(queries.showUnderWay).toHaveBeenCalledWith('a-viewer', 236235);
+  expect(queries.writePlannedShow).toHaveBeenCalledWith('a-viewer', 236235);
+  expect(queries.writeWatchRecord).not.toHaveBeenCalled();
+});
+
+test('Planned on a Show not under way is written, and says Planned', async () => {
+  queries.tallyMarking.mockResolvedValue(1);
+  queries.watchLookup.mockResolvedValue(new Map());
+  queries.writePlannedShow.mockResolvedValue(true);
+
+  expect(await mark(press())).toEqual({ marking: PLANNED });
   expect(queries.writeWatchRecord).not.toHaveBeenCalled();
 });
 

@@ -24,6 +24,7 @@ import {
   watchRecordsPage,
   watchTallies,
   writeEpisodeRecord,
+  writePlannedShow,
   writeWatchRecord,
 } from '@/lib/watch-queries';
 
@@ -417,6 +418,29 @@ test('writing an Episode record again rescores it, and clearing it removes it', 
   await clearEpisodeRecord(viewerId, HALF_LOOP.episodeId);
 
   expect((await episodeLookup(viewerId, [HALF_LOOP.episodeId])).size).toBe(0);
+});
+
+test('a Show is written Planned only while none of its Episodes is scored', async () => {
+  const viewerId = await viewer();
+  const show = { kind: 'tv', id: HALF_LOOP.showId } as const;
+
+  expect(await writePlannedShow(viewerId, show.id)).toBe(true);
+  expect(markingOf(await watchLookup(viewerId, [show]), show)).toEqual(PLANNED);
+
+  await clearWatchRecord(viewerId, show);
+  await writeEpisodeRecord(viewerId, HALF_LOOP, watchedAt(8));
+
+  // refused in the statement that would have written it, so nothing is left
+  expect(await writePlannedShow(viewerId, show.id)).toBe(false);
+  expect((await watchLookup(viewerId, [show])).size).toBe(0);
+});
+
+test("another Show's scored Episodes do not refuse Planned on this one", async () => {
+  const viewerId = await viewer();
+
+  await writeEpisodeRecord(viewerId, HALF_LOOP, watchedAt(8));
+
+  expect(await writePlannedShow(viewerId, GOT.id)).toBe(true);
 });
 
 test("one Viewer's Episode Scores are not another's", async () => {
