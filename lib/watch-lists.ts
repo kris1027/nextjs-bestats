@@ -64,6 +64,10 @@ const WATCHLIST: ReadonlySet<PlacedList> = new Set(['watchlist']);
 const UPCOMING: ReadonlySet<PlacedList> = new Set(['upcoming']);
 const BOTH: ReadonlySet<PlacedList> = new Set(['watchlist', 'upcoming']);
 
+/** The latest marked first, which is the Watchlist's order and the ceiling's. */
+const latestMarkedFirst = (a: TrackedMedia, b: TrackedMedia): number =>
+  b.markedAt.getTime() - a.markedAt.getTime();
+
 /**
  * The tracked Movies and Shows a list is placed from: the latest marked, no
  * more than the ceiling. Cut before TMDB is asked, since the ceiling is what
@@ -72,9 +76,7 @@ const BOTH: ReadonlySet<PlacedList> = new Set(['watchlist', 'upcoming']);
 export const withinCeiling = (
   tracked: readonly TrackedMedia[],
 ): TrackedMedia[] =>
-  [...tracked]
-    .sort((a, b) => b.markedAt.getTime() - a.markedAt.getTime())
-    .slice(0, TRACKED_CEILING);
+  [...tracked].sort(latestMarkedFirst).slice(0, TRACKED_CEILING);
 
 /** A date TMDB spelled as the calendar day it names, or `null` for none. */
 const calendarDay = (date: string | null): string | null =>
@@ -126,9 +128,8 @@ export const placed = (
   };
 };
 
-/** The latest marked first, which is the Watchlist's order. */
 const byLatestMarked = (a: PlacedMedia, b: PlacedMedia): number =>
-  b.tracked.markedAt.getTime() - a.tracked.markedAt.getTime();
+  latestMarkedFirst(a.tracked, b.tracked);
 
 /**
  * The soonest day first and the undated last, which is Upcoming's order; a
