@@ -361,3 +361,61 @@ export const nextEpisode = (
 
   return inOrder[furthest + 1]?.position ?? null;
 };
+
+/**
+ * A Movie or Show a Viewer is tracking, and when they last marked it — the
+ * Movie, the Show, or any of the Show's Episodes. What a list places, orders
+ * and pages; a page hangs TMDB's answers on it.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
+ */
+export type TrackedMedia = { ref: MediaRef; markedAt: Date };
+
+/**
+ * How many Movies and Shows a list places. Each costs a TMDB request before
+ * any page of the list can be drawn, so this is where that cost stops: the
+ * latest marked are kept, and the rest are on no page and in no tally.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
+ */
+export const TRACKED_CEILING = 200;
+
+/**
+ * One page of one Kind of the Watchlist, and what the tabs wear: the open
+ * Kind's total, which the page count is read off, and both Kinds' tallies.
+ */
+export type WatchlistPage<T extends TrackedMedia> = {
+  items: T[];
+  total: number;
+  tallies: Record<Kind, number>;
+};
+
+/**
+ * One page of one Kind of the Watchlist, the latest marked first. The page
+ * and the tallies are read off the same placed set, since Postgres can no
+ * longer say which list a record is on.
+ *
+ * Generic, so a page hangs what TMDB answered on each item and gets it back
+ * paged. That also means nothing here can drop an item for being Gone or
+ * Unanswered: it never sees the answer.
+ */
+export const watchlistPage = <T extends TrackedMedia>(
+  tracked: readonly T[],
+  { kind, page }: { kind: Kind; page: number },
+): WatchlistPage<T> => {
+  // `?page=` is the page's to validate, and this is where forgetting to shows
+  if (!Number.isInteger(page) || page < 1) {
+    throw new RangeError(`A list page counts from 1, not ${page}`);
+  }
+
+  const placed = [...tracked]
+    .sort((a, b) => b.markedAt.getTime() - a.markedAt.getTime())
+    .slice(0, TRACKED_CEILING);
+  const ofKind = (wanted: Kind): T[] =>
+    placed.filter((item) => item.ref.kind === wanted);
+  const open = ofKind(kind);
+
+  return {
+    items: open.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    total: open.length,
+    tallies: { tv: ofKind('tv').length, movie: ofKind('movie').length },
+  };
+};
