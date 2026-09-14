@@ -243,7 +243,7 @@ export const watchRecordsPage = async (
  * Show with an Episode scored, whether or not it has a record of its own.
  * `markedAt` is the latest marking on the Movie, the Show or any of its
  * Episodes, which is what the Watchlist orders by, and a Show brings the ids
- * of its scored Episodes for `nextEpisode`.
+ * of its scored Episodes for `upNext`.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 export const trackedMedia = async (

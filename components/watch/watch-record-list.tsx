@@ -28,11 +28,11 @@ import { viewerKey } from '@/lib/viewer-key';
 import {
   LISTS,
   type List,
-  nextEpisode,
   PAGE_SIZE,
   refOf,
   type TrackedMedia,
   toLookup,
+  upNext,
   type WatchLookup,
   watchKey,
   watchlistPage,
@@ -258,9 +258,11 @@ const answerAt = (
 const nextFor = async (item: TrackedMedia): Promise<EpisodeRef | null> => {
   try {
     const seasons = await showEpisodes(item.ref.id);
-    const next = seasons && nextEpisode(seasons, item.scored);
+    const next = seasons && upNext(seasons, item.scored);
 
-    return next && { showId: item.ref.id, ...next };
+    return next && 'episode' in next
+      ? { showId: item.ref.id, ...next.episode }
+      : null;
   } catch (cause) {
     console.error(`TMDB ${watchKey(item.ref)} seasons went Unanswered:`, cause);
 
