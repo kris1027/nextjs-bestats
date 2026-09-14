@@ -1,8 +1,8 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { expect, test } from 'vitest';
 
 import { db } from '@/lib/db';
-import { markingTallies, watchRecords } from '@/lib/schema';
+import { episodeRecords, markingTallies, watchRecords } from '@/lib/schema';
 import { expireMarkingWindow } from '@/lib/test-marking';
 import { disposableViewers } from '@/lib/test-viewers';
 import {
@@ -10,6 +10,7 @@ import {
   markingOf,
   PAGE_SIZE,
   PLANNED,
+  TRACKED_CEILING,
   watchedAt,
 } from '@/lib/watch';
 import {
@@ -18,6 +19,7 @@ import {
   clearWatchRecord,
   episodeLookup,
   tallyMarking,
+  trackedMedia,
   watchLookup,
   watchRecordsPage,
   watchTallies,
@@ -438,4 +440,113 @@ test('a Visitor has an empty Episode lookup and an Unanswered sign-in has none',
       ])
     ).markings,
   ).toBeNull();
+});
+
+/** A tracked row as a test compares it: which Media, and what was scored. */
+const trackedOf = async (viewerId: string) =>
+  (await trackedMedia(viewerId)).map(({ ref, scored }) => ({
+    ref,
+    scored: [...scored].sort(),
+  }));
+
+test('Planned Movies and Shows are tracked, and a Watched Movie is not', async () => {
+  const viewerId = await viewer();
+
+  await writeWatchRecord(viewerId, GOT, PLANNED);
+  await writeWatchRecord(viewerId, HEAT, PLANNED);
+  await writeWatchRecord(viewerId, { kind: 'movie', id: 603 }, watchedAt(9));
+
+  expect(await trackedOf(viewerId)).toEqual(
+    expect.arrayContaining([
+      { ref: GOT, scored: [] },
+      { ref: HEAT, scored: [] },
+    ]),
+  );
+  expect(await trackedOf(viewerId)).toHaveLength(2);
+});
+
+/** Moves one Episode record's last marking to a known moment. */
+const episodeMarkedAt = async (
+  viewerId: string,
+  episodeId: number,
+  at: string,
+): Promise<void> => {
+  await db
+    .update(episodeRecords)
+    .set({ updatedAt: new Date(at) })
+    .where(
+      and(
+        eq(episodeRecords.viewerId, viewerId),
+        eq(episodeRecords.episodeId, episodeId),
+      ),
+    );
+};
+
+test('a Show under way is tracked with its scored Episodes, at the latest of them', async () => {
+  const viewerId = await viewer();
+
+  await writeEpisodeRecord(
+    viewerId,
+    { episodeId: 62085, showId: 1396 },
+    watchedAt(8),
+  );
+  await writeEpisodeRecord(
+    viewerId,
+    { episodeId: 62086, showId: 1396 },
+    watchedAt(9),
+  );
+  await episodeMarkedAt(viewerId, 62085, '2026-09-10T12:00:00Z');
+  await episodeMarkedAt(viewerId, 62086, '2026-09-02T12:00:00Z');
+
+  const [show, ...rest] = await trackedMedia(viewerId);
+
+  expect(rest).toEqual([]);
+  expect(show?.ref).toEqual(BREAKING_BAD);
+  expect([...(show?.scored ?? [])].sort()).toEqual([62085, 62086]);
+  expect(show?.markedAt).toEqual(new Date('2026-09-10T12:00:00Z'));
+});
+
+test('tracked Media comes latest marked first, and stops at the ceiling', async () => {
+  const viewerId = await viewer();
+
+  // Movie n is marked n minutes into the day, so Movie 1 is the oldest
+  await db.insert(watchRecords).values(
+    Array.from({ length: TRACKED_CEILING + 1 }, (_, index) => ({
+      viewerId,
+      kind: 'movie' as const,
+      tmdbId: index + 1,
+      state: 'planned' as const,
+      updatedAt: new Date(Date.UTC(2026, 8, 1, 0, index + 1)),
+    })),
+  );
+
+  const tracked = await trackedMedia(viewerId);
+
+  expect(tracked).toHaveLength(200);
+  expect(tracked[0]?.ref).toEqual({ kind: 'movie', id: 201 });
+  expect(tracked.at(-1)?.ref).toEqual({ kind: 'movie', id: 2 });
+});
+
+test('a Watched Show with no Episode scored is not tracked', async () => {
+  const viewerId = await viewer();
+
+  // the Watched list's until #26: the union reads a Show's record whatever it
+  // says, and only a Planned one or an Episode makes the Show tracked
+  await writeWatchRecord(viewerId, GOT, watchedAt(9));
+
+  expect(await trackedMedia(viewerId)).toEqual([]);
+});
+
+test('tracked Media is one Viewer’s and nobody else’s', async () => {
+  const viewerId = await viewer();
+  const otherId = await viewer();
+
+  await writeWatchRecord(otherId, HEAT, PLANNED);
+  await writeEpisodeRecord(
+    otherId,
+    { episodeId: 62085, showId: 1396 },
+    watchedAt(8),
+  );
+
+  expect(await trackedMedia(viewerId)).toEqual([]);
 });

@@ -1,4 +1,5 @@
 import { and, count, desc, eq, inArray, or, sql } from 'drizzle-orm';
+import { unionAll } from 'drizzle-orm/pg-core';
 
 import type { ViewerAnswer } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -12,6 +13,8 @@ import {
   type Marking,
   PAGE_SIZE,
   scoreOf,
+  TRACKED_CEILING,
+  type TrackedRecord,
   toLookup,
   toMarkedMedia,
   type ViewerEpisodeLookup,
@@ -236,6 +239,76 @@ export const watchRecordsPage = async (
     })),
     total: tally?.total ?? 0,
   };
+};
+
+/**
+ * Every Movie and Show a Viewer is tracking: each Planned record, and each
+ * Show with an Episode scored, whether or not it has a record of its own.
+ * `markedAt` is the latest marking on the Movie, the Show or any of its
+ * Episodes, which is what the Watchlist orders by, and a Show brings the ids
+ * of its scored Episodes for `nextEpisode`.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
+ */
+export const trackedMedia = async (
+  viewerId: string,
+): Promise<TrackedRecord[]> => {
+  // every marking that can make Media tracked, one row each: a Show's own
+  // record of any state, since a Show under way still orders by it, and each
+  // Episode as a marking on its Show
+  const markings = unionAll(
+    db
+      .select({
+        kind: watchRecords.kind,
+        tmdbId: watchRecords.tmdbId,
+        markedAt: watchRecords.updatedAt,
+        planned: sql<boolean>`${watchRecords.state} = 'planned'`.as('planned'),
+        episodeId: sql<number | null>`null::integer`.as('episode_id'),
+      })
+      .from(watchRecords)
+      .where(
+        and(
+          eq(watchRecords.viewerId, viewerId),
+          or(eq(watchRecords.state, 'planned'), eq(watchRecords.kind, 'tv')),
+        ),
+      ),
+    db
+      .select({
+        kind: sql<Kind>`'tv'::media_kind`.as('kind'),
+        tmdbId: episodeRecords.showId,
+        markedAt: episodeRecords.updatedAt,
+        planned: sql<boolean>`false`.as('planned'),
+        episodeId: episodeRecords.episodeId,
+      })
+      .from(episodeRecords)
+      .where(eq(episodeRecords.viewerId, viewerId)),
+  ).as('markings');
+
+  const rows = await db
+    .select({
+      kind: markings.kind,
+      tmdbId: markings.tmdbId,
+      markedAt: sql<Date>`max(${markings.markedAt})`.mapWith(
+        watchRecords.updatedAt,
+      ),
+      scored: sql<
+        number[]
+      >`coalesce(array_agg(${markings.episodeId}) filter (where ${markings.episodeId} is not null), '{}')`,
+    })
+    .from(markings)
+    .groupBy(markings.kind, markings.tmdbId)
+    .having(
+      sql`bool_or(${markings.planned}) or count(${markings.episodeId}) > 0`,
+    )
+    // the ceiling here too, so what is read is bounded and not only what is
+    // placed; `watchlistPage` keeps the same 200 of what it is handed
+    .orderBy(sql`max(${markings.markedAt}) desc`)
+    .limit(TRACKED_CEILING);
+
+  return rows.map(({ kind, tmdbId, markedAt, scored }) => ({
+    ref: { kind, id: tmdbId },
+    markedAt,
+    scored: new Set(scored),
+  }));
 };
 
 /**

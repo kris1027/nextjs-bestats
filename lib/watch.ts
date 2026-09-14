@@ -371,6 +371,13 @@ export const nextEpisode = (
 export type TrackedMedia = { ref: MediaRef; markedAt: Date };
 
 /**
+ * A tracked Movie or Show as it is read: the Episodes the Viewer has scored
+ * come along, since a Show's are what `nextEpisode` reads, and a Movie's or a
+ * Planned Show's are none.
+ */
+export type TrackedRecord = TrackedMedia & { scored: ReadonlySet<number> };
+
+/**
  * How many Movies and Shows a list places. Each costs a TMDB request before
  * any page of the list can be drawn, so this is where that cost stops: the
  * latest marked are kept, and the rest are on no page and in no tally.
