@@ -183,11 +183,11 @@ export const answeredEpisodeLookup = async (
 
 /**
  * One page of one Kind of a Viewer's Watch Records in one state — the Movies
- * they have watched, the Shows they have Planned — newest marking first, with the
- * size of that whole list beside it so the page can count what it is paging
- * through. The Kind narrows here rather than in the page, because a page that
- * fetched both and threw one away would page through a list it was not
- * showing.
+ * they have watched, the Shows they have Planned — newest marking first, with
+ * the size of that whole list beside it so the page can count what it is
+ * paging through. The Kind narrows here rather than in the page, because a
+ * page that fetched both and threw one away would page through a list it was
+ * not showing.
  *
  * The state, the Kind and the page arrive as one value, because none of the
  * three names a list without the other two — and because a `where` clause of
