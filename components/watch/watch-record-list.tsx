@@ -221,18 +221,33 @@ const Tabs = ({
   />
 );
 
-/**
- * What one page of a list draws: the Media on it, in order, and for each Show
- * on the Watchlist the Episode its card leads to.
- */
+/** One card on a page of a list: the Media, and what TMDB answered for it. */
+type ListEntry = {
+  ref: MediaRef;
+  answer: MediaAnswer;
+  /**
+   * The Episode a Watchlist card for a Show leads to; `null` for a Movie, a
+   * card on the Watched list, or a Show with no Episode to lead to.
+   */
+  next: EpisodeRef | null;
+};
+
+/** What one page of a list draws: its cards in order, and their markings. */
 type ListEntries = {
-  refs: MediaRef[];
-  answers: MediaAnswer[];
-  /** One per ref; `null` for a Movie, or a Show with no Episode to lead to. */
-  nexts: (EpisodeRef | null)[];
+  entries: ListEntry[];
   markings: WatchLookup;
   total: number;
 };
+
+/**
+ * The answer `mediaItems` gave for the ref at `index`. Answers come back one
+ * per ref, so the fallback cannot happen; it is here for the type, and a ref
+ * with no answer is Unanswered as the word says.
+ */
+const answerAt = (
+  answers: readonly MediaAnswer[],
+  index: number,
+): MediaAnswer => answers[index] ?? { answer: 'unanswered' };
 
 /**
  * The Episode a Watchlist card for a Show leads to, or `null` where there is
@@ -272,15 +287,22 @@ const watchlistEntries = async (
     mediaItems(refs),
     watchLookup(viewerId, refs),
   ]);
-  const nexts = await Promise.all(
-    items.map((item, index) =>
-      item.ref.kind === 'tv' && answers[index]?.answer === 'item'
-        ? nextFor(item)
-        : null,
-    ),
+  const entries = await Promise.all(
+    items.map(async (item, index): Promise<ListEntry> => {
+      const answer = answerAt(answers, index);
+
+      return {
+        ref: item.ref,
+        answer,
+        next:
+          item.ref.kind === 'tv' && answer.answer === 'item'
+            ? await nextFor(item)
+            : null,
+      };
+    }),
   );
 
-  return { refs, answers, nexts, markings, total };
+  return { entries, markings, total };
 };
 
 /**
@@ -297,12 +319,14 @@ const watchedEntries = async (
     page,
   });
   const refs = records.map(refOf);
+  const answers = await mediaItems(refs);
 
   return {
-    refs,
-    // in the refs' order, so an answer and its record share an index
-    answers: await mediaItems(refs),
-    nexts: refs.map(() => null),
+    entries: refs.map((ref, index) => ({
+      ref,
+      answer: answerAt(answers, index),
+      next: null,
+    })),
     // the page's own records are its lookup: every card on it has a marking
     markings: toLookup(records),
     total,
@@ -329,7 +353,7 @@ const ListPage = async ({
   // a page past the end has no refs, so it asks TMDB nothing before it 404s;
   // page 1 of nothing is the empty state below, since a tab with nothing on
   // it still exists
-  const { refs, answers, nexts, markings, total } = tracked
+  const { entries, markings, total } = tracked
     ? await watchlistEntries(viewerId, tracked, { kind, page })
     : await watchedEntries(viewerId, { kind, page });
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -352,20 +376,15 @@ const ListPage = async ({
   return (
     <>
       <MediaGrid>
-        {refs.map((ref, index) => {
-          const answer = answers[index];
+        {entries.map(({ ref, answer, next }) => {
           const key = watchKey(ref);
-
-          // the answers are one per ref, so this branch cannot run;
-          // it is here for the type rather than the reader
-          if (!answer) return null;
 
           return answer.answer === 'item' ? (
             <MediaCard
               key={key}
               item={answer.item}
               lookup={lookup}
-              next={nexts[index] ?? null}
+              next={next}
             />
           ) : (
             <AbsentCard
