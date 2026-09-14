@@ -18,6 +18,11 @@ type CardHeadContent = {
   href?: string;
   /** What the badge shows until the Viewer has scored this. */
   tmdbRating?: Rating;
+  /**
+   * A line under the title bar, inside the link, so a screen reader hears it
+   * as part of where the card goes: `S2E4`, announced as "Next episode".
+   */
+  detail?: { label: string; text: string };
 };
 
 /**
@@ -34,6 +39,7 @@ const CardHead = ({
   href,
   score,
   tmdbRating,
+  detail,
 }: CardHeadContent & {
   /** The Viewer's Score, which takes the badge whenever there is one. */
   score: Score | null;
@@ -65,6 +71,12 @@ const CardHead = ({
           </Badge>
         ) : null}
       </div>
+      {detail ? (
+        <p className='px-2.5 pt-2 text-muted-foreground text-xs'>
+          <span className='sr-only'>{detail.label}: </span>
+          {detail.text}
+        </p>
+      ) : null}
     </>
   );
 

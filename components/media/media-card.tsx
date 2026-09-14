@@ -3,7 +3,13 @@ import type { JSX } from 'react';
 
 import { MediaPlaceholder } from '@/components/media/media-placeholder';
 import { CardHead } from '@/components/watch/card-head';
-import type { MediaItem } from '@/lib/media';
+import {
+  type EpisodeRef,
+  episodeAddress,
+  episodeCode,
+  type MediaItem,
+  mediaAddress,
+} from '@/lib/media';
 import { markingOf, scoreOf, type ViewerLookup } from '@/lib/watch';
 
 /**
@@ -23,13 +29,20 @@ import { markingOf, scoreOf, type ViewerLookup } from '@/lib/watch';
  * Score arrives as a prop from the server, and the render that follows a
  * sign-out simply does not carry it. Only a card that holds a marking of its
  * own needs the key, which is `AbsentCard` and the detail page.
+ *
+ * `next` is the Episode a Watchlist card for a Show leads to: the card names
+ * it and links to its page rather than the Show's, so watching a run is
+ * score, next, score. The badge is the Show's all the same.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 const MediaCard = ({
   item,
   lookup,
+  next = null,
 }: {
   item: MediaItem;
   lookup: ViewerLookup;
+  next?: EpisodeRef | null;
 }): JSX.Element => {
   const poster = item.posterUrl ? (
     <Image
@@ -58,7 +71,10 @@ const MediaCard = ({
       <CardHead
         label={item.label}
         poster={poster}
-        href={`/${item.kind}/${item.id}`}
+        href={next ? episodeAddress(next) : mediaAddress(item)}
+        detail={
+          next ? { label: 'Next episode', text: episodeCode(next) } : undefined
+        }
         score={marking && scoreOf(marking)}
         tmdbRating={item}
       />
