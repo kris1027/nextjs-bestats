@@ -255,6 +255,10 @@ export const isEpisodeNumber = (value: string): boolean =>
  * watched it. An Episode with no air date has not: TMDB has not said it
  * will air at all. The day it airs counts, since TMDB's day is a calendar
  * day in no time zone and the app has no better one to hold it to.
+ *
+ * `today` is read as UTC's day, since the server does not know the Viewer's
+ * zone. West of UTC an Episode counts as aired from the evening before its
+ * day, and east of it only some hours into its day, once UTC reaches it.
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const hasAired = (airDate: string | null, today: Date): boolean =>
