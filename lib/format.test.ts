@@ -6,6 +6,7 @@ import {
   formatDate,
   formatNumber,
   formatRuntime,
+  formatShortDate,
   formatTally,
   initials,
 } from '@/lib/format';
@@ -45,6 +46,24 @@ test('formatDate formats a calendar date in UTC', () => {
 
 test('formatDate has nothing to say about a date TMDB does not have', () => {
   expect(formatDate('')).toBe(null);
+});
+
+test("formatShortDate leaves off the year when it is today's", () => {
+  const today = new Date(Date.UTC(2026, 8, 14));
+
+  expect(formatShortDate('2026-03-12', today)).toBe('Mar 12');
+  expect(formatShortDate('2027-03-12', today)).toBe('Mar 12, 2027');
+});
+
+test('formatShortDate keeps the calendar day in UTC', () => {
+  // the first of the year, read west of UTC, is still the year it names
+  expect(formatShortDate('2027-01-01', new Date(Date.UTC(2027, 0, 1)))).toBe(
+    'Jan 1',
+  );
+});
+
+test('formatShortDate has nothing to say about a date TMDB does not have', () => {
+  expect(formatShortDate('', new Date())).toBe(null);
 });
 
 test('formatTally names both numbers while more were found than shown', () => {

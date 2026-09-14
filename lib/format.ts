@@ -40,6 +40,34 @@ export const formatDate = (date: string): string | null => {
   return Number.isNaN(parsed.getTime()) ? null : dateFormat.format(parsed);
 };
 
+const shortDateFormat = new Intl.DateTimeFormat(LOCALE, {
+  month: 'short',
+  day: 'numeric',
+  timeZone: 'UTC',
+});
+
+const shortDateWithYearFormat = new Intl.DateTimeFormat(LOCALE, {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
+/**
+ * A date short enough for a card's one line: "Mar 12". The year is left off
+ * only in the year `today` is in, since a date a year out without one reads
+ * as this year's. `null` for a date TMDB does not have, as `formatDate`.
+ */
+export const formatShortDate = (date: string, today: Date): string | null => {
+  const parsed = new Date(date);
+
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  return parsed.getUTCFullYear() === today.getUTCFullYear()
+    ? shortDateFormat.format(parsed)
+    : shortDateWithYearFormat.format(parsed);
+};
+
 /**
  * TMDB gives runtime in whole minutes, and `null` or `0` for movies whose
  * length it does not know. Unlike the counts above this is abbreviated, so a
