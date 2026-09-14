@@ -543,8 +543,8 @@ const ListPage = async ({
 /**
  * One page of one of a Viewer's lists — the Watchlist, Upcoming or the
  * Watched list — shared by the three routes, which differ only in the list
- * they show. A
- * page shows one Kind of that list at a time, which `?kind=` names.
+ * they show. A page shows one Kind of that list at a time, which `?kind=`
+ * names.
  * — `docs/adr/0015-the-lists-tabs-are-the-kind.md`
  *
  * The heading and the tabs are the shell, and the heading is where the list
