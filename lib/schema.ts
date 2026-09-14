@@ -78,11 +78,13 @@ export const watchRecords = pgTable(
   },
   (table) => [
     primaryKey({ columns: [table.viewerId, table.kind, table.tmdbId] }),
-    // the prefix of the query each list tab makes: a list narrows to one Kind
-    // on top of this, which the index does not carry, so Postgres walks these
-    // rows in `updated_at` order and drops the other Kind. Adding `kind` here
+    // the prefix of the Watched list's page and tallies, which narrow to one
+    // Kind on top of it: the index does not carry `kind`, so Postgres walks
+    // these rows in `updated_at` order and drops the other Kind. Adding it
     // would make it exact and cost a migration; one Viewer's list is small
-    // enough that it has not been worth one.
+    // enough that it has not been worth one. The Watchlist no longer pages
+    // here — it reads everything tracked, on `viewer_id` alone
+    // — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
     index('watch_records_viewer_state_idx').on(
       table.viewerId,
       table.state,

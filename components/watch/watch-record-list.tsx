@@ -440,7 +440,8 @@ const ListPage = async ({
  * is said: the tabs are the Kind, and the header's links are the way to the
  * other list. The tallies stream into the tabs and the cards into the grid,
  * each behind a boundary of its own, because the database answers in one round
- * trip and TMDB in twenty.
+ * trip and TMDB in a request per card — and on the Watchlist, more for each
+ * Show's seasons.
  *
  * Nothing moves when a card here is marked. A card pressed out of this list
  * shows its new state where it is, and the list catches up on the next

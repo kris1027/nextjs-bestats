@@ -327,7 +327,9 @@ export type EpisodePosition = { season: number; episode: number };
  *
  * `null` is TMDB listing nothing after the furthest — waiting or finished,
  * which this cannot tell apart without the Show's status. Seasons arrive in
- * viewing order, as `showSeasons` gives them.
+ * viewing order, as `showEpisodes` gives them. It leaves Specials out already;
+ * they are passed over here as well, so the rule is this function's and holds
+ * whatever hands it the seasons.
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const nextEpisode = (
