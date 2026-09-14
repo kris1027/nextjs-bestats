@@ -95,7 +95,11 @@ whose it is — only the actions read `lib/auth` to find out.
 `answeredWatchLookup` takes the whole answer and comes back with a
 `ViewerLookup` whose `markings` of `null` is Unanswered and means no controls,
 whether the database or the sign-in was what did not answer. `lib/watch`
-reads `lib/media` for `Kind` and its guards, never the other way.
+reads `lib/media`, never the other way — and `lib/watch.ts` reads only its
+types: `lib/media` reaches `lib/tmdb` and `next/cache`, so a value imported
+there puts TMDB's client in a browser bundle with no type error. A rule that
+needs one, like `hasAired`, goes in `lib/watch-lists.ts`, which places what a
+Viewer tracks on the Watchlist or Upcoming.
 
 A `ViewerLookup` is what a page hands its cards: that answer, and the key of
 the Viewer whose markings are in it. An Episode page has no cards and hands
@@ -121,13 +125,6 @@ three list routes, it reads `viewer()`, the queries and `lib/media` the way any
 page does, since resolving Watch Records against TMDB is a page's job and not
 `lib/watch`'s. It lives here only because three routes share it.
 
-`lib/watch-lists.ts` places what a Viewer tracks on the Watchlist or Upcoming.
-It is pure, but it is not `lib/watch.ts`: it reads `hasAired` from
-`lib/media`, which reaches `lib/tmdb` and `next/cache`, and a client component
-imports `lib/watch.ts`. A rule that needs a value from `lib/media` goes there,
-never into `lib/watch.ts`, where it would put TMDB's client in a browser
-bundle with no type error.
-
 ## Standing rules
 
 - Every top-level route must be a static segment. `app/[slug]/page.tsx` would
@@ -146,8 +143,9 @@ bundle with no type error.
   — `docs/adr/0004-search-is-two-searches.md`
 - A tab row above a grid is the Kind. The lists show one Kind at a time and
   name it `?kind=`; the way between the Watchlist, Upcoming and the Watched
-  list is the header's, not the page's. Trending alone may hold its Kind in the client.
-  There is no All tab, and `isKind` stays the guard that reads the address.
+  list is the header's, not the page's. Trending alone may hold its Kind in
+  the client. There is no All tab, and `isKind` stays the guard that reads the
+  address.
   — `docs/adr/0015-the-lists-tabs-are-the-kind.md`
 - A Watch Record is Planned or Watched, never both and never neither. One row
   per Viewer per piece of Media, keyed `(viewerId, kind, tmdbId)` — composite
