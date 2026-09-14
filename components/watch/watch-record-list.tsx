@@ -19,6 +19,7 @@ import {
   type MediaRef,
   mediaItems,
   openKind,
+  releaseDate,
   showEpisodes,
 } from '@/lib/media';
 import { signInAddress } from '@/lib/next-path';
@@ -32,12 +33,17 @@ import {
   refOf,
   type TrackedMedia,
   toLookup,
-  upNext,
   type WatchLookup,
   watchKey,
-  watchlistPage,
-  watchlistTallies,
 } from '@/lib/watch';
+import {
+  type PlacedMedia,
+  placed,
+  placedPage,
+  placedTallies,
+  type TrackedAnswer,
+  withinCeiling,
+} from '@/lib/watch-lists';
 import {
   trackedMedia,
   watchedTallies,
@@ -97,13 +103,82 @@ type OpenList = {
   /** This list's two tallies, which the tabs wear and the Kind is read off. */
   tallies: Record<Kind, number>;
   /**
-   * Everything the Viewer is tracking, on the Watchlist, which is placed and
+   * Everything the Viewer is tracking, placed, on the Watchlist, which is
    * paged in memory. `null` on the Watched list, which Postgres still pages.
    * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
    */
-  tracked: TrackedMedia[] | null;
+  placements: Placement[] | null;
   kind: Kind;
   page: number;
+};
+
+/**
+ * The answer `mediaItems` gave for the ref at `index`. Answers come back one
+ * per ref, so the fallback cannot happen; it is here for the type, and a ref
+ * with no answer is Unanswered as the word says.
+ */
+const answerAt = (
+  answers: readonly MediaAnswer[],
+  index: number,
+): MediaAnswer => answers[index] ?? { answer: 'unanswered' };
+
+/**
+ * A tracked Movie or Show, placed, and what TMDB answered for its card — kept
+ * together because both come out of the one round of asking TMDB that
+ * placing costs, and a page drawn from a placement would otherwise ask again.
+ */
+type Placement = { media: PlacedMedia; answer: MediaAnswer };
+
+/**
+ * What TMDB says about a tracked Movie or Show, as much as placing it needs:
+ * a Movie's release day, a Show's seasons, or the absence its card came back
+ * with. Seasons TMDB did not answer for leave the Show Unanswered, so it is
+ * drawn on both lists rather than placed by half an answer, and the log says
+ * why.
+ */
+const trackedAnswer = async (
+  item: TrackedMedia,
+  answer: MediaAnswer,
+): Promise<TrackedAnswer> => {
+  if (answer.answer !== 'item') return { answer: answer.answer };
+
+  try {
+    if (item.ref.kind === 'movie') {
+      return { answer: 'movie', releaseDate: await releaseDate(item.ref.id) };
+    }
+
+    const seasons = await showEpisodes(item.ref.id);
+
+    return seasons ? { answer: 'show', seasons } : { answer: 'gone' };
+  } catch (cause) {
+    console.error(`TMDB ${watchKey(item.ref)} placing went Unanswered:`, cause);
+
+    return { answer: 'unanswered' };
+  }
+};
+
+/**
+ * Everything a Viewer is tracking, placed. TMDB is asked about every item up
+ * to the ceiling before any page is cut, since which list an item is on is
+ * TMDB's to say; the `lib/tmdb` cache is what keeps a second visit cheap.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
+ */
+const placeTracked = async (viewerId: string): Promise<Placement[]> => {
+  const tracked = withinCeiling(await trackedMedia(viewerId));
+  const answers = await mediaItems(tracked.map((item) => item.ref));
+  // read once, so every item is placed against the same day
+  const today = new Date();
+
+  return Promise.all(
+    tracked.map(async (item, index): Promise<Placement> => {
+      const answer = answerAt(answers, index);
+
+      return {
+        media: placed(item, await trackedAnswer(item, answer), today),
+        answer,
+      };
+    }),
+  );
 };
 
 /**
@@ -143,17 +218,21 @@ const openList = cache(
       );
     }
 
-    const tracked =
-      list === 'watchlist' ? await trackedMedia(currentViewer.id) : null;
-    const tallies = tracked
-      ? watchlistTallies(tracked)
-      : await watchedTallies(currentViewer.id);
+    const placements =
+      list === 'watched' ? null : await placeTracked(currentViewer.id);
+    const tallies =
+      placements && list !== 'watched'
+        ? placedTallies(
+            placements.map(({ media }) => media),
+            list,
+          )
+        : await watchedTallies(currentViewer.id);
 
     return {
       viewerId: currentViewer.id,
       viewerKey: viewerKey(currentViewer),
       tallies,
-      tracked,
+      placements,
       // what this Viewer holds is this page's answer to what `openKind` asks,
       // so a Watchlist that is all Movies opens on Movies
       kind: named ?? openKind({ tv: tallies.tv > 0, movie: tallies.movie > 0 }),
@@ -162,7 +241,7 @@ const openList = cache(
   },
 );
 
-/** The two tabs, wearing this list's two counts once the database has answered. */
+/** The two tabs, wearing this list's two counts once they are counted. */
 const ListTabs = async ({
   list,
   searchParams,
@@ -240,71 +319,52 @@ type ListEntries = {
 };
 
 /**
- * The answer `mediaItems` gave for the ref at `index`. Answers come back one
- * per ref, so the fallback cannot happen; it is here for the type, and a ref
- * with no answer is Unanswered as the word says.
+ * The Episode a card for a placed Show leads to, or `null` where there is none
+ * to name — TMDB lists nothing after the furthest, or did not answer for the
+ * seasons, in which case the card leads to the Show as any card does.
  */
-const answerAt = (
-  answers: readonly MediaAnswer[],
-  index: number,
-): MediaAnswer => answers[index] ?? { answer: 'unanswered' };
+const nextOf = ({ tracked, upNext }: PlacedMedia): EpisodeRef | null =>
+  upNext && 'episode' in upNext
+    ? { showId: tracked.ref.id, ...upNext.episode }
+    : null;
 
 /**
- * The Episode a Watchlist card for a Show leads to, or `null` where there is
- * none to name — TMDB lists nothing after the furthest, or did not answer for
- * the seasons, in which case the card leads to the Show as any card does and
- * the log says why.
- */
-const nextFor = async (item: TrackedMedia): Promise<EpisodeRef | null> => {
-  try {
-    const seasons = await showEpisodes(item.ref.id);
-    const next = seasons && upNext(seasons, item.scored);
-
-    return next && 'episode' in next
-      ? { showId: item.ref.id, ...next.episode }
-      : null;
-  } catch (cause) {
-    console.error(`TMDB ${watchKey(item.ref)} seasons went Unanswered:`, cause);
-
-    return null;
-  }
-};
-
-/**
- * One page of the Watchlist: placed and paged in memory from the tracked set,
- * then TMDB asked about the page's twenty, and each Show's seasons for its
- * next Episode. Only the open page costs TMDB in this slice, since nothing yet
- * places an item by what TMDB says about it.
+ * One page of the Watchlist, cut from what is placed on it. TMDB has answered
+ * for every card on it already, in placing; only the markings are asked for.
  */
 const watchlistEntries = async (
   viewerId: string,
-  tracked: readonly TrackedMedia[],
+  placements: readonly Placement[],
   { kind, page }: { kind: Kind; page: number },
 ): Promise<ListEntries> => {
-  const { items, total } = watchlistPage(tracked, { kind, page });
-  const refs = items.map((item) => item.ref);
+  const answers = new Map(
+    placements.map(({ media, answer }) => [
+      watchKey(media.tracked.ref),
+      answer,
+    ]),
+  );
+  const { items, total } = placedPage(
+    placements.map(({ media }) => media),
+    'watchlist',
+    { kind, page },
+  );
+  const refs = items.map((item) => item.tracked.ref);
   // a Show under way has no record, so the markings are asked for rather than
   // read off the page, and such a card simply has none
-  const [answers, markings] = await Promise.all([
-    mediaItems(refs),
-    watchLookup(viewerId, refs),
-  ]);
-  const entries = await Promise.all(
-    items.map(async (item, index): Promise<ListEntry> => {
-      const answer = answerAt(answers, index);
+  const markings = await watchLookup(viewerId, refs);
 
-      return {
-        ref: item.ref,
-        answer,
-        next:
-          item.ref.kind === 'tv' && answer.answer === 'item'
-            ? await nextFor(item)
-            : null,
-      };
-    }),
-  );
-
-  return { entries, markings, total };
+  return {
+    entries: items.map((item) => ({
+      ref: item.tracked.ref,
+      // every placed item has its answer; the fallback is for the type
+      answer: answers.get(watchKey(item.tracked.ref)) ?? {
+        answer: 'unanswered',
+      },
+      next: nextOf(item),
+    })),
+    markings,
+    total,
+  };
 };
 
 /**
@@ -347,16 +407,16 @@ const ListPage = async ({
   list: List;
   searchParams: Promise<SearchParams>;
 }): Promise<JSX.Element> => {
-  const { viewerId, viewerKey, tracked, kind, page } = await openList(
+  const { viewerId, viewerKey, placements, kind, page } = await openList(
     list,
     searchParams,
   );
 
-  // a page past the end has no refs, so it asks TMDB nothing before it 404s;
-  // page 1 of nothing is the empty state below, since a tab with nothing on
+  // a page past the end has no cards, so it asks for no markings before it
+  // 404s; page 1 of nothing is the empty state below, since a tab with nothing on
   // it still exists
-  const { entries, markings, total } = tracked
-    ? await watchlistEntries(viewerId, tracked, { kind, page })
+  const { entries, markings, total } = placements
+    ? await watchlistEntries(viewerId, placements, { kind, page })
     : await watchedEntries(viewerId, { kind, page });
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 

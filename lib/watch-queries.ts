@@ -297,7 +297,7 @@ export const trackedMedia = async (
       sql`bool_or(${markings.planned}) or count(${markings.episodeId}) > 0`,
     )
     // the ceiling here too, so what is read is bounded and not only what is
-    // placed; `watchlistPage` keeps the same 200 of what it is handed
+    // placed; `withinCeiling` keeps the same 200 of what it is handed
     .orderBy(sql`max(${markings.markedAt}) desc`)
     .limit(TRACKED_CEILING);
 
@@ -315,7 +315,7 @@ export const trackedMedia = async (
  * the Kind it shows is chosen from. A Kind with no rows is `0` here rather
  * than absent, since a Viewer who has watched no Movies has none, not a
  * missing count. The Watchlist's tallies are counted from what it places
- * instead, by `watchlistTallies`.
+ * instead, by `placedTallies`.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 export const watchedTallies = async (
