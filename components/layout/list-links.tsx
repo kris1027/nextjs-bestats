@@ -35,9 +35,9 @@ const ICONS: Record<List, LucideIcon> = {
  *
  * Below `sm:` each link is its icon and the word is read but not drawn: the
  * words are more of a 288px row than the header has to give at the 320px
- * floor. `sr-only` rather than `hidden`, so the link keeps
- * the accessible name the word was giving it — an icon nobody can see the
- * label of is not a saving.
+ * floor. `sr-only` rather than `hidden`, so the link keeps the accessible
+ * name the word was giving it — an icon nobody can see the label of is not a
+ * saving.
  *
  * The hit area is 28×44 rather than the icon's own 18px, and the three stand
  * edge to edge below `sm:`, so the icons are 10px apart and every pixel of

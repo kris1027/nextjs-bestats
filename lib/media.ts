@@ -219,7 +219,7 @@ export const isKind = (value: string): value is Kind =>
 /**
  * Which Kind opens where an address names none: the one with something in it,
  * and Shows where both have something or neither does. Said here once because
- * both tab rows that read an address follow it — `/search` and the two lists
+ * both tab rows that read an address follow it — `/search` and the lists
  * — so a Kind with something behind its tab is never left behind a closed
  * one, whether that something is a Match or a Watch Record. What counts as
  * something is the caller's: Matches it can render, records it holds.
