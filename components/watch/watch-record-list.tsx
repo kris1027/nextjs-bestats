@@ -82,7 +82,7 @@ const listAddress = (
  */
 const EMPTY: Record<List, (words: NounForms) => string> = {
   watchlist: ({ one, other }) =>
-    `No ${other} planned yet. Mark a ${one} Planned and it will appear here.`,
+    `No ${other} to watch now. A Planned ${one} that is out will appear here.`,
   upcoming: ({ one, other }) =>
     `No ${other} to wait for. A Planned ${one} that is not out yet will appear here.`,
   watched: ({ one, other }) =>
