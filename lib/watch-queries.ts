@@ -384,6 +384,30 @@ export const writeEpisodeRecord = async (
   ]);
 };
 
+/**
+ * Whether a Viewer is under way with a Show: they have scored at least one of
+ * its Episodes. Read off the Episodes' records, since an under-way Show has no
+ * record of its own.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ */
+export const showUnderWay = async (
+  viewerId: string,
+  showId: number,
+): Promise<boolean> => {
+  const [row] = await db
+    .select({ episodeId: episodeRecords.episodeId })
+    .from(episodeRecords)
+    .where(
+      and(
+        eq(episodeRecords.viewerId, viewerId),
+        eq(episodeRecords.showId, showId),
+      ),
+    )
+    .limit(1);
+
+  return row !== undefined;
+};
+
 /** Unscores an Episode: the row goes, since an Episode has no other state. */
 export const clearEpisodeRecord = async (
   viewerId: string,

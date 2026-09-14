@@ -263,3 +263,21 @@ test("scoring an Episode leaves another Show's Planned record alone", async () =
   // the Movie shares the Show's TMDB id, which is unique only within a Kind
   expect(await rowsOf(currentViewer.id)).toHaveLength(2);
 });
+
+test('Planned is refused on a Show under way, until its last Episode is unscored', async () => {
+  currentViewer.id = await viewer();
+
+  await scoreEpisode(scoring('8'));
+
+  expect(await mark(press('tv', '95396', 'planned'))).toEqual({
+    error: 'You are already watching this show.',
+  });
+  expect(await rowsOf(currentViewer.id)).toHaveLength(0);
+
+  // unscoring every Episode leaves nothing, so the Show can be Planned again
+  await scoreEpisode(scoring('8'));
+
+  expect(await mark(press('tv', '95396', 'planned'))).toEqual({
+    marking: PLANNED,
+  });
+});

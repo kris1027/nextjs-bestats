@@ -29,6 +29,7 @@ const queries = vi.hoisted(() => ({
   episodeLookup: vi.fn(),
   writeEpisodeRecord: vi.fn(),
   clearEpisodeRecord: vi.fn(),
+  showUnderWay: vi.fn(),
 }));
 
 vi.mock('@/lib/watch-queries', () => queries);
@@ -132,6 +133,20 @@ test('a marking our own form could not have posted is a throw, not a message', a
   // tell the Visitor that would help them
   await expect(mark(tampered)).rejects.toThrow('Not a marking: 11');
   expect(queries.tallyMarking).not.toHaveBeenCalled();
+});
+
+test('Planned is refused on a Show the Viewer is under way with, and nothing is written', async () => {
+  queries.tallyMarking.mockResolvedValue(1);
+  queries.watchLookup.mockResolvedValue(new Map());
+  queries.showUnderWay.mockResolvedValue(true);
+
+  // a stale page still drawing Planned: the Show's Episodes say where the
+  // Viewer is now, and Planned would say they had not started
+  expect(await mark(press())).toEqual({
+    error: 'You are already watching this show.',
+  });
+  expect(queries.showUnderWay).toHaveBeenCalledWith('a-viewer', 236235);
+  expect(queries.writeWatchRecord).not.toHaveBeenCalled();
 });
 
 /*
