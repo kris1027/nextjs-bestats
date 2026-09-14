@@ -109,9 +109,10 @@ reads the two halves off one value.
 card that draws no control holds no state to unmount. `lib/viewer-key` makes
 that key, and is pure for the reason `lib/watch.ts` is: `lib/auth.ts` boots
 Neon Auth and reads `next/headers` at import, so a query that reached it for a
-string could not be loaded outside Next at all. Two callers —
-`answeredWatchLookup` from the answer it was handed, `watch-record-list.tsx`
-from the Viewer `viewer()` gave it — and a third is worth looking twice at.
+string could not be loaded outside Next at all. Three callers —
+`answeredWatchLookup` and `answeredEpisodeLookup` from the answer each was
+handed, `watch-record-list.tsx` from the Viewer `viewer()` gave it — and a
+fourth is worth looking twice at.
 
 `watch-record-list.tsx` is `components/watch/`'s exception: the body of both
 list routes, it reads `viewer()`, the queries and `lib/media` the way any page
