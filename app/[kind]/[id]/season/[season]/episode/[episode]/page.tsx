@@ -121,7 +121,11 @@ const Found = async ({
             <Control episode={ref} id={episode.id} />
           </Suspense>
         ) : (
-          <p className='text-sm opacity-60'>
+          // the page's fallback cannot know whether the Episode has aired, so
+          // the line holds `EpisodeScoreSkeleton`'s height — the star row, the
+          // gap and the live region, 58px — whether it takes one line or the
+          // two it wraps to at the 320px floor
+          <p className='min-h-14.5 text-sm opacity-60'>
             You can score this episode once it has aired.
           </p>
         )

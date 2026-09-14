@@ -156,8 +156,9 @@ const MediaDetailSkeleton = (): JSX.Element => (
 
 /**
  * What an Episode's page shows while TMDB is asked for it: the line naming
- * its Show and season above the heading, and the star row's height, since
- * most Episodes a Viewer opens have aired and draw one.
+ * its Show and season above the heading, and the star row's height. Whether
+ * the Episode has aired is not known yet, so the line an unaired one draws
+ * in the star row's place holds that same height.
  */
 const EpisodeDetailSkeleton = (): JSX.Element => (
   <DetailFrameSkeleton>
