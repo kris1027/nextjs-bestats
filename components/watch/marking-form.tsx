@@ -2,14 +2,15 @@
 
 import type { JSX, ReactNode } from 'react';
 
-import type { MediaRef } from '@/lib/media';
+import type { MarkingHandle } from '@/components/watch/use-marking';
 import { cn } from '@/lib/utils';
-import { markFromForm } from '@/lib/watch-actions';
 
 /**
- * The form both marking controls post: the three fields that never change
- * with the press, and the live region a refused press writes to. What varies
- * is the buttons, which are `children`.
+ * The form every marking control posts: the hidden fields that never change
+ * with the press — what it is about, and where to come back to — and the live
+ * region a refused press writes to. What varies is the buttons, which are
+ * `children`. It takes the whole handle, so the fields and the action it
+ * posts are the ones the buttons press.
  *
  * The `action` is a Server Action and the buttons inside are plain named
  * submit buttons, so the HTML posts on its own before hydration and React
@@ -24,30 +25,29 @@ import { markFromForm } from '@/lib/watch-actions';
  * page on the next navigation to it.
  */
 const MarkingForm = ({
-  media,
-  next,
-  error,
+  handle,
   className,
   children,
 }: {
-  media: MediaRef;
-  next: string;
-  error: string | null;
+  handle: MarkingHandle;
   className?: string;
   children: ReactNode;
 }): JSX.Element => (
   <form
-    action={markFromForm}
+    action={handle.target.post}
     className={cn('flex flex-col gap-1.5', className)}
   >
-    <input type='hidden' name='kind' value={media.kind} />
-    <input type='hidden' name='id' value={media.id} />
-    <input type='hidden' name='next' value={next} />
+    {Object.entries(handle.target.fields).map(([name, value]) => (
+      <input key={name} type='hidden' name={name} value={value} />
+    ))}
+    <input type='hidden' name='next' value={handle.next} />
     {children}
     {/* <output> is a live region on its own, kept in the tree even when
         empty so the message is announced when it arrives rather than
         needing focus to find it */}
-    <output className='block min-h-4 text-destructive text-xs'>{error}</output>
+    <output className='block min-h-4 text-destructive text-xs'>
+      {handle.error}
+    </output>
   </form>
 );
 

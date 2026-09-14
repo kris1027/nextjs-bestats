@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 
+import type { MarkingTarget } from '@/components/watch/marking-target';
 import { useAddress } from '@/lib/use-address';
 import {
   MARKING_FIELD,
@@ -15,10 +16,11 @@ import {
   markingsAgree,
   markingValue,
 } from '@/lib/watch';
-import { mark } from '@/lib/watch-actions';
 
 /** What a marking control needs to draw itself and to answer a press. */
 type MarkingHandle = {
+  /** What a press is about and where it goes, for the form to post. */
+  target: MarkingTarget;
   /** The address to come back to, for the form's `next` field. */
   next: string;
   /** What to draw as marked: the optimistic value while a press is in flight. */
@@ -48,7 +50,10 @@ type MarkingHandle = {
  * mount never sees it, and a Visitor is left reading a Viewer's Watch
  * Records. The key is what unmounts them. — `viewerKey` in `lib/auth`.
  */
-const useMarking = (initial: Marking | null): MarkingHandle => {
+const useMarking = (
+  initial: Marking | null,
+  target: MarkingTarget,
+): MarkingHandle => {
   const next = useAddress();
 
   // the marking as the last completed action left it, and the prop it was
@@ -112,9 +117,9 @@ const useMarking = (initial: Marking | null): MarkingHandle => {
         const formData = new FormData(form);
         formData.set(MARKING_FIELD, markingValue(pressed));
 
-        // not wrapped in try/catch: a signed-out press makes `mark` redirect,
+        // not wrapped in try/catch: a signed-out press makes the action redirect,
         // which reaches the client as a rejection the router's boundary handles
-        const result = await mark(formData);
+        const result = await target.press(formData);
 
         if ('error' in result) {
           setError(result.error);
@@ -124,7 +129,7 @@ const useMarking = (initial: Marking | null): MarkingHandle => {
       });
     };
 
-  return { next, shown, error, press };
+  return { target, next, shown, error, press };
 };
 
 export { useMarking };
