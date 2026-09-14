@@ -10,14 +10,16 @@ import { PAGE_SIZE } from '@/lib/watch';
 
 /**
  * A card's shape while the Media behind it is being fetched: the poster's
- * aspect and the title bar's height, which is the whole of a card now that
- * marking left it. The same height as the card that replaces it, so nothing
- * moves when it lands.
+ * aspect and the title bar's height, which is the whole of most cards now
+ * that marking left them. The same height as the card that replaces it, so
+ * nothing moves when it lands.
  *
- * A list page's grid can hold an `AbsentCard`, which does still draw a
- * control, and this stands a control's height short for that one card. The
- * other way round — reserving the height on every grid for a card that
- * almost never appears — would move every card on Trending and on search.
+ * Two cards are taller, and this stands short for both. A list page's grid
+ * can hold an `AbsentCard`, which still draws a control; and a Show on the
+ * Watchlist names its next Episode in a line under the title bar. The
+ * fallback is drawn before the address is read, so it cannot know whether
+ * the Shows tab is open, and reserving either height on every grid would move
+ * every card on Trending, on search and on the Movies tab instead.
  */
 const MediaCardSkeleton = (): JSX.Element => (
   <li className='flex flex-col'>

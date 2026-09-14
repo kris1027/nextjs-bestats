@@ -241,16 +241,43 @@ test('a different Score rescores an Episode rather than adding a record', async 
   expect(rows[0]?.score).toBe(3);
 });
 
-test("scoring an Episode leaves the Show's own Watch Record alone", async () => {
+test("scoring an Episode ends the Show's Planned record", async () => {
   currentViewer.id = await viewer();
 
   await mark(press('tv', '95396', 'planned'));
   await scoreEpisode(scoring('8'));
 
-  // the Planned record goes in #24, when the Watchlist can show the Show at
-  // its next Episode instead; until then it keeps the Show on the Watchlist
-  const rows = await rowsOf(currentViewer.id);
+  // Planned lasts until the first Episode: the Show is followed through its
+  // Episodes from here, so nothing of its own is left to say
+  expect(await rowsOf(currentViewer.id)).toHaveLength(0);
+  expect(await episodesOf(currentViewer.id)).toHaveLength(1);
+});
 
-  expect(rows).toHaveLength(1);
-  expect(rows[0]?.state).toBe('planned');
+test("scoring an Episode leaves another Show's Planned record alone", async () => {
+  currentViewer.id = await viewer();
+
+  await mark(press('tv', '1399', 'planned'));
+  await mark(press('movie', '95396', 'planned'));
+  await scoreEpisode(scoring('8'));
+
+  // the Movie shares the Show's TMDB id, which is unique only within a Kind
+  expect(await rowsOf(currentViewer.id)).toHaveLength(2);
+});
+
+test('Planned is refused on a Show under way, until its last Episode is unscored', async () => {
+  currentViewer.id = await viewer();
+
+  await scoreEpisode(scoring('8'));
+
+  expect(await mark(press('tv', '95396', 'planned'))).toEqual({
+    error: 'You are already watching this show.',
+  });
+  expect(await rowsOf(currentViewer.id)).toHaveLength(0);
+
+  // unscoring every Episode leaves nothing, so the Show can be Planned again
+  await scoreEpisode(scoring('8'));
+
+  expect(await mark(press('tv', '95396', 'planned'))).toEqual({
+    marking: PLANNED,
+  });
 });

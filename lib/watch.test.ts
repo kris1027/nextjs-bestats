@@ -1,19 +1,26 @@
 import { expect, test } from 'vitest';
 
+import type { Kind } from '@/lib/media';
 import {
   isScore,
   marked,
   markingFrom,
   markingOf,
   markingValue,
+  nextEpisode,
+  PAGE_SIZE,
   PLANNED,
   refOf,
   SCORES,
+  TRACKED_CEILING,
+  type TrackedMedia,
   toLookup,
   toMarkedMedia,
   toMarking,
   watchedAt,
   watchKey,
+  watchlistPage,
+  watchlistTallies,
 } from '@/lib/watch';
 
 test('marking Media with no Watch Record creates one saying what was pressed', () => {
@@ -131,4 +138,129 @@ test('toMarkedMedia makes a marking of a row and keeps the Media', () => {
 
 test('refOf spells a Watch Record the way lib/media spells a ref', () => {
   expect(refOf({ kind: 'tv', tmdbId: 1399 })).toEqual({ kind: 'tv', id: 1399 });
+});
+
+// Episode ids are season * 100 + number, so a failure names the Episode
+const season = (number: number, episodes: number) => ({
+  number,
+  episodes: Array.from({ length: episodes }, (_, index) => ({
+    id: number * 100 + index + 1,
+    number: index + 1,
+  })),
+});
+
+test('the next Episode of a Show the Viewer has scored nothing of is its first', () => {
+  expect(nextEpisode([season(1, 3), season(2, 3)], new Set())).toEqual({
+    season: 1,
+    episode: 1,
+  });
+});
+
+test('the next Episode follows the furthest scored, not the earliest unscored', () => {
+  // S1E2 was never scored, and S2E2 is still the Episode after S2E1
+  expect(
+    nextEpisode([season(1, 3), season(2, 3)], new Set([101, 103, 201])),
+  ).toEqual({ season: 2, episode: 2 });
+});
+
+test('the next Episode after the last of a season is the first of the next', () => {
+  expect(nextEpisode([season(1, 3), season(2, 3)], new Set([103]))).toEqual({
+    season: 2,
+    episode: 1,
+  });
+});
+
+test('a scored Special never counts towards the furthest Episode', () => {
+  expect(
+    nextEpisode([season(1, 3), season(2, 3), season(0, 2)], new Set([201, 2])),
+  ).toEqual({ season: 2, episode: 2 });
+});
+
+test('a Special is never the next Episode', () => {
+  expect(nextEpisode([season(0, 2), season(1, 3)], new Set())).toEqual({
+    season: 1,
+    episode: 1,
+  });
+  expect(nextEpisode([season(1, 3), season(0, 2)], new Set([103]))).toBe(null);
+});
+
+test('a Show has no next Episode once its last listed one is scored', () => {
+  expect(nextEpisode([season(1, 3), season(2, 3)], new Set([203]))).toBe(null);
+});
+
+test('a scored Episode TMDB no longer lists never counts towards the furthest', () => {
+  expect(
+    nextEpisode([season(1, 3), season(2, 3)], new Set([102, 999])),
+  ).toEqual({ season: 1, episode: 3 });
+});
+
+// days counted from the end of August 2026, so a later day is a later marking
+const tracked = (kind: Kind, id: number, day: number): TrackedMedia => ({
+  ref: { kind, id },
+  markedAt: new Date(Date.UTC(2026, 8, day)),
+  scored: new Set(),
+});
+
+test('the Watchlist puts the latest marked Media first', () => {
+  const { items } = watchlistPage(
+    [tracked('tv', 1, 3), tracked('tv', 2, 9), tracked('tv', 3, 5)],
+    { kind: 'tv', page: 1 },
+  );
+
+  expect(items.map((item) => item.ref.id)).toEqual([2, 3, 1]);
+});
+
+test('the Watchlist shows one Kind, and tallies both from the same Media', () => {
+  const media = [
+    tracked('tv', 1, 3),
+    tracked('movie', 2, 9),
+    tracked('tv', 3, 5),
+  ];
+  const { items, total } = watchlistPage(media, { kind: 'movie', page: 1 });
+
+  expect(items.map((item) => item.ref)).toEqual([{ kind: 'movie', id: 2 }]);
+  expect(total).toBe(1);
+  expect(watchlistTallies(media)).toEqual({ tv: 2, movie: 1 });
+});
+
+test('the Watchlist pages twenty at a time and counts every page', () => {
+  // marked on days 1 to 25, so day 25 is the first and day 1 the last
+  const shows = Array.from({ length: 25 }, (_, index) =>
+    tracked('tv', index + 1, index + 1),
+  );
+
+  const first = watchlistPage(shows, { kind: 'tv', page: 1 });
+  const second = watchlistPage(shows, { kind: 'tv', page: 2 });
+
+  expect(PAGE_SIZE).toBe(20);
+  expect(first.items).toHaveLength(20);
+  expect(second.items.map((item) => item.ref.id)).toEqual([5, 4, 3, 2, 1]);
+  expect(second.total).toBe(25);
+});
+
+test('the Watchlist holds the 200 latest marked, and the rest are in no tally', () => {
+  // the Movie is the least recently marked of 201
+  const media = [
+    tracked('movie', 1, 1),
+    ...Array.from({ length: 200 }, (_, index) =>
+      tracked('tv', index + 2, index + 2),
+    ),
+  ];
+
+  const { items } = watchlistPage(media, { kind: 'movie', page: 1 });
+
+  expect(TRACKED_CEILING).toBe(200);
+  expect(items).toEqual([]);
+  expect(watchlistTallies(media)).toEqual({ tv: 200, movie: 0 });
+});
+
+test('a Watchlist page counts from 1', () => {
+  const shows = [tracked('tv', 1, 1)];
+
+  expect(() => watchlistPage(shows, { kind: 'tv', page: 0 })).toThrow(
+    RangeError,
+  );
+  expect(() => watchlistPage(shows, { kind: 'tv', page: 1.5 })).toThrow(
+    RangeError,
+  );
 });

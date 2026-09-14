@@ -184,6 +184,14 @@ that has ended and has no Episode left for the Viewer is not waiting for
 anything, and is not Upcoming.
 _Avoid_: Coming soon, scheduled, calendar, future
 
+**Tracked**:
+A Movie or Show a Viewer is following, which is what the lists are placed
+from: each one they have Planned, and each Show they have watched an Episode
+of, whether or not it has a record of its own. A Watched Movie is not tracked,
+and neither is anything the Viewer has said nothing about. Not a state: a
+Show under way is tracked with no Watch Record at all.
+_Avoid_: Followed, active, in progress
+
 **Mark**:
 To give a Movie, Show or Episode a Watch Record in one of the states it can
 hold, replacing whichever it had. Marking what a Watch Record already says

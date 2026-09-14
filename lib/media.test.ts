@@ -2,6 +2,7 @@ import { afterEach, expect, test, vi } from 'vitest';
 
 import {
   episodeAddress,
+  episodeCode,
   episodeDetails,
   hasAired,
   isEpisodeNumber,
@@ -10,6 +11,7 @@ import {
   mediaAddress,
   openKind,
   seasonDetails,
+  showEpisodes,
   showSeasons,
 } from '@/lib/media';
 import type { TmdbEpisode, TmdbSeason, TmdbSeasonSummary } from '@/lib/tmdb';
@@ -318,4 +320,91 @@ test('hasAired refuses an Episode that airs tomorrow, or has no air date', () =>
   expect(hasAired('2026-09-15', MIDDAY)).toBe(false);
   expect(hasAired(null, MIDDAY)).toBe(false);
   expect(hasAired('not a date', MIDDAY)).toBe(false);
+});
+
+test('episodeCode names an Episode by its season and number', () => {
+  expect(episodeCode({ showId: 1396, season: 2, episode: 4 })).toBe('S2E4');
+});
+
+/** `/tv/{id}` listing these seasons, as `showEpisodes` first asks for it. */
+const withSeasons = (numbers: number[]) => ({
+  ...show,
+  seasons: numbers.map((season_number) => summary({ season_number })),
+});
+
+test("showEpisodes lists each season's Episode ids in order, Specials left out", async () => {
+  tmdb.findTMDB.mockImplementation(async (path: string) =>
+    path === '/tv/95396'
+      ? withSeasons([0, 2, 1])
+      : {
+          ...show,
+          'season/1': season({ season_number: 1 }),
+          'season/2': season({
+            season_number: 2,
+            episodes: [episode({ episode_number: 1, id: 2001 })],
+          }),
+        },
+  );
+
+  expect(await showEpisodes(95396)).toEqual([
+    {
+      number: 1,
+      episodes: [
+        { id: 1001, number: 1 },
+        { id: 1002, number: 2 },
+      ],
+    },
+    { number: 2, episodes: [{ id: 2001, number: 1 }] },
+  ]);
+  expect(tmdb.findTMDB).toHaveBeenCalledWith(
+    '/tv/95396?append_to_response=season/1,season/2',
+  );
+});
+
+/** An `append_to_response` answer carrying every season the path asked for. */
+const appended = (path: string) => ({
+  ...show,
+  ...Object.fromEntries(
+    (path.split('append_to_response=')[1] ?? '')
+      .split(',')
+      .map((key) => [
+        key,
+        season({ season_number: Number(key.replace('season/', '')) }),
+      ]),
+  ),
+});
+
+test('showEpisodes asks for twenty seasons a request, the most TMDB appends', async () => {
+  tmdb.findTMDB.mockImplementation(async (path: string) =>
+    path === '/tv/95396'
+      ? withSeasons(Array.from({ length: 21 }, (_, index) => index + 1))
+      : appended(path),
+  );
+
+  await showEpisodes(95396);
+
+  expect(tmdb.findTMDB).toHaveBeenCalledTimes(3);
+  expect(tmdb.findTMDB).toHaveBeenLastCalledWith(
+    '/tv/95396?append_to_response=season/21',
+  );
+});
+
+test('showEpisodes is null for a Show TMDB does not have', async () => {
+  tmdb.findTMDB.mockResolvedValue(null);
+
+  expect(await showEpisodes(95396)).toBe(null);
+});
+
+test('showEpisodes throws when TMDB leaves out a season the Show lists', async () => {
+  tmdb.findTMDB.mockImplementation(async (path: string) =>
+    path === '/tv/95396'
+      ? withSeasons([1, 2])
+      : { ...show, 'season/2': season({ season_number: 2 }) },
+  );
+
+  // counted from season 2 alone, a Viewer partway through season 1 would be
+  // sent to S2E1 rather than the card owning that TMDB did not answer
+  await expect(showEpisodes(95396)).rejects.toThrow(
+    'TMDB left season 1 of tv/95396 unanswered',
+  );
 });

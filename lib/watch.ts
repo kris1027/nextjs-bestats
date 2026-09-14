@@ -1,4 +1,4 @@
-import type { Kind, MediaRef } from '@/lib/media';
+import type { Kind, MediaRef, SeasonEpisodes } from '@/lib/media';
 
 /**
  * The rules that move a Watch Record between states, and nothing that touches
@@ -277,12 +277,24 @@ export const markingOf = (lookup: WatchLookup, ref: MediaRef): Marking | null =>
   lookup.get(watchKey(ref)) ?? null;
 
 /**
- * How many Watch Records a list page shows. Each one costs a TMDB request, so
- * the page bounds that cost whatever a Viewer has watched, and twenty is the
- * page size TMDB uses everywhere else in the app.
- * — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
+ * How many cards a list page shows, and so how many TMDB requests drawing one
+ * costs. Twenty is the page size TMDB uses everywhere else in the app. It no
+ * longer bounds what a list reads: the Watchlist reads everything tracked and
+ * pages it in memory, which `TRACKED_CEILING` bounds instead.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 export const PAGE_SIZE = 20;
+
+/**
+ * Refuses a list page that does not count from 1, the way the address bar
+ * does. `?page=` is the page's to validate, and a list is where forgetting to
+ * shows — as a negative offset in Postgres, or an empty slice in memory.
+ */
+export const assertListPage = (page: number): void => {
+  if (!Number.isInteger(page) || page < 1) {
+    throw new RangeError(`A list page counts from 1, not ${page}`);
+  }
+};
 
 /**
  * How many presses of a marking control one Viewer gets in a minute before
@@ -303,14 +315,111 @@ export type WatchRecordsPage = {
   total: number;
 };
 
+/** Where an Episode sits in its Show, without the Show. */
+export type EpisodePosition = { season: number; episode: number };
+
 /**
- * How many Watch Records a Viewer holds, split by state and by Kind. Four
- * numbers rather than two, because a list page is one Kind at a time: its
- * tabs wear that state's pair, and which tab opens when the address does not
- * say is read off the same pair.
+ * The Episode a Viewer watches next: the one after the furthest they have
+ * scored, and the Show's first when they have scored none. Furthest, not the
+ * earliest unscored, so a Viewer who joined at season three is not sent back
+ * to season one. Specials neither count nor come next, and a scored id TMDB
+ * no longer lists is passed over rather than guessed at.
  *
- * Both states are here though a page shows one, because they come back
- * together — the query groups by both, and splitting the answer would only
- * mean asking twice.
+ * `null` is TMDB listing nothing after the furthest — waiting or finished,
+ * which this cannot tell apart without the Show's status. Seasons arrive in
+ * viewing order, as `showEpisodes` gives them. It leaves Specials out already;
+ * they are passed over here as well, so the rule is this function's and holds
+ * whatever hands it the seasons.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
-export type WatchTallies = Record<WatchState, Record<Kind, number>>;
+export const nextEpisode = (
+  seasons: readonly SeasonEpisodes[],
+  scored: ReadonlySet<number>,
+): EpisodePosition | null => {
+  // TMDB keeps Specials as season 0, which belongs to no run
+  const inOrder = seasons
+    .filter((season) => season.number !== 0)
+    .flatMap((season) =>
+      season.episodes.map((episode) => ({
+        id: episode.id,
+        position: { season: season.number, episode: episode.number },
+      })),
+    );
+  // one past the furthest scored, or the first when none is: -1 + 1
+  const furthest = inOrder.reduce(
+    (found, { id }, index) => (scored.has(id) ? index : found),
+    -1,
+  );
+
+  return inOrder[furthest + 1]?.position ?? null;
+};
+
+/**
+ * A Movie or Show a Viewer is tracking, and when they last marked it — the
+ * Movie, the Show, or any of the Show's Episodes. What a list places, orders
+ * and pages. The ids of the Episodes the Viewer has scored come along, since a
+ * Show's are what `nextEpisode` reads, and a Movie's or a Planned Show's are
+ * none.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
+ */
+export type TrackedMedia = {
+  ref: MediaRef;
+  markedAt: Date;
+  scored: ReadonlySet<number>;
+};
+
+/**
+ * How many Movies and Shows a list places. Each costs a TMDB request before
+ * any page of the list can be drawn, so this is where that cost stops: the
+ * latest marked are kept, and the rest are on no page and in no tally.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
+ */
+export const TRACKED_CEILING = 200;
+
+/**
+ * The Watchlist's Movies and Shows, the latest marked first and no more than
+ * the ceiling: the one set a page is cut from and the tallies are counted
+ * from, since Postgres can no longer say which list a record is on. TMDB is
+ * asked about a page after it is cut, so nothing here can drop an item for
+ * being Gone or Unanswered: it never sees the answer.
+ */
+const placedOnWatchlist = (
+  tracked: readonly TrackedMedia[],
+  kind: Kind,
+): TrackedMedia[] =>
+  [...tracked]
+    .sort((a, b) => b.markedAt.getTime() - a.markedAt.getTime())
+    .slice(0, TRACKED_CEILING)
+    .filter((item) => item.ref.kind === kind);
+
+/**
+ * One page of one Kind of the Watchlist, and that Kind's total, which the page
+ * count is read off.
+ */
+export type WatchlistPage = { items: TrackedMedia[]; total: number };
+
+/** One page of one Kind of the Watchlist, the latest marked first. */
+export const watchlistPage = (
+  tracked: readonly TrackedMedia[],
+  { kind, page }: { kind: Kind; page: number },
+): WatchlistPage => {
+  assertListPage(page);
+
+  const open = placedOnWatchlist(tracked, kind);
+
+  return {
+    items: open.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    total: open.length,
+  };
+};
+
+/**
+ * What the Watchlist's tabs wear: how many of each Kind are placed on it,
+ * counted from the set its pages are cut from.
+ */
+export const watchlistTallies = (
+  tracked: readonly TrackedMedia[],
+): Record<Kind, number> => ({
+  tv: placedOnWatchlist(tracked, 'tv').length,
+  movie: placedOnWatchlist(tracked, 'movie').length,
+});

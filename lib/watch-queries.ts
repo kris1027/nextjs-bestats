@@ -1,4 +1,5 @@
 import { and, count, desc, eq, inArray, or, sql } from 'drizzle-orm';
+import { unionAll } from 'drizzle-orm/pg-core';
 
 import type { ViewerAnswer } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -6,12 +7,15 @@ import type { Kind, MediaRef } from '@/lib/media';
 import { episodeRecords, markingTallies, watchRecords } from '@/lib/schema';
 import { viewerKeyOf } from '@/lib/viewer-key';
 import {
+  assertListPage,
   type EpisodeLookup,
   type EpisodeMarking,
   isScore,
   type Marking,
   PAGE_SIZE,
   scoreOf,
+  TRACKED_CEILING,
+  type TrackedMedia,
   toLookup,
   toMarkedMedia,
   type ViewerEpisodeLookup,
@@ -19,7 +23,6 @@ import {
   type WatchLookup,
   type WatchRecordsPage,
   type WatchState,
-  type WatchTallies,
   watchedAt,
 } from '@/lib/watch';
 
@@ -179,30 +182,27 @@ export const answeredEpisodeLookup = async (
 });
 
 /**
- * One page of one Kind of a Viewer's list in one state — the Shows on their
- * Watchlist, the Movies they have watched — newest marking first, with the
- * size of that whole list beside it so the page can count what it is paging
- * through. The Kind narrows here rather than in the page, because a page that
- * fetched both and threw one away would page through a list it was not
- * showing.
+ * One page of one Kind of a Viewer's Watch Records in one state — the Movies
+ * they have watched, the Shows they have Planned — newest marking first, with
+ * the size of that whole list beside it so the page can count what it is
+ * paging through. The Kind narrows here rather than in the page, because a
+ * page that fetched both and threw one away would page through a list it was
+ * not showing.
  *
  * The state, the Kind and the page arrive as one value, because none of the
  * three names a list without the other two — and because a `where` clause of
  * bare positional arguments is a `where` clause two of them can be swapped
  * in silently.
  *
- * `page` counts from 1, the way the address bar does, and anything else is
- * refused here rather than handed to Postgres as a negative offset: `?page=`
- * is the page's to validate, and this is where forgetting to would surface.
- * The two queries are issued together because neither needs the other.
+ * `page` counts from 1, and anything else is refused before Postgres sees it,
+ * by `assertListPage`. The two queries are issued together because neither
+ * needs the other.
  */
 export const watchRecordsPage = async (
   viewerId: string,
   { state, kind, page }: { state: WatchState; kind: Kind; page: number },
 ): Promise<WatchRecordsPage> => {
-  if (!Number.isInteger(page) || page < 1) {
-    throw new RangeError(`A list page counts from 1, not ${page}`);
-  }
+  assertListPage(page);
 
   const inList = and(
     eq(watchRecords.viewerId, viewerId),
@@ -239,33 +239,104 @@ export const watchRecordsPage = async (
 };
 
 /**
- * How many Watch Records a Viewer holds in each state and Kind, in one
- * grouped query: both numbers a list page shows beside its two Kinds, so the
- * Kind it is not showing admits what waits there — and, for an address that
- * names no Kind, the pair the Kind it shows is chosen from. A pair with no
- * rows is `0` here rather than absent, since a Viewer with no Movies on their
- * Watchlist has none, not a missing count.
- *
- * The four are written out rather than built from `WATCH_STATES` and `KINDS`,
- * so adding either without deciding what its zero is fails to compile.
+ * Every Movie and Show a Viewer is tracking: each Planned record, and each
+ * Show with an Episode scored, whether or not it has a record of its own.
+ * `markedAt` is the latest marking on the Movie, the Show or any of its
+ * Episodes, which is what the Watchlist orders by, and a Show brings the ids
+ * of its scored Episodes for `nextEpisode`.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
-export const watchTallies = async (viewerId: string): Promise<WatchTallies> => {
+export const trackedMedia = async (
+  viewerId: string,
+): Promise<TrackedMedia[]> => {
+  // every marking that can make Media tracked, one row each: a Show's own
+  // record of any state, since a Show under way still orders by it, and each
+  // Episode as a marking on its Show
+  const markings = unionAll(
+    db
+      .select({
+        kind: watchRecords.kind,
+        tmdbId: watchRecords.tmdbId,
+        markedAt: watchRecords.updatedAt,
+        planned: sql<boolean>`${watchRecords.state} = 'planned'`.as('planned'),
+        episodeId: sql<number | null>`null::integer`.as('episode_id'),
+      })
+      .from(watchRecords)
+      .where(
+        and(
+          eq(watchRecords.viewerId, viewerId),
+          or(eq(watchRecords.state, 'planned'), eq(watchRecords.kind, 'tv')),
+        ),
+      ),
+    db
+      .select({
+        kind: sql<Kind>`'tv'::media_kind`.as('kind'),
+        tmdbId: episodeRecords.showId,
+        markedAt: episodeRecords.updatedAt,
+        planned: sql<boolean>`false`.as('planned'),
+        episodeId: episodeRecords.episodeId,
+      })
+      .from(episodeRecords)
+      .where(eq(episodeRecords.viewerId, viewerId)),
+  ).as('markings');
+
   const rows = await db
     .select({
-      state: watchRecords.state,
-      kind: watchRecords.kind,
-      total: count(),
+      kind: markings.kind,
+      tmdbId: markings.tmdbId,
+      markedAt: sql<Date>`max(${markings.markedAt})`.mapWith(
+        watchRecords.updatedAt,
+      ),
+      scored: sql<
+        number[]
+      >`coalesce(array_agg(${markings.episodeId}) filter (where ${markings.episodeId} is not null), '{}')`,
     })
+    .from(markings)
+    .groupBy(markings.kind, markings.tmdbId)
+    .having(
+      sql`bool_or(${markings.planned}) or count(${markings.episodeId}) > 0`,
+    )
+    // the ceiling here too, so what is read is bounded and not only what is
+    // placed; `watchlistPage` keeps the same 200 of what it is handed
+    .orderBy(sql`max(${markings.markedAt}) desc`)
+    .limit(TRACKED_CEILING);
+
+  return rows.map(({ kind, tmdbId, markedAt, scored }) => ({
+    ref: { kind, id: tmdbId },
+    markedAt,
+    scored: new Set(scored),
+  }));
+};
+
+/**
+ * How many Watched records a Viewer holds of each Kind, in one grouped query:
+ * the numbers the Watched list's tabs wear, so the Kind it is not showing
+ * admits what waits there — and, for an address that names no Kind, the pair
+ * the Kind it shows is chosen from. A Kind with no rows is `0` here rather
+ * than absent, since a Viewer who has watched no Movies has none, not a
+ * missing count. The Watchlist's tallies are counted from what it places
+ * instead, by `watchlistTallies`.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
+ */
+export const watchedTallies = async (
+  viewerId: string,
+): Promise<Record<Kind, number>> => {
+  const rows = await db
+    .select({ kind: watchRecords.kind, total: count() })
     .from(watchRecords)
-    .where(eq(watchRecords.viewerId, viewerId))
-    .groupBy(watchRecords.state, watchRecords.kind);
+    .where(
+      and(
+        eq(watchRecords.viewerId, viewerId),
+        eq(watchRecords.state, 'watched'),
+      ),
+    )
+    .groupBy(watchRecords.kind);
 
-  const tallies: WatchTallies = {
-    planned: { tv: 0, movie: 0 },
-    watched: { tv: 0, movie: 0 },
-  };
+  // written out rather than built from `KINDS`, so adding a Kind without
+  // deciding what its zero is fails to compile
+  const tallies: Record<Kind, number> = { tv: 0, movie: 0 };
 
-  for (const row of rows) tallies[row.state][row.kind] = row.total;
+  for (const row of rows) tallies[row.kind] = row.total;
 
   return tallies;
 };
@@ -349,22 +420,73 @@ export const clearWatchRecord = async (
 
 /**
  * The write half of scoring an Episode: its Watch Record at `marking`'s
- * Score, whether or not one existed. One statement, as `writeWatchRecord` is,
- * with `updated_at` set by hand for the reason given there. The Show's id is
- * written on the insert only: an Episode does not change Shows.
+ * Score, whether or not one existed, with `updated_at` set by hand for the
+ * reason `writeWatchRecord` gives. The Show's id is written on the insert
+ * only: an Episode does not change Shows.
+ *
+ * The Show's Planned record goes in the same batch, since Planned lasts only
+ * until the first Episode. One batch because the HTTP driver has no
+ * interactive transactions, and a Score written without the delete would
+ * leave the Show Planned and under way at once.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const writeEpisodeRecord = async (
   viewerId: string,
   episode: { episodeId: number; showId: number },
   marking: EpisodeMarking,
 ): Promise<void> => {
-  await db
-    .insert(episodeRecords)
-    .values({ viewerId, ...episode, score: marking.score })
-    .onConflictDoUpdate({
-      target: [episodeRecords.viewerId, episodeRecords.episodeId],
-      set: { score: marking.score, updatedAt: sql`now()` },
-    });
+  await db.batch([
+    db
+      .insert(episodeRecords)
+      .values({ viewerId, ...episode, score: marking.score })
+      .onConflictDoUpdate({
+        target: [episodeRecords.viewerId, episodeRecords.episodeId],
+        set: { score: marking.score, updatedAt: sql`now()` },
+      }),
+    db
+      .delete(watchRecords)
+      .where(
+        and(
+          eq(watchRecords.viewerId, viewerId),
+          whereMedia({ kind: 'tv', id: episode.showId }),
+          eq(watchRecords.state, 'planned'),
+        ),
+      ),
+  ]);
+};
+
+/**
+ * `writeWatchRecord` for a Planned Show, refused while the Viewer is under way
+ * with it: `false`, and nothing written, once any of its Episodes is scored.
+ * The check and the write are one statement, because the HTTP driver has no
+ * interactive transactions and an Episode scored between a read and a write
+ * would leave the Show Planned and under way at once.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ *
+ * SQL rather than the builder, since an `insert … select` with no table to
+ * select from is not something Drizzle can spell. The casts are there because
+ * a parameter in a select list reaches Postgres as text.
+ */
+export const writePlannedShow = async (
+  viewerId: string,
+  showId: number,
+): Promise<boolean> => {
+  const { rows } = await db.execute(sql`
+    insert into ${watchRecords} (viewer_id, kind, tmdb_id, state, score)
+    select ${viewerId}::uuid, 'tv'::media_kind, ${showId}::integer,
+      'planned'::watch_state, null
+    where not exists (
+      select 1 from ${episodeRecords}
+      where ${episodeRecords.viewerId} = ${viewerId}::uuid
+        and ${episodeRecords.showId} = ${showId}::integer
+    )
+    on conflict (viewer_id, kind, tmdb_id)
+    do update set state = excluded.state, score = excluded.score,
+      updated_at = now()
+    returning 1
+  `);
+
+  return rows.length > 0;
 };
 
 /** Unscores an Episode: the row goes, since an Episode has no other state. */

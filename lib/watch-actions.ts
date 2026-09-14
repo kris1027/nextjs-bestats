@@ -33,6 +33,7 @@ import {
   tallyMarking,
   watchLookup,
   writeEpisodeRecord,
+  writePlannedShow,
   writeWatchRecord,
 } from '@/lib/watch-queries';
 
@@ -117,7 +118,14 @@ export const mark = async (formData: FormData): Promise<MarkResult> => {
     const lookup = await watchLookup(currentViewer.id, [ref]);
     const marking = marked(markingOf(lookup, ref), pressed);
 
-    if (marking) {
+    // Planned lasts until the first Episode, so a page drawn before one was
+    // scored cannot put it back
+    // — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+    if (marking?.state === 'planned' && ref.kind === 'tv') {
+      if (!(await writePlannedShow(currentViewer.id, ref.id))) {
+        return { error: 'You are already watching this show.' };
+      }
+    } else if (marking) {
       await writeWatchRecord(currentViewer.id, ref, marking);
     } else {
       await clearWatchRecord(currentViewer.id, ref);

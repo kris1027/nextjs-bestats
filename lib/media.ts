@@ -145,6 +145,16 @@ export type MediaDetails = Rating & {
  */
 export type EpisodeRef = { showId: number; season: number; episode: number };
 
+/**
+ * A regular season of a Show as TMDB lists it for finding a next Episode: its
+ * number, and its Episodes in order, each with TMDB's id — what a record
+ * holds — and its number, what an address holds.
+ */
+export type SeasonEpisodes = {
+  number: number;
+  episodes: readonly { id: number; number: number }[];
+};
+
 /** A Show as a season or an Episode page names it: enough to link back. */
 export type ShowName = { id: number; label: string };
 
@@ -263,6 +273,10 @@ export const episodeAddress = ({
   season,
   episode,
 }: EpisodeRef): string => `${seasonAddress(showId, season)}/episode/${episode}`;
+
+/** An Episode as a card names it: `S2E4`. */
+export const episodeCode = ({ season, episode }: EpisodeRef): string =>
+  `S${season}E${episode}`;
 
 /**
  * Whether a Kind has Media to put on a page. Not the same question as whether
@@ -468,6 +482,71 @@ export const showSeasons = async (id: number): Promise<Listing[] | null> => {
   return show.seasons.map(toSeasonListing).sort(bySeasonOrder);
 };
 
+/** The most sub-requests TMDB folds into one `append_to_response`. */
+const APPENDS_PER_REQUEST = 20;
+
+/**
+ * Every regular season of a Show with its Episodes' ids, in viewing order, or
+ * `null` when TMDB has no such Show. Throws when TMDB answers for the Show and
+ * not for every one of its seasons, since part of a Show is Unanswered and not
+ * a shorter Show. Specials are left out, since they never decide which Episode
+ * comes next. The Show's own request is the one its card already made, and the
+ * seasons ride on as many more as TMDB's cap on appends needs — one, for all
+ * but the longest Shows.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
+ */
+export const showEpisodes = async (
+  showId: number,
+): Promise<SeasonEpisodes[] | null> => {
+  const show = await findTMDB<TmdbShowDetails>(`/tv/${showId}`);
+
+  if (!show) return null;
+
+  const numbers = show.seasons
+    .map((season) => season.season_number)
+    .filter((number) => number !== 0)
+    .sort((a, b) => a - b);
+  const batches = Array.from(
+    { length: Math.ceil(numbers.length / APPENDS_PER_REQUEST) },
+    (_, index) =>
+      numbers.slice(
+        index * APPENDS_PER_REQUEST,
+        (index + 1) * APPENDS_PER_REQUEST,
+      ),
+  );
+  const answers = await Promise.all(
+    batches.map((batch) =>
+      findTMDB<TmdbShowWithSeason>(
+        `/tv/${showId}?append_to_response=${batch.map((number) => `season/${number}`).join(',')}`,
+      ),
+    ),
+  );
+
+  // the Show went between the two requests, which is TMDB's answer too
+  if (answers.some((answer) => answer === null)) return null;
+
+  return numbers.map((number) => {
+    const season = answers
+      .map((answer) => answer?.[`season/${number}`])
+      .find((found) => found !== undefined);
+
+    // a season the Show lists and the append left out is TMDB not answering,
+    // not a season without Episodes: counted from what did arrive, the
+    // furthest scored could sit in the missing one and the next be misnamed
+    if (!season) {
+      throw new Error(`TMDB left season ${number} of tv/${showId} unanswered`);
+    }
+
+    return {
+      number,
+      episodes: season.episodes.map((episode) => ({
+        id: episode.id,
+        number: episode.episode_number,
+      })),
+    };
+  });
+};
+
 /**
  * A Show and one of its seasons as TMDB sent them, before either page maps
  * the season: the Show's name, the season's wire shape, and the poster the
@@ -594,8 +673,8 @@ const answered = <T>(
  * every field a Media Item needs, so the list mapping serves. Answers come
  * back in the refs' order, so a caller pairs them by index.
  *
- * This is what a list of Watch Records costs, since a record stores nothing
- * from TMDB — which is why lists page at twenty.
+ * This is what a page of a list costs, since a record stores nothing from
+ * TMDB, and a Show on the Watchlist costs its seasons on top.
  * — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
  */
 export const mediaItems = async (
