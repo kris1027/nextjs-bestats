@@ -27,13 +27,13 @@ import { cn, control } from '@/lib/utils';
 import { viewerKey } from '@/lib/viewer-key';
 import {
   LISTS,
+  type List,
   nextEpisode,
   PAGE_SIZE,
   refOf,
   type TrackedMedia,
   toLookup,
   type WatchLookup,
-  type WatchState,
   watchKey,
   watchlistPage,
   watchlistTallies,
@@ -54,7 +54,7 @@ import {
  * default off.
  */
 const listAddress = (
-  state: WatchState,
+  list: List,
   { kind, page = 1 }: { kind?: Kind; page?: number },
 ): string => {
   const query = new URLSearchParams();
@@ -64,17 +64,17 @@ const listAddress = (
 
   const search = query.toString();
 
-  return search ? `${LISTS[state].path}?${search}` : LISTS[state].path;
+  return search ? `${LISTS[list].path}?${search}` : LISTS[list].path;
 };
 
 /**
- * What an empty tab says. One sentence per state with the Kind's words in it,
+ * What an empty tab says. One sentence per list with the Kind's words in it,
  * because a tab is empty on its own: "nothing planned yet" would be false on
  * the Shows tab of a Watchlist holding twenty movies. What the other tab holds
  * is the closed tab's tally to say, not this sentence's.
  */
-const EMPTY: Record<WatchState, (words: NounForms) => string> = {
-  planned: ({ one, other }) =>
+const EMPTY: Record<List, (words: NounForms) => string> = {
+  watchlist: ({ one, other }) =>
     `No ${other} planned yet. Mark a ${one} Planned and it will appear here.`,
   watched: ({ one, other }) =>
     `No ${other} watched yet. Mark a ${one} Watched and it will appear here.`,
@@ -82,8 +82,8 @@ const EMPTY: Record<WatchState, (words: NounForms) => string> = {
 
 /**
  * The list as an address opens it, which is what both halves of the page
- * read: who is asking, which tab, at which page. Not named for the state it
- * is in — `WatchState` is that word, and this holds one of those rather than
+ * read: who is asking, which tab, at which page. Not named `List`, which is
+ * the word for which list this is, and this holds one of those rather than
  * being one.
  */
 type OpenList = {
@@ -122,7 +122,7 @@ type OpenList = {
  */
 const openList = cache(
   async (
-    state: WatchState,
+    list: List,
     searchParams: Promise<SearchParams>,
   ): Promise<OpenList> => {
     const params = await searchParams;
@@ -139,12 +139,12 @@ const openList = cache(
       // chosen yet: this Visitor comes back, the default is read off their
       // counts, and page 2 of a Kind with one page is `notFound()` below
       redirect(
-        signInAddress(listAddress(state, named ? { kind: named, page } : {})),
+        signInAddress(listAddress(list, named ? { kind: named, page } : {})),
       );
     }
 
     const tracked =
-      state === 'planned' ? await trackedMedia(currentViewer.id) : null;
+      list === 'watchlist' ? await trackedMedia(currentViewer.id) : null;
     const tallies = tracked
       ? watchlistTallies(tracked)
       : await watchedTallies(currentViewer.id);
@@ -162,22 +162,22 @@ const openList = cache(
   },
 );
 
-/** The two tabs, wearing this state's two counts once the database has answered. */
+/** The two tabs, wearing this list's two counts once the database has answered. */
 const ListTabs = async ({
-  state,
+  list,
   searchParams,
 }: {
-  state: WatchState;
+  list: List;
   searchParams: Promise<SearchParams>;
 }): Promise<JSX.Element> => {
-  const { kind, tallies } = await openList(state, searchParams);
+  const { kind, tallies } = await openList(list, searchParams);
 
-  return <Tabs state={state} selected={kind} tallies={tallies} />;
+  return <Tabs list={list} selected={kind} tallies={tallies} />;
 };
 
 /**
  * A list's two tabs, one per Kind, with or without their counts. They say
- * nothing about the state: the heading names the list, and the header's two
+ * nothing about the list: the heading names it, and the header's two
  * links are what move between them.
  * — `docs/adr/0015-the-lists-tabs-are-the-kind.md`
  *
@@ -198,11 +198,11 @@ const ListTabs = async ({
  * is all Movies. It gains a mark; it never changes one.
  */
 const Tabs = ({
-  state,
+  list,
   selected,
   tallies,
 }: {
-  state: WatchState;
+  list: List;
   selected?: Kind;
   tallies?: Record<Kind, number>;
 }): JSX.Element => (
@@ -213,7 +213,7 @@ const Tabs = ({
     label='Shows or movies'
     replace
     tabs={KINDS.map((kind) => ({
-      href: listAddress(state, { kind }),
+      href: listAddress(list, { kind }),
       label: KIND_WORDS[kind].label,
       selected: kind === selected,
       tally: tallies?.[kind],
@@ -339,14 +339,14 @@ const watchedEntries = async (
  * `AbsentCard`.
  */
 const ListPage = async ({
-  state,
+  list,
   searchParams,
 }: {
-  state: WatchState;
+  list: List;
   searchParams: Promise<SearchParams>;
 }): Promise<JSX.Element> => {
   const { viewerId, viewerKey, tracked, kind, page } = await openList(
-    state,
+    list,
     searchParams,
   );
 
@@ -363,7 +363,7 @@ const ListPage = async ({
   if (total === 0) {
     return (
       <>
-        <p className='opacity-60'>{EMPTY[state](KIND_WORDS[kind])}</p>
+        <p className='opacity-60'>{EMPTY[list](KIND_WORDS[kind])}</p>
         <Link href='/' className={cn(control, 'self-start')}>
           Browse trending
         </Link>
@@ -403,7 +403,7 @@ const ListPage = async ({
         >
           {page > 1 ? (
             <Link
-              href={listAddress(state, { kind, page: page - 1 })}
+              href={listAddress(list, { kind, page: page - 1 })}
               className={control}
             >
               Previous
@@ -416,7 +416,7 @@ const ListPage = async ({
           </p>
           {page < pages ? (
             <Link
-              href={listAddress(state, { kind, page: page + 1 })}
+              href={listAddress(list, { kind, page: page + 1 })}
               className={control}
             >
               Next
@@ -432,12 +432,12 @@ const ListPage = async ({
 
 /**
  * One page of one of a Viewer's two lists — the Watchlist, or the Watched
- * list — shared by both routes, which differ only in the state they show. A
+ * list — shared by both routes, which differ only in the list they show. A
  * page shows one Kind of that list at a time, which `?kind=` names.
  * — `docs/adr/0015-the-lists-tabs-are-the-kind.md`
  *
- * The heading and the tabs are the shell, and the heading is where the state
- * is said: the tabs are the Kind, and the header's links are the way to the
+ * The heading and the tabs are the shell, and the heading is where the list
+ * is named: the tabs are the Kind, and the header's links are the way to the
  * other list. The tallies stream into the tabs and the cards into the grid,
  * each behind a boundary of its own, because the database answers in one round
  * trip and TMDB in a request per card — and on the Watchlist, more for each
@@ -449,10 +449,10 @@ const ListPage = async ({
  * — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
  */
 const WatchRecordList = ({
-  state,
+  list,
   searchParams,
 }: {
-  state: WatchState;
+  list: List;
   searchParams: Promise<SearchParams>;
 }): JSX.Element => (
   <main className='flex-1 p-4'>
@@ -460,13 +460,13 @@ const WatchRecordList = ({
       {/* no Back here: the header and the tabs are the ways off a list,
           and the empty state's "Browse trending" would only repeat one */}
       <h1 className='font-black text-3xl leading-[1.05]'>
-        {LISTS[state].label}
+        {LISTS[list].label}
       </h1>
-      <Suspense fallback={<Tabs state={state} />}>
-        <ListTabs state={state} searchParams={searchParams} />
+      <Suspense fallback={<Tabs list={list} />}>
+        <ListTabs list={list} searchParams={searchParams} />
       </Suspense>
       <Suspense fallback={<MediaGridSkeleton />}>
-        <ListPage state={state} searchParams={searchParams} />
+        <ListPage list={list} searchParams={searchParams} />
       </Suspense>
     </div>
   </main>

@@ -184,13 +184,23 @@ export const markingFrom = (value: string): Marking | null => {
 };
 
 /**
- * The two lists, one per state: where each lives and the word it wears. The
- * Watchlist is the Planned list and the glossary's own word for it; the
- * Watched list has no word but Watched. One row per state, like `KIND_WORDS`,
- * so the header's links, the tabs and the routes cannot drift apart.
+ * A Viewer's lists, in the order the header draws them. Not keyed on
+ * `WatchState`: a list is placed from what TMDB says as well as from what a
+ * record says, so a Planned record can be on one list or another.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
-export const LISTS: Record<WatchState, { path: string; label: string }> = {
-  planned: { path: '/watchlist', label: 'Watchlist' },
+export const LIST_NAMES = ['watchlist', 'watched'] as const;
+
+/** One of a Viewer's lists. */
+export type List = (typeof LIST_NAMES)[number];
+
+/**
+ * Where each list lives and the word it wears. One row per list, like
+ * `KIND_WORDS`, so the header's links, the tabs and the routes cannot drift
+ * apart.
+ */
+export const LISTS: Record<List, { path: string; label: string }> = {
+  watchlist: { path: '/watchlist', label: 'Watchlist' },
   watched: { path: '/watched', label: 'Watched' },
 };
 

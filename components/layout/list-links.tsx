@@ -7,7 +7,7 @@ import type { JSX } from 'react';
 import { Bookmark, Check, type LucideIcon } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import { LISTS, WATCH_STATES, type WatchState } from '@/lib/watch';
+import { LIST_NAMES, LISTS, type List } from '@/lib/watch';
 
 /**
  * The icon each list wears where its word will not fit. They are the two the
@@ -21,8 +21,8 @@ import { LISTS, WATCH_STATES, type WatchState } from '@/lib/watch';
  * "Watchlist". Nothing enforces the agreement, so change the one and change
  * the other.
  */
-const ICONS: Record<WatchState, LucideIcon> = {
-  planned: Bookmark,
+const ICONS: Record<List, LucideIcon> = {
+  watchlist: Bookmark,
   watched: Check,
 };
 
@@ -46,9 +46,9 @@ const ListLinks = (): JSX.Element => {
 
   return (
     <nav aria-label='Your lists' className='flex items-center gap-3'>
-      {WATCH_STATES.map((state) => {
-        const { path, label } = LISTS[state];
-        const Icon = ICONS[state];
+      {LIST_NAMES.map((list) => {
+        const { path, label } = LISTS[list];
+        const Icon = ICONS[list];
         const open = pathname === path;
 
         return (

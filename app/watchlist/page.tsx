@@ -17,7 +17,7 @@ const WatchlistPage = ({
   searchParams: Promise<SearchParams>;
 }): JSX.Element => (
   // the promise, unread: the list reads `?page=` behind its own boundaries
-  <WatchRecordList state='planned' searchParams={searchParams} />
+  <WatchRecordList list='watchlist' searchParams={searchParams} />
 );
 
 export default WatchlistPage;
