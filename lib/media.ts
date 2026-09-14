@@ -415,6 +415,21 @@ const findMedia = (
     : findTMDB<TmdbMovieDetails>(`/movie/${ref.id}`);
 
 /**
+ * The calendar day TMDB says a Movie is released, as TMDB spells it, or
+ * `null` where it has none — including a Movie TMDB no longer has, which
+ * `mediaItems` is the one to call Gone. Unformatted, since `hasAired` reads
+ * it. The request is the one the Movie's card already made, so it costs
+ * nothing the list was not already paying.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
+ */
+export const releaseDate = async (movieId: number): Promise<string | null> => {
+  const movie = await findTMDB<TmdbMovieDetails>(`/movie/${movieId}`);
+
+  // TMDB spells a date it does not have as an empty string
+  return movie?.release_date || null;
+};
+
+/**
  * What a detail page renders for one piece of Media. Which mapping applies
  * follows the Kind the ref carries, not the payload, since the payload does
  * not say.

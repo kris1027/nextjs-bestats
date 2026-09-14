@@ -10,6 +10,7 @@ import {
   isSeasonNumber,
   mediaAddress,
   openKind,
+  releaseDate,
   seasonDetails,
   showEpisodes,
   showSeasons,
@@ -426,4 +427,19 @@ test('showEpisodes throws when TMDB leaves out a season the Show lists', async (
   await expect(showEpisodes(95396)).rejects.toThrow(
     'TMDB left season 1 of tv/95396 unanswered',
   );
+});
+
+test("releaseDate is the Movie's release day as TMDB spells it", async () => {
+  tmdb.findTMDB.mockResolvedValue({ release_date: '2026-11-20' });
+
+  expect(await releaseDate(550)).toBe('2026-11-20');
+  expect(tmdb.findTMDB).toHaveBeenCalledWith('/movie/550');
+});
+
+test('releaseDate is null for an empty date and for a Movie TMDB does not have', async () => {
+  tmdb.findTMDB.mockResolvedValueOnce({ release_date: '' });
+  tmdb.findTMDB.mockResolvedValueOnce(null);
+
+  expect(await releaseDate(550)).toBe(null);
+  expect(await releaseDate(550)).toBe(null);
 });
