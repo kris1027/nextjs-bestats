@@ -23,7 +23,6 @@ import {
   type WatchLookup,
   type WatchRecordsPage,
   type WatchState,
-  type WatchTallies,
   watchedAt,
 } from '@/lib/watch';
 
@@ -310,33 +309,34 @@ export const trackedMedia = async (
 };
 
 /**
- * How many Watch Records a Viewer holds in each state and Kind, in one
- * grouped query: both numbers a list page shows beside its two Kinds, so the
- * Kind it is not showing admits what waits there — and, for an address that
- * names no Kind, the pair the Kind it shows is chosen from. A pair with no
- * rows is `0` here rather than absent, since a Viewer with no Movies on their
- * Watchlist has none, not a missing count.
- *
- * The four are written out rather than built from `WATCH_STATES` and `KINDS`,
- * so adding either without deciding what its zero is fails to compile.
+ * How many Watched records a Viewer holds of each Kind, in one grouped query:
+ * the numbers the Watched list's tabs wear, so the Kind it is not showing
+ * admits what waits there — and, for an address that names no Kind, the pair
+ * the Kind it shows is chosen from. A Kind with no rows is `0` here rather
+ * than absent, since a Viewer who has watched no Movies has none, not a
+ * missing count. The Watchlist's tallies are counted from what it places
+ * instead, by `watchlistTallies`.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
-export const watchTallies = async (viewerId: string): Promise<WatchTallies> => {
+export const watchedTallies = async (
+  viewerId: string,
+): Promise<Record<Kind, number>> => {
   const rows = await db
-    .select({
-      state: watchRecords.state,
-      kind: watchRecords.kind,
-      total: count(),
-    })
+    .select({ kind: watchRecords.kind, total: count() })
     .from(watchRecords)
-    .where(eq(watchRecords.viewerId, viewerId))
-    .groupBy(watchRecords.state, watchRecords.kind);
+    .where(
+      and(
+        eq(watchRecords.viewerId, viewerId),
+        eq(watchRecords.state, 'watched'),
+      ),
+    )
+    .groupBy(watchRecords.kind);
 
-  const tallies: WatchTallies = {
-    planned: { tv: 0, movie: 0 },
-    watched: { tv: 0, movie: 0 },
-  };
+  // written out rather than built from `KINDS`, so adding a Kind without
+  // deciding what its zero is fails to compile
+  const tallies: Record<Kind, number> = { tv: 0, movie: 0 };
 
-  for (const row of rows) tallies[row.state][row.kind] = row.total;
+  for (const row of rows) tallies[row.kind] = row.total;
 
   return tallies;
 };

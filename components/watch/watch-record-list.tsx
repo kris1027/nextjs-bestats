@@ -40,9 +40,9 @@ import {
 } from '@/lib/watch';
 import {
   trackedMedia,
+  watchedTallies,
   watchLookup,
   watchRecordsPage,
-  watchTallies,
 } from '@/lib/watch-queries';
 
 /**
@@ -147,7 +147,7 @@ const openList = cache(
       state === 'planned' ? await trackedMedia(currentViewer.id) : null;
     const tallies = tracked
       ? watchlistTallies(tracked)
-      : (await watchTallies(currentViewer.id))[state];
+      : await watchedTallies(currentViewer.id);
 
     return {
       viewerId: currentViewer.id,
