@@ -668,8 +668,8 @@ const answered = <T>(
  * every field a Media Item needs, so the list mapping serves. Answers come
  * back in the refs' order, so a caller pairs them by index.
  *
- * This is what a list of Watch Records costs, since a record stores nothing
- * from TMDB — which is why lists page at twenty.
+ * This is what a page of a list costs, since a record stores nothing from
+ * TMDB, and a Show on the Watchlist costs its seasons on top.
  * — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
  */
 export const mediaItems = async (

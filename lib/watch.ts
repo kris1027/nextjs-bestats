@@ -277,10 +277,11 @@ export const markingOf = (lookup: WatchLookup, ref: MediaRef): Marking | null =>
   lookup.get(watchKey(ref)) ?? null;
 
 /**
- * How many Watch Records a list page shows. Each one costs a TMDB request, so
- * the page bounds that cost whatever a Viewer has watched, and twenty is the
- * page size TMDB uses everywhere else in the app.
- * — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
+ * How many cards a list page shows, and so how many TMDB requests drawing one
+ * costs. Twenty is the page size TMDB uses everywhere else in the app. It no
+ * longer bounds what a list reads: the Watchlist reads everything tracked and
+ * pages it in memory, which `TRACKED_CEILING` bounds instead.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 export const PAGE_SIZE = 20;
 
