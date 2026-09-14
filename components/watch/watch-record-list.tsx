@@ -335,7 +335,12 @@ const leadOf = (
   { tracked, answer, upNext, day }: PlacedMedia,
   today: Date,
 ): CardLead | null => {
-  const date = (day && formatShortDate(day, today)) ?? NO_DATE;
+  // unbroken, so a line too long for a 136px card at the 320px floor —
+  // "S12E10 · Sep 17, 2027" — wraps at the dot rather than inside the date
+  const date = ((day && formatShortDate(day, today)) ?? NO_DATE).replaceAll(
+    ' ',
+    ' ',
+  );
 
   if (answer === 'movie') {
     return list === 'upcoming'
