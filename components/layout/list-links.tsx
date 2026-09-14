@@ -4,16 +4,17 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { JSX } from 'react';
 
-import { Bookmark, Check, type LucideIcon } from 'lucide-react';
+import { Bookmark, CalendarClock, Check, type LucideIcon } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { LIST_NAMES, LISTS, type List } from '@/lib/watch';
 
 /**
- * The icon each list wears where its word will not fit. They are the two the
- * marking control already spells the states with, so the header reads as
- * "what I bookmarked" and "what I checked off" rather than as two new signs
- * to learn.
+ * The icon each list wears where its word will not fit. The Watchlist and the
+ * Watched list wear the two the marking control already spells the states
+ * with, so the header reads as "what I bookmarked" and "what I checked off"
+ * rather than as two new signs to learn. Upcoming is no state and has no
+ * button to borrow from, so it wears a calendar.
  *
  * Mirrored from `BUTTONS` in `components/watch/marking-control.tsx` rather
  * than shared with it: that map also carries the words those buttons wear,
@@ -23,11 +24,12 @@ import { LIST_NAMES, LISTS, type List } from '@/lib/watch';
  */
 const ICONS: Record<List, LucideIcon> = {
   watchlist: Bookmark,
+  upcoming: CalendarClock,
   watched: Check,
 };
 
 /**
- * The header's way to a Viewer's two lists. A client component only so the
+ * The header's way to a Viewer's lists. A client component only so the
  * open list can say so with `aria-current`, which needs the pathname; a
  * Visitor never sees these, since the lists would only send them to sign in.
  *

@@ -189,7 +189,7 @@ export const markingFrom = (value: string): Marking | null => {
  * record says, so a Planned record can be on one list or another.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
-export const LIST_NAMES = ['watchlist', 'watched'] as const;
+export const LIST_NAMES = ['watchlist', 'upcoming', 'watched'] as const;
 
 /** One of a Viewer's lists. */
 export type List = (typeof LIST_NAMES)[number];
@@ -201,6 +201,7 @@ export type List = (typeof LIST_NAMES)[number];
  */
 export const LISTS: Record<List, { path: string; label: string }> = {
   watchlist: { path: '/watchlist', label: 'Watchlist' },
+  upcoming: { path: '/upcoming', label: 'Upcoming' },
   watched: { path: '/watched', label: 'Watched' },
 };
 

@@ -40,6 +40,11 @@ export type TrackedAnswer =
 /** A tracked Movie or Show, placed. */
 export type PlacedMedia = {
   tracked: TrackedMedia;
+  /**
+   * Which answer it was placed by, so a card can tell a Movie TMDB gave no
+   * release day from one TMDB gave no answer for at all.
+   */
+  answer: TrackedAnswer['answer'];
   /** What the Viewer watches next in a Show; `null` for anything else. */
   upNext: UpNext | null;
   /**
@@ -92,6 +97,7 @@ export const placed = (
   if (answer.answer === 'movie') {
     return {
       tracked,
+      answer: 'movie',
       upNext: null,
       day: calendarDay(answer.releaseDate),
       lists: hasAired(answer.releaseDate, today) ? WATCHLIST : UPCOMING,
@@ -104,13 +110,20 @@ export const placed = (
 
     return {
       tracked,
+      answer: 'show',
       upNext: next,
       day: calendarDay(airDate),
       lists: hasAired(airDate, today) ? WATCHLIST : UPCOMING,
     };
   }
 
-  return { tracked, upNext: null, day: null, lists: BOTH };
+  return {
+    tracked,
+    answer: answer.answer,
+    upNext: null,
+    day: null,
+    lists: BOTH,
+  };
 };
 
 /** The latest marked first, which is the Watchlist's order. */
