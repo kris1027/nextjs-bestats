@@ -91,15 +91,28 @@ export const answeredWatchLookup = async (
 });
 
 /** The markings half of `answeredWatchLookup`, whose `null` is Unanswered. */
-const answeredMarkings = async (
+const answeredMarkings = (
   asked: ViewerAnswer,
   refs: readonly MediaRef[],
-): Promise<WatchLookup | null> => {
-  if (asked.answer === 'visitor') return toLookup([]);
+): Promise<WatchLookup | null> =>
+  answeredFor(asked, toLookup([]), (viewerId) => watchLookup(viewerId, refs));
+
+/**
+ * What a lookup is for the answer a page was handed: `none` for a Visitor,
+ * who holds no Watch Records, `null` — Unanswered — for a sign-in that could
+ * not be checked or a database that did not answer, and otherwise whatever
+ * `read` found. The rule both kinds of lookup follow, said once.
+ */
+const answeredFor = async <T>(
+  asked: ViewerAnswer,
+  none: T,
+  read: (viewerId: string) => Promise<T>,
+): Promise<T | null> => {
+  if (asked.answer === 'visitor') return none;
   if (asked.answer === 'unanswered') return null;
 
   try {
-    return await watchLookup(asked.viewer.id, refs);
+    return await read(asked.viewer.id);
   } catch (cause) {
     console.error('Watch Records went Unanswered:', cause);
 
