@@ -34,20 +34,23 @@ const ICONS: Record<List, LucideIcon> = {
  * Visitor never sees these, since the lists would only send them to sign in.
  *
  * Below `sm:` each link is its icon and the word is read but not drawn: the
- * two words are 139px of a 288px row, which is more than the header has to
- * give at the 320px floor. `sr-only` rather than `hidden`, so the link keeps
+ * words are more of a 288px row than the header has to give at the 320px
+ * floor. `sr-only` rather than `hidden`, so the link keeps
  * the accessible name the word was giving it — an icon nobody can see the
  * label of is not a saving.
  *
- * The hit area is 32×44 rather than the icon's own 18px. Width is what
- * separates these two from each other and is the dimension the row is short
- * of; height is free inside a 56px header, so it is spent in full.
+ * The hit area is 28×44 rather than the icon's own 18px, and the three stand
+ * edge to edge below `sm:`, so the icons are 10px apart and every pixel of
+ * the row is a target. Width is what the row is short of — three at 32 with
+ * gaps measured 322px of content in 288 — and height is free inside a 56px
+ * header, so it is spent in full.
+ * — `docs/adr/0014-the-narrow-header-gives-up-words.md`
  */
 const ListLinks = (): JSX.Element => {
   const pathname = usePathname();
 
   return (
-    <nav aria-label='Your lists' className='flex items-center gap-3'>
+    <nav aria-label='Your lists' className='flex items-center sm:gap-3'>
       {LIST_NAMES.map((list) => {
         const { path, label } = LISTS[list];
         const Icon = ICONS[list];
@@ -59,7 +62,7 @@ const ListLinks = (): JSX.Element => {
             href={path}
             aria-current={open ? 'page' : undefined}
             className={cn(
-              'inline-flex h-11 w-8 items-center justify-center font-extrabold text-sm leading-none transition-colors sm:h-auto sm:w-auto',
+              'inline-flex h-11 w-7 items-center justify-center font-extrabold text-sm leading-none transition-colors sm:h-auto sm:w-auto',
               open
                 ? 'text-foreground'
                 : 'text-foreground/60 hover:text-foreground',
