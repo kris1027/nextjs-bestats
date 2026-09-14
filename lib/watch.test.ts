@@ -200,6 +200,7 @@ const tracked = (
 ): TrackedMedia => ({
   ref: { kind, id },
   markedAt: new Date(Date.UTC(2026, 8, day)),
+  scored: new Set(),
 });
 
 test('the Watchlist puts the latest marked Media first', () => {

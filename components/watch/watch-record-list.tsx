@@ -30,7 +30,7 @@ import {
   nextEpisode,
   PAGE_SIZE,
   refOf,
-  type TrackedRecord,
+  type TrackedMedia,
   toLookup,
   type WatchLookup,
   type WatchState,
@@ -100,7 +100,7 @@ type OpenList = {
    * paged in memory. `null` on the Watched list, which Postgres still pages.
    * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
    */
-  tracked: TrackedRecord[] | null;
+  tracked: TrackedMedia[] | null;
   kind: Kind;
   page: number;
 };
@@ -241,7 +241,7 @@ type ListEntries = {
  * the seasons, in which case the card leads to the Show as any card does and
  * the log says why.
  */
-const nextFor = async (item: TrackedRecord): Promise<EpisodeRef | null> => {
+const nextFor = async (item: TrackedMedia): Promise<EpisodeRef | null> => {
   try {
     const seasons = await showEpisodes(item.ref.id);
     const next = seasons && nextEpisode(seasons, item.scored);
@@ -262,7 +262,7 @@ const nextFor = async (item: TrackedRecord): Promise<EpisodeRef | null> => {
  */
 const watchlistEntries = async (
   viewerId: string,
-  tracked: readonly TrackedRecord[],
+  tracked: readonly TrackedMedia[],
   { kind, page }: { kind: Kind; page: number },
 ): Promise<ListEntries> => {
   const { items, total } = watchlistPage(tracked, { kind, page });

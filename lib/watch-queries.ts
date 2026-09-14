@@ -14,7 +14,7 @@ import {
   PAGE_SIZE,
   scoreOf,
   TRACKED_CEILING,
-  type TrackedRecord,
+  type TrackedMedia,
   toLookup,
   toMarkedMedia,
   type ViewerEpisodeLookup,
@@ -251,7 +251,7 @@ export const watchRecordsPage = async (
  */
 export const trackedMedia = async (
   viewerId: string,
-): Promise<TrackedRecord[]> => {
+): Promise<TrackedMedia[]> => {
   // every marking that can make Media tracked, one row each: a Show's own
   // record of any state, since a Show under way still orders by it, and each
   // Episode as a marking on its Show

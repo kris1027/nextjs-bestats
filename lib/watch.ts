@@ -356,17 +356,16 @@ export const nextEpisode = (
 /**
  * A Movie or Show a Viewer is tracking, and when they last marked it — the
  * Movie, the Show, or any of the Show's Episodes. What a list places, orders
- * and pages; a page hangs TMDB's answers on it.
+ * and pages. The ids of the Episodes the Viewer has scored come along, since a
+ * Show's are what `nextEpisode` reads, and a Movie's or a Planned Show's are
+ * none.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
-export type TrackedMedia = { ref: MediaRef; markedAt: Date };
-
-/**
- * A tracked Movie or Show as it is read: the Episodes the Viewer has scored
- * come along, since a Show's are what `nextEpisode` reads, and a Movie's or a
- * Planned Show's are none.
- */
-export type TrackedRecord = TrackedMedia & { scored: ReadonlySet<number> };
+export type TrackedMedia = {
+  ref: MediaRef;
+  markedAt: Date;
+  scored: ReadonlySet<number>;
+};
 
 /**
  * How many Movies and Shows a list places. Each costs a TMDB request before
@@ -380,8 +379,8 @@ export const TRACKED_CEILING = 200;
  * One page of one Kind of the Watchlist, and what the tabs wear: the open
  * Kind's total, which the page count is read off, and both Kinds' tallies.
  */
-export type WatchlistPage<T extends TrackedMedia> = {
-  items: T[];
+export type WatchlistPage = {
+  items: TrackedMedia[];
   total: number;
   tallies: Record<Kind, number>;
 };
@@ -389,16 +388,14 @@ export type WatchlistPage<T extends TrackedMedia> = {
 /**
  * One page of one Kind of the Watchlist, the latest marked first. The page
  * and the tallies are read off the same placed set, since Postgres can no
- * longer say which list a record is on.
- *
- * Generic, so a page hangs what TMDB answered on each item and gets it back
- * paged. That also means nothing here can drop an item for being Gone or
- * Unanswered: it never sees the answer.
+ * longer say which list a record is on. TMDB is asked about the page after it
+ * is cut, so nothing here can drop an item for being Gone or Unanswered: it
+ * never sees the answer.
  */
-export const watchlistPage = <T extends TrackedMedia>(
-  tracked: readonly T[],
+export const watchlistPage = (
+  tracked: readonly TrackedMedia[],
   { kind, page }: { kind: Kind; page: number },
-): WatchlistPage<T> => {
+): WatchlistPage => {
   // `?page=` is the page's to validate, and this is where forgetting to shows
   if (!Number.isInteger(page) || page < 1) {
     throw new RangeError(`A list page counts from 1, not ${page}`);
@@ -407,7 +404,7 @@ export const watchlistPage = <T extends TrackedMedia>(
   const placed = [...tracked]
     .sort((a, b) => b.markedAt.getTime() - a.markedAt.getTime())
     .slice(0, TRACKED_CEILING);
-  const ofKind = (wanted: Kind): T[] =>
+  const ofKind = (wanted: Kind): TrackedMedia[] =>
     placed.filter((item) => item.ref.kind === wanted);
   const open = ofKind(kind);
 
