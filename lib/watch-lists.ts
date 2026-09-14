@@ -37,6 +37,14 @@ export type TrackedAnswer =
   | { answer: 'show'; seasons: readonly SeasonEpisodes[] }
   | { answer: Absence };
 
+/**
+ * A calendar day, `YYYY-MM-DD`, cut from a date TMDB spelled. Its own type
+ * because Upcoming orders days by comparing them as strings, which is right
+ * only once the day has been checked and cut to that shape — and only
+ * `calendarDay` does both.
+ */
+export type CalendarDay = string & { readonly calendarDay: unique symbol };
+
 /** A tracked Movie or Show, placed. */
 export type PlacedMedia = {
   tracked: TrackedMedia;
@@ -52,7 +60,7 @@ export type PlacedMedia = {
    * Movie's release day, as TMDB spells it. `null` is undated, which is also
    * what a Show the Viewer is caught up with and an absent answer are.
    */
-  day: string | null;
+  day: CalendarDay | null;
   /**
    * The lists it is on: one, or both where TMDB gave nothing to place it by,
    * since Unanswered is never an absence from either.
@@ -79,9 +87,9 @@ export const withinCeiling = (
   [...tracked].sort(latestMarkedFirst).slice(0, TRACKED_CEILING);
 
 /** A date TMDB spelled as the calendar day it names, or `null` for none. */
-const calendarDay = (date: string | null): string | null =>
+const calendarDay = (date: string | null): CalendarDay | null =>
   date !== null && !Number.isNaN(new Date(date).getTime())
-    ? date.slice(0, 10)
+    ? (date.slice(0, 10) as CalendarDay)
     : null;
 
 /**
