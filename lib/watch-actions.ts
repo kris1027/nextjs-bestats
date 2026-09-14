@@ -22,6 +22,32 @@ import {
 } from '@/lib/watch-queries';
 
 /**
+ * The Viewer a press belongs to, read from the session and from nowhere else:
+ * a signed-out Visitor is sent to sign in and back to where they pressed, and
+ * a sign-in that went Unanswered is a sentence under the buttons rather than
+ * a trip to the sign-in page for someone who may well be signed in. Both
+ * actions ask first, so this is said once.
+ */
+const pressingViewer = async (
+  formData: FormData,
+): Promise<{ id: string } | { error: string }> => {
+  const asked = await answeredViewer();
+
+  if (asked.answer === 'unanswered') {
+    return { error: 'Could not check your sign-in. Try again in a moment.' };
+  }
+
+  if (asked.answer === 'visitor') {
+    // the destination only: nothing is replayed once they are back
+    const destination = nextPath(String(formData.get('next') ?? ''));
+
+    redirect(signInAddress(destination));
+  }
+
+  return asked.viewer;
+};
+
+/**
  * What `mark` hands back to the control. On success, what the Watch Record
  * says now — `null` once unmarked, and a Score with it where it is Watched.
  * On a failed write, a sentence for the Visitor; the cause goes to the server
@@ -51,20 +77,11 @@ export type MarkResult = { marking: Marking | null } | { error: string };
  * — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
  */
 export const mark = async (formData: FormData): Promise<MarkResult> => {
-  const asked = await answeredViewer();
+  const asked = await pressingViewer(formData);
 
-  if (asked.answer === 'unanswered') {
-    return { error: 'Could not check your sign-in. Try again in a moment.' };
-  }
+  if ('error' in asked) return asked;
 
-  if (asked.answer === 'visitor') {
-    // the destination only: nothing is replayed once they are back
-    const destination = nextPath(String(formData.get('next') ?? ''));
-
-    redirect(signInAddress(destination));
-  }
-
-  const currentViewer = asked.viewer;
+  const currentViewer = asked;
 
   const kind = String(formData.get('kind') ?? '');
   const id = String(formData.get('id') ?? '');
