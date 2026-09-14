@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
 
+import type { Kind } from '@/lib/media';
 import {
   isScore,
   marked,
@@ -193,11 +194,7 @@ test('a scored Episode TMDB no longer lists never counts towards the furthest', 
 });
 
 // days counted from the end of August 2026, so a later day is a later marking
-const tracked = (
-  kind: 'tv' | 'movie',
-  id: number,
-  day: number,
-): TrackedMedia => ({
+const tracked = (kind: Kind, id: number, day: number): TrackedMedia => ({
   ref: { kind, id },
   markedAt: new Date(Date.UTC(2026, 8, day)),
   scored: new Set(),
