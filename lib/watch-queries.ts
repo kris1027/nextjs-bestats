@@ -7,6 +7,7 @@ import type { Kind, MediaRef } from '@/lib/media';
 import { episodeRecords, markingTallies, watchRecords } from '@/lib/schema';
 import { viewerKeyOf } from '@/lib/viewer-key';
 import {
+  assertListPage,
   type EpisodeLookup,
   type EpisodeMarking,
   isScore,
@@ -194,18 +195,15 @@ export const answeredEpisodeLookup = async (
  * bare positional arguments is a `where` clause two of them can be swapped
  * in silently.
  *
- * `page` counts from 1, the way the address bar does, and anything else is
- * refused here rather than handed to Postgres as a negative offset: `?page=`
- * is the page's to validate, and this is where forgetting to would surface.
- * The two queries are issued together because neither needs the other.
+ * `page` counts from 1, and anything else is refused before Postgres sees it,
+ * by `assertListPage`. The two queries are issued together because neither
+ * needs the other.
  */
 export const watchRecordsPage = async (
   viewerId: string,
   { state, kind, page }: { state: WatchState; kind: Kind; page: number },
 ): Promise<WatchRecordsPage> => {
-  if (!Number.isInteger(page) || page < 1) {
-    throw new RangeError(`A list page counts from 1, not ${page}`);
-  }
+  assertListPage(page);
 
   const inList = and(
     eq(watchRecords.viewerId, viewerId),

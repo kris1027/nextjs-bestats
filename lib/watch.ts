@@ -286,6 +286,17 @@ export const markingOf = (lookup: WatchLookup, ref: MediaRef): Marking | null =>
 export const PAGE_SIZE = 20;
 
 /**
+ * Refuses a list page that does not count from 1, the way the address bar
+ * does. `?page=` is the page's to validate, and a list is where forgetting to
+ * shows — as a negative offset in Postgres, or an empty slice in memory.
+ */
+export const assertListPage = (page: number): void => {
+  if (!Number.isInteger(page) || page < 1) {
+    throw new RangeError(`A list page counts from 1, not ${page}`);
+  }
+};
+
+/**
  * How many presses of a marking control one Viewer gets in a minute before
  * the action refuses the next. A person pressing as fast as they can stays
  * under it; a loop does not. It guards Neon's compute against a runaway
@@ -396,10 +407,7 @@ export const watchlistPage = (
   tracked: readonly TrackedMedia[],
   { kind, page }: { kind: Kind; page: number },
 ): WatchlistPage => {
-  // `?page=` is the page's to validate, and this is where forgetting to shows
-  if (!Number.isInteger(page) || page < 1) {
-    throw new RangeError(`A list page counts from 1, not ${page}`);
-  }
+  assertListPage(page);
 
   const placed = [...tracked]
     .sort((a, b) => b.markedAt.getTime() - a.markedAt.getTime())
