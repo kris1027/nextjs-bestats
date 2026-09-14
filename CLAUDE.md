@@ -205,7 +205,9 @@ does, since resolving Watch Records against TMDB is a page's job and not
 - `cacheComponents` is on, so a page's request-time reads — `cookies()`,
   `params`, `searchParams`, a database query — sit inside a Suspense boundary
   the page draws itself, with a skeleton the height of what replaces it as the
-  fallback. `loading.tsx` only where the whole page follows a check. The TMDB
+  fallback — or of the common case, where the fallback cannot read which card
+  lands, as `media-skeleton.tsx` says. `loading.tsx` only where the whole page
+  follows a check. The TMDB
   cache is `lib/tmdb`'s and by directive, never a fetch option, and a theme
   preference can never be a cookie.
   — `docs/adr/0010-the-shell-is-prerendered.md`
