@@ -149,11 +149,11 @@ const ORDERS: Record<PlacedList, (a: PlacedMedia, b: PlacedMedia) => number> = {
 };
 
 /** One Kind of one list, in that list's order. */
-const onList = (
-  media: readonly PlacedMedia[],
+const onList = <T extends PlacedMedia>(
+  media: readonly T[],
   list: PlacedList,
   kind: Kind,
-): PlacedMedia[] =>
+): T[] =>
   media
     .filter((item) => item.lists.has(list) && item.tracked.ref.kind === kind)
     .sort(ORDERS[list]);
@@ -162,14 +162,17 @@ const onList = (
  * One page of one Kind of a placed list, and that Kind's total, which the
  * page count is read off.
  */
-export type PlacedPage = { items: PlacedMedia[]; total: number };
+export type PlacedPage<T extends PlacedMedia> = { items: T[]; total: number };
 
-/** One page of one Kind of the Watchlist or Upcoming. */
-export const placedPage = (
-  media: readonly PlacedMedia[],
+/**
+ * One page of one Kind of the Watchlist or Upcoming. The items come back as
+ * they went in, so whatever a caller placed alongside each one stays with it.
+ */
+export const placedPage = <T extends PlacedMedia>(
+  media: readonly T[],
   list: PlacedList,
   { kind, page }: { kind: Kind; page: number },
-): PlacedPage => {
+): PlacedPage<T> => {
   assertListPage(page);
 
   const open = onList(media, list, kind);

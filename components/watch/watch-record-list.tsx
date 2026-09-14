@@ -131,7 +131,7 @@ const answerAt = (
  * together because both come out of the one round of asking TMDB that
  * placing costs, and a page drawn from a placement would otherwise ask again.
  */
-type Placement = { media: PlacedMedia; answer: MediaAnswer };
+type Placement = PlacedMedia & { answer: MediaAnswer };
 
 /**
  * What TMDB says about a tracked Movie or Show, as much as placing it needs:
@@ -178,7 +178,7 @@ const placeTracked = async (viewerId: string): Promise<Placement[]> => {
       const answer = answerAt(answers, index);
 
       return {
-        media: placed(item, await trackedAnswer(item, answer), today),
+        ...placed(item, await trackedAnswer(item, answer), today),
         answer,
       };
     }),
@@ -226,10 +226,7 @@ const openList = cache(
       list === 'watched' ? null : await placeTracked(currentViewer.id);
     const tallies =
       placements && list !== 'watched'
-        ? placedTallies(
-            placements.map(({ media }) => media),
-            list,
-          )
+        ? placedTallies(placements, list)
         : await watchedTallies(currentViewer.id);
 
     return {
@@ -383,17 +380,7 @@ const placedEntries = async (
   list: PlacedList,
   { kind, page }: { kind: Kind; page: number },
 ): Promise<ListEntries> => {
-  const answers = new Map(
-    placements.map(({ media, answer }) => [
-      watchKey(media.tracked.ref),
-      answer,
-    ]),
-  );
-  const { items, total } = placedPage(
-    placements.map(({ media }) => media),
-    list,
-    { kind, page },
-  );
+  const { items, total } = placedPage(placements, list, { kind, page });
   const refs = items.map((item) => item.tracked.ref);
   // a Show under way has no record, so the markings are asked for rather than
   // read off the page, and such a card simply has none
@@ -403,10 +390,7 @@ const placedEntries = async (
   return {
     entries: items.map((item) => ({
       ref: item.tracked.ref,
-      // every placed item has its answer; the fallback is for the type
-      answer: answers.get(watchKey(item.tracked.ref)) ?? {
-        answer: 'unanswered',
-      },
+      answer: item.answer,
       lead: leadOf(list, item, today),
     })),
     markings,
