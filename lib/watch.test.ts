@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 
-import type { Kind } from '@/lib/media';
+import type { Kind, SeasonEpisodes } from '@/lib/media';
 import {
   isScore,
   marked,
@@ -141,11 +141,12 @@ test('refOf spells a Watch Record the way lib/media spells a ref', () => {
 });
 
 // Episode ids are season * 100 + number, so a failure names the Episode
-const season = (number: number, episodes: number) => ({
+const season = (number: number, episodes: number): SeasonEpisodes => ({
   number,
   episodes: Array.from({ length: episodes }, (_, index) => ({
     id: number * 100 + index + 1,
     number: index + 1,
+    airDate: '2022-02-17',
   })),
 });
 

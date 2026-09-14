@@ -148,11 +148,14 @@ export type EpisodeRef = { showId: number; season: number; episode: number };
 /**
  * A regular season of a Show as TMDB lists it for finding a next Episode: its
  * number, and its Episodes in order, each with TMDB's id — what a record
- * holds — and its number, what an address holds.
+ * holds — its number, what an address holds, and the calendar day TMDB says
+ * it airs, as TMDB spells it, or `null` where it has none — what places the
+ * Show on the Watchlist or Upcoming. An announced season with nothing more
+ * is listed with no Episodes.
  */
 export type SeasonEpisodes = {
   number: number;
-  episodes: readonly { id: number; number: number }[];
+  episodes: readonly { id: number; number: number; airDate: string | null }[];
 };
 
 /** A Show as a season or an Episode page names it: enough to link back. */
@@ -542,6 +545,7 @@ export const showEpisodes = async (
       episodes: season.episodes.map((episode) => ({
         id: episode.id,
         number: episode.episode_number,
+        airDate: episode.air_date || null,
       })),
     };
   });
