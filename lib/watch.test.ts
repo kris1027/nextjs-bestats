@@ -20,6 +20,7 @@ import {
   watchedAt,
   watchKey,
   watchlistPage,
+  watchlistTallies,
 } from '@/lib/watch';
 
 test('marking Media with no Watch Record creates one saying what was pressed', () => {
@@ -210,14 +211,16 @@ test('the Watchlist puts the latest marked Media first', () => {
 });
 
 test('the Watchlist shows one Kind, and tallies both from the same Media', () => {
-  const { items, total, tallies } = watchlistPage(
-    [tracked('tv', 1, 3), tracked('movie', 2, 9), tracked('tv', 3, 5)],
-    { kind: 'movie', page: 1 },
-  );
+  const media = [
+    tracked('tv', 1, 3),
+    tracked('movie', 2, 9),
+    tracked('tv', 3, 5),
+  ];
+  const { items, total } = watchlistPage(media, { kind: 'movie', page: 1 });
 
   expect(items.map((item) => item.ref)).toEqual([{ kind: 'movie', id: 2 }]);
   expect(total).toBe(1);
-  expect(tallies).toEqual({ tv: 2, movie: 1 });
+  expect(watchlistTallies(media)).toEqual({ tv: 2, movie: 1 });
 });
 
 test('the Watchlist pages twenty at a time and counts every page', () => {
@@ -244,11 +247,11 @@ test('the Watchlist holds the 200 latest marked, and the rest are in no tally', 
     ),
   ];
 
-  const { items, tallies } = watchlistPage(media, { kind: 'movie', page: 1 });
+  const { items } = watchlistPage(media, { kind: 'movie', page: 1 });
 
   expect(TRACKED_CEILING).toBe(200);
   expect(items).toEqual([]);
-  expect(tallies).toEqual({ tv: 200, movie: 0 });
+  expect(watchlistTallies(media)).toEqual({ tv: 200, movie: 0 });
 });
 
 test('a Watchlist page counts from 1', () => {

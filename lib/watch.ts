@@ -387,38 +387,49 @@ export type TrackedMedia = {
 export const TRACKED_CEILING = 200;
 
 /**
- * One page of one Kind of the Watchlist, and what the tabs wear: the open
- * Kind's total, which the page count is read off, and both Kinds' tallies.
+ * The Watchlist's Movies and Shows, the latest marked first and no more than
+ * the ceiling: the one set a page is cut from and the tallies are counted
+ * from, since Postgres can no longer say which list a record is on. TMDB is
+ * asked about a page after it is cut, so nothing here can drop an item for
+ * being Gone or Unanswered: it never sees the answer.
  */
-export type WatchlistPage = {
-  items: TrackedMedia[];
-  total: number;
-  tallies: Record<Kind, number>;
-};
+const placedOnWatchlist = (
+  tracked: readonly TrackedMedia[],
+  kind: Kind,
+): TrackedMedia[] =>
+  [...tracked]
+    .sort((a, b) => b.markedAt.getTime() - a.markedAt.getTime())
+    .slice(0, TRACKED_CEILING)
+    .filter((item) => item.ref.kind === kind);
 
 /**
- * One page of one Kind of the Watchlist, the latest marked first. The page
- * and the tallies are read off the same placed set, since Postgres can no
- * longer say which list a record is on. TMDB is asked about the page after it
- * is cut, so nothing here can drop an item for being Gone or Unanswered: it
- * never sees the answer.
+ * One page of one Kind of the Watchlist, and that Kind's total, which the page
+ * count is read off.
  */
+export type WatchlistPage = { items: TrackedMedia[]; total: number };
+
+/** One page of one Kind of the Watchlist, the latest marked first. */
 export const watchlistPage = (
   tracked: readonly TrackedMedia[],
   { kind, page }: { kind: Kind; page: number },
 ): WatchlistPage => {
   assertListPage(page);
 
-  const placed = [...tracked]
-    .sort((a, b) => b.markedAt.getTime() - a.markedAt.getTime())
-    .slice(0, TRACKED_CEILING);
-  const ofKind = (wanted: Kind): TrackedMedia[] =>
-    placed.filter((item) => item.ref.kind === wanted);
-  const open = ofKind(kind);
+  const open = placedOnWatchlist(tracked, kind);
 
   return {
     items: open.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
     total: open.length,
-    tallies: { tv: ofKind('tv').length, movie: ofKind('movie').length },
   };
 };
+
+/**
+ * What the Watchlist's tabs wear: how many of each Kind are placed on it,
+ * counted from the set its pages are cut from.
+ */
+export const watchlistTallies = (
+  tracked: readonly TrackedMedia[],
+): Record<Kind, number> => ({
+  tv: placedOnWatchlist(tracked, 'tv').length,
+  movie: placedOnWatchlist(tracked, 'movie').length,
+});

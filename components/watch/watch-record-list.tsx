@@ -36,6 +36,7 @@ import {
   type WatchState,
   watchKey,
   watchlistPage,
+  watchlistTallies,
 } from '@/lib/watch';
 import {
   trackedMedia,
@@ -144,10 +145,8 @@ const openList = cache(
 
     const tracked =
       state === 'planned' ? await trackedMedia(currentViewer.id) : null;
-    // the tallies are the placed set's on the Watchlist, and read off any page
-    // of it, since both Kinds are counted whichever one is open
     const tallies = tracked
-      ? watchlistPage(tracked, { kind: 'tv', page: 1 }).tallies
+      ? watchlistTallies(tracked)
       : (await watchTallies(currentViewer.id))[state];
 
     return {
