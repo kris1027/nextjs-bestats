@@ -1,4 +1,4 @@
-import type { Kind, MediaRef } from '@/lib/media';
+import type { Kind, MediaRef, SeasonEpisodes } from '@/lib/media';
 
 /**
  * The rules that move a Watch Record between states, and nothing that touches
@@ -314,16 +314,6 @@ export type WatchRecordsPage = {
  * mean asking twice.
  */
 export type WatchTallies = Record<WatchState, Record<Kind, number>>;
-
-/**
- * A season of a Show as `nextEpisode` reads it: its number, and its Episodes
- * in order, each with TMDB's id — which is what a record holds — and its
- * number, which is what an address holds.
- */
-export type SeasonEpisodes = {
-  number: number;
-  episodes: readonly { id: number; number: number }[];
-};
 
 /** Where an Episode sits in its Show, without the Show. */
 export type EpisodePosition = { season: number; episode: number };

@@ -145,6 +145,16 @@ export type MediaDetails = Rating & {
  */
 export type EpisodeRef = { showId: number; season: number; episode: number };
 
+/**
+ * A regular season of a Show as TMDB lists it for finding a next Episode: its
+ * number, and its Episodes in order, each with TMDB's id — what a record
+ * holds — and its number, what an address holds.
+ */
+export type SeasonEpisodes = {
+  number: number;
+  episodes: readonly { id: number; number: number }[];
+};
+
 /** A Show as a season or an Episode page names it: enough to link back. */
 export type ShowName = { id: number; label: string };
 
@@ -263,6 +273,10 @@ export const episodeAddress = ({
   season,
   episode,
 }: EpisodeRef): string => `${seasonAddress(showId, season)}/episode/${episode}`;
+
+/** An Episode as a card names it: `S2E4`. */
+export const episodeCode = ({ season, episode }: EpisodeRef): string =>
+  `S${season}E${episode}`;
 
 /**
  * Whether a Kind has Media to put on a page. Not the same question as whether
@@ -466,6 +480,66 @@ export const showSeasons = async (id: number): Promise<Listing[] | null> => {
   if (!show) return null;
 
   return show.seasons.map(toSeasonListing).sort(bySeasonOrder);
+};
+
+/** The most sub-requests TMDB folds into one `append_to_response`. */
+const APPENDS_PER_REQUEST = 20;
+
+/**
+ * Every regular season of a Show with its Episodes' ids, in viewing order, or
+ * `null` when TMDB has no such Show. Specials are left out, since they never
+ * decide which Episode comes next. The Show's own request is the one its card
+ * already made, and the seasons ride on as many more as TMDB's cap on appends
+ * needs — one, for all but the longest Shows.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
+ */
+export const showEpisodes = async (
+  showId: number,
+): Promise<SeasonEpisodes[] | null> => {
+  const show = await findTMDB<TmdbShowDetails>(`/tv/${showId}`);
+
+  if (!show) return null;
+
+  const numbers = show.seasons
+    .map((season) => season.season_number)
+    .filter((number) => number !== 0)
+    .sort((a, b) => a - b);
+  const batches = Array.from(
+    { length: Math.ceil(numbers.length / APPENDS_PER_REQUEST) },
+    (_, index) =>
+      numbers.slice(
+        index * APPENDS_PER_REQUEST,
+        (index + 1) * APPENDS_PER_REQUEST,
+      ),
+  );
+  const answers = await Promise.all(
+    batches.map((batch) =>
+      findTMDB<TmdbShowWithSeason>(
+        `/tv/${showId}?append_to_response=${batch.map((number) => `season/${number}`).join(',')}`,
+      ),
+    ),
+  );
+
+  // the Show went between the two requests, which is TMDB's answer too
+  if (answers.some((answer) => answer === null)) return null;
+
+  return numbers.flatMap((number) => {
+    const season = answers
+      .map((answer) => answer?.[`season/${number}`])
+      .find((found) => found !== undefined);
+
+    return season
+      ? [
+          {
+            number,
+            episodes: season.episodes.map((episode) => ({
+              id: episode.id,
+              number: episode.episode_number,
+            })),
+          },
+        ]
+      : [];
+  });
 };
 
 /**
