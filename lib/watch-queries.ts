@@ -1,21 +1,26 @@
-import { and, count, desc, eq, or, sql } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, or, sql } from 'drizzle-orm';
 
 import type { ViewerAnswer } from '@/lib/auth';
 import { db } from '@/lib/db';
 import type { Kind, MediaRef } from '@/lib/media';
-import { markingTallies, watchRecords } from '@/lib/schema';
+import { episodeRecords, markingTallies, watchRecords } from '@/lib/schema';
 import { viewerKeyOf } from '@/lib/viewer-key';
 import {
+  type EpisodeLookup,
+  type EpisodeMarking,
+  isScore,
   type Marking,
   PAGE_SIZE,
   scoreOf,
   toLookup,
   toMarkedMedia,
+  type ViewerEpisodeLookup,
   type ViewerLookup,
   type WatchLookup,
   type WatchRecordsPage,
   type WatchState,
   type WatchTallies,
+  watchedAt,
 } from '@/lib/watch';
 
 /**
@@ -91,21 +96,87 @@ export const answeredWatchLookup = async (
 });
 
 /** The markings half of `answeredWatchLookup`, whose `null` is Unanswered. */
-const answeredMarkings = async (
+const answeredMarkings = (
   asked: ViewerAnswer,
   refs: readonly MediaRef[],
-): Promise<WatchLookup | null> => {
-  if (asked.answer === 'visitor') return toLookup([]);
+): Promise<WatchLookup | null> =>
+  answeredFor(asked, toLookup([]), (viewerId) => watchLookup(viewerId, refs));
+
+/**
+ * What a lookup is for the answer a page was handed: `none` for a Visitor,
+ * who holds no Watch Records, `null` — Unanswered — for a sign-in that could
+ * not be checked or a database that did not answer, and otherwise whatever
+ * `read` found. The rule both kinds of lookup follow, said once.
+ */
+const answeredFor = async <T>(
+  asked: ViewerAnswer,
+  none: T,
+  read: (viewerId: string) => Promise<T>,
+): Promise<T | null> => {
+  if (asked.answer === 'visitor') return none;
   if (asked.answer === 'unanswered') return null;
 
   try {
-    return await watchLookup(asked.viewer.id, refs);
+    return await read(asked.viewer.id);
   } catch (cause) {
     console.error('Watch Records went Unanswered:', cause);
 
     return null;
   }
 };
+
+/**
+ * The Scores one Viewer has given the Episodes a page draws, in one query,
+ * keyed by TMDB's id for each Episode.
+ */
+export const episodeLookup = async (
+  viewerId: string,
+  episodeIds: readonly number[],
+): Promise<EpisodeLookup> => {
+  if (episodeIds.length === 0) return new Map();
+
+  const rows = await db
+    .select({
+      episodeId: episodeRecords.episodeId,
+      score: episodeRecords.score,
+    })
+    .from(episodeRecords)
+    .where(
+      and(
+        eq(episodeRecords.viewerId, viewerId),
+        inArray(episodeRecords.episodeId, [...episodeIds]),
+      ),
+    );
+
+  return new Map(
+    rows.map((row) => [row.episodeId, toEpisodeMarking(row.score)]),
+  );
+};
+
+/**
+ * A row's Score as a marking. Throws on a Score the check constraint forbids,
+ * for the reason `toMarking` does: such a row cannot exist.
+ */
+const toEpisodeMarking = (score: number): EpisodeMarking => {
+  if (isScore(score)) return watchedAt(score);
+
+  throw new Error(`An Episode record with no Score in range: ${score}`);
+};
+
+/**
+ * `episodeLookup` for a page, which hands it what `answeredViewer()`
+ * answered: `answeredWatchLookup` for Episodes, and with its key beside it
+ * for the same reason.
+ */
+export const answeredEpisodeLookup = async (
+  asked: ViewerAnswer,
+  episodeIds: readonly number[],
+): Promise<ViewerEpisodeLookup> => ({
+  markings: await answeredFor<EpisodeLookup>(asked, new Map(), (viewerId) =>
+    episodeLookup(viewerId, episodeIds),
+  ),
+  viewerKey: viewerKeyOf(asked),
+});
 
 /**
  * One page of one Kind of a Viewer's list in one state — the Shows on their
@@ -274,4 +345,39 @@ export const clearWatchRecord = async (
   await db
     .delete(watchRecords)
     .where(and(eq(watchRecords.viewerId, viewerId), whereMedia(ref)));
+};
+
+/**
+ * The write half of scoring an Episode: its Watch Record at `marking`'s
+ * Score, whether or not one existed. One statement, as `writeWatchRecord` is,
+ * with `updated_at` set by hand for the reason given there. The Show's id is
+ * written on the insert only: an Episode does not change Shows.
+ */
+export const writeEpisodeRecord = async (
+  viewerId: string,
+  episode: { episodeId: number; showId: number },
+  marking: EpisodeMarking,
+): Promise<void> => {
+  await db
+    .insert(episodeRecords)
+    .values({ viewerId, ...episode, score: marking.score })
+    .onConflictDoUpdate({
+      target: [episodeRecords.viewerId, episodeRecords.episodeId],
+      set: { score: marking.score, updatedAt: sql`now()` },
+    });
+};
+
+/** Unscores an Episode: the row goes, since an Episode has no other state. */
+export const clearEpisodeRecord = async (
+  viewerId: string,
+  episodeId: number,
+): Promise<void> => {
+  await db
+    .delete(episodeRecords)
+    .where(
+      and(
+        eq(episodeRecords.viewerId, viewerId),
+        eq(episodeRecords.episodeId, episodeId),
+      ),
+    );
 };

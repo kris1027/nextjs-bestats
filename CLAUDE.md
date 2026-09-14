@@ -45,7 +45,8 @@ hand-written migrations in there follow the same rules as the rest.
   Viewer parameter, which would be the client-supplied id it exists to refuse.
   Its unit twin mocks `lib/watch-queries` too, keeping `lib/db` out of the
   module graph, so it runs on a commit and covers the failure branch a
-  migrated CI branch cannot reach.
+  migrated CI branch cannot reach. An action that asks TMDB has `lib/media`
+  mocked in both, since CI has no TMDB token.
 - `@/` resolves in tests but not for `pnpm db:check`, which Node runs
   directly — and that holds for the whole graph Node loads: `db-check.ts`,
   `lib/connection-string.ts`, `lib/migration-drift.ts` and
@@ -88,28 +89,32 @@ breaks signing in and out with no type error and no failing test.
 
 `lib/watch` holds Watch Records. `lib/watch.ts` is its pure half, so it never
 imports `lib/db`, whose import throws without `DATABASE_URL`; a client
-component may import it, and `lib/watch-actions.ts` for the action, and
+component may import it, and `lib/watch-actions.ts` for the actions, and
 nothing else in the module. The queries take a Viewer id and never decide
-whose it is — only the action reads `lib/auth` to find out.
+whose it is — only the actions read `lib/auth` to find out.
 `answeredWatchLookup` takes the whole answer and comes back with a
 `ViewerLookup` whose `markings` of `null` is Unanswered and means no controls,
 whether the database or the sign-in was what did not answer. `lib/watch`
 reads `lib/media` for `Kind` and its guards, never the other way.
 
 A `ViewerLookup` is what a page hands its cards: that answer, and the key of
-the Viewer whose markings are in it. One value, because a control given the
-markings without the key stays lit for a Viewer who has signed out — its state
-outlives a re-render at the same position — and a missing `key` is not a type
-error. So whatever holds that state is keyed on the `viewerKey` of the lookup
-it came from: `absent-card.tsx` keys its `MarkableCard` and the detail page
-its `MarkingControl`, and both read the two halves off one value.
+the Viewer whose markings are in it. An Episode page has no cards and hands
+its control a `ViewerEpisodeLookup` instead, the same pair keyed by Episode id,
+which `answeredEpisodeLookup` answers the same way. One value, because a
+control given the markings without the key stays lit for a Viewer who has
+signed out — its state outlives a re-render at the same position — and a
+missing `key` is not a type error. So whatever holds that state is keyed on
+the `viewerKey` of the lookup it came from: `absent-card.tsx` keys its
+`MarkableCard`, the Media page its `MarkingControl` and the Episode page its
+`EpisodeScoreControl`, and each reads the two halves off one value.
 `media-card.tsx` takes the same lookup and reads only the markings, because a
 card that draws no control holds no state to unmount. `lib/viewer-key` makes
 that key, and is pure for the reason `lib/watch.ts` is: `lib/auth.ts` boots
 Neon Auth and reads `next/headers` at import, so a query that reached it for a
-string could not be loaded outside Next at all. Two callers —
-`answeredWatchLookup` from the answer it was handed, `watch-record-list.tsx`
-from the Viewer `viewer()` gave it — and a third is worth looking twice at.
+string could not be loaded outside Next at all. Three callers —
+`answeredWatchLookup` and `answeredEpisodeLookup` from the answer each was
+handed, `watch-record-list.tsx` from the Viewer `viewer()` gave it — and a
+fourth is worth looking twice at.
 
 `watch-record-list.tsx` is `components/watch/`'s exception: the body of both
 list routes, it reads `viewer()`, the queries and `lib/media` the way any page
@@ -141,6 +146,10 @@ does, since resolving Watch Records against TMDB is a page's job and not
   per Viewer per piece of Media, keyed `(viewerId, kind, tmdbId)` — composite
   because a TMDB id is unique only within a Kind. Unmarking deletes the row.
   — `docs/adr/0007-watchlist-and-watched-are-one-record.md`
+- An Episode's record is a row of `episode_records`, keyed
+  `(viewerId, episodeId)` on TMDB's id for the Episode and never its season
+  and number, which TMDB renumbers.
+  — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
 - A Watched record always carries a Score of 1 to 10 and a Planned one never
   does; the check constraint on `watch_records` is what says so, not the code
   that writes it. Giving a Score is how a record becomes Watched, so a move
@@ -162,8 +171,8 @@ does, since resolving Watch Records against TMDB is a page's job and not
   none of them and `drizzle.config.ts` narrows generation to `public`. A
   Drizzle `references()` across that line makes drizzle-kit try to create the
   table it points at, so every foreign key to a Viewer is a hand-written
-  migration through `drizzle-kit generate --custom` — `0001` for Watch
-  Records, `0003` for the marking tally, and the same for any new one.
+  migration through `drizzle-kit generate --custom` — `0001`, `0003` and
+  `0008` so far, and the same for any new one.
   — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
 - Environment variables come from Neon, not from typing: `neon checkout main`
   writes every one but `NEON_AUTH_COOKIE_SECRET`, which `.env.example` names.
@@ -188,8 +197,8 @@ does, since resolving Watch Records against TMDB is a page's job and not
   method a `setCookie` of `cookieStore.set`, which Next refuses while a page
   renders, so a render that asked `auth` would lose the Viewer's half of the
   app on every session refresh — once a day, silently, caught as Unanswered.
-  A render asks `reader`, whose `setCookie` does nothing, and so does the
-  marking action, which asks `answeredViewer` the way a render does. Only
+  A render asks `reader`, whose `setCookie` does nothing, and so do the
+  marking actions, which ask `answeredViewer` the way a render does. Only
   `lib/auth-actions.ts` and the sign-in exchange hold `auth` and write, so the
   sign-in exchange is the only thing that still extends a session.
   — `docs/adr/0017-reading-the-session-never-writes-a-cookie.md`
@@ -213,9 +222,9 @@ does, since resolving Watch Records against TMDB is a page's job and not
   — `docs/adr/0014-the-narrow-header-gives-up-words.md`
 - A control that two places draw at two widths is two components, not one
   that adapts. The marking control was one, with a container query on it, and
-  is now `PlannedButton` — which `AbsentCard` and the detail page draw — and
-  the star row, which only the detail page can: ten targets need the 288px
-  that page has at the 320px floor, and a card's control has 116px there.
+  is now `PlannedButton` — which `AbsentCard` and the Media page draw — and
+  `StarRow`, which only a detail page can: ten targets need the 288px a detail
+  page has at the 320px floor, and a card's control has 116px there.
   Splitting won because the two differ in what they can do and not only in
   how wide they are, and the widths are measured in a browser as always.
   — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
@@ -254,7 +263,7 @@ does, since resolving Watch Records against TMDB is a page's job and not
   with the rules it calls.
 - A hook any page might want lives in `lib/`, like `lib/use-address.ts`. A
   hook that belongs to one family of components lives beside them, like
-  `components/watch/use-marking.ts`, which the two marking controls share and
+  `components/watch/use-marking.ts`, which the marking controls share and
   nothing outside `components/watch/` can use. Hooks being in two places is
   that split and not an accident.
 - A form that posts to a Server Action keeps that action as its `action` and

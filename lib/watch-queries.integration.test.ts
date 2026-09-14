@@ -5,13 +5,23 @@ import { db } from '@/lib/db';
 import { markingTallies, watchRecords } from '@/lib/schema';
 import { expireMarkingWindow } from '@/lib/test-marking';
 import { disposableViewers } from '@/lib/test-viewers';
-import { markingOf, PAGE_SIZE, PLANNED, watchedAt } from '@/lib/watch';
 import {
+  episodeMarkingOf,
+  markingOf,
+  PAGE_SIZE,
+  PLANNED,
+  watchedAt,
+} from '@/lib/watch';
+import {
+  answeredEpisodeLookup,
+  clearEpisodeRecord,
   clearWatchRecord,
+  episodeLookup,
   tallyMarking,
   watchLookup,
   watchRecordsPage,
   watchTallies,
+  writeEpisodeRecord,
   writeWatchRecord,
 } from '@/lib/watch-queries';
 
@@ -372,4 +382,60 @@ test('a marking tally is one Viewer’s, and one row however many presses', asyn
     .where(eq(markingTallies.viewerId, theirs));
 
   expect(rows).toHaveLength(1);
+});
+
+const HALF_LOOP = { episodeId: 3396429, showId: 95396 };
+const IN_PERPETUITY = { episodeId: 3396430, showId: 95396 };
+
+test('an Episode lookup holds the Scores of the Episodes asked for, and only those', async () => {
+  const viewerId = await viewer();
+
+  await writeEpisodeRecord(viewerId, HALF_LOOP, watchedAt(8));
+  await writeEpisodeRecord(viewerId, IN_PERPETUITY, watchedAt(6));
+
+  const lookup = await episodeLookup(viewerId, [HALF_LOOP.episodeId]);
+
+  expect(episodeMarkingOf(lookup, HALF_LOOP.episodeId)).toEqual(watchedAt(8));
+  expect(episodeMarkingOf(lookup, IN_PERPETUITY.episodeId)).toBeNull();
+});
+
+test('writing an Episode record again rescores it, and clearing it removes it', async () => {
+  const viewerId = await viewer();
+
+  await writeEpisodeRecord(viewerId, HALF_LOOP, watchedAt(8));
+  await writeEpisodeRecord(viewerId, HALF_LOOP, watchedAt(2));
+
+  expect(
+    episodeMarkingOf(
+      await episodeLookup(viewerId, [HALF_LOOP.episodeId]),
+      HALF_LOOP.episodeId,
+    ),
+  ).toEqual(watchedAt(2));
+
+  await clearEpisodeRecord(viewerId, HALF_LOOP.episodeId);
+
+  expect((await episodeLookup(viewerId, [HALF_LOOP.episodeId])).size).toBe(0);
+});
+
+test("one Viewer's Episode Scores are not another's", async () => {
+  const scored = await viewer();
+  const other = await viewer();
+
+  await writeEpisodeRecord(scored, HALF_LOOP, watchedAt(8));
+
+  expect((await episodeLookup(other, [HALF_LOOP.episodeId])).size).toBe(0);
+});
+
+test('a Visitor has an empty Episode lookup and an Unanswered sign-in has none', async () => {
+  expect(
+    (await answeredEpisodeLookup({ answer: 'visitor' }, [HALF_LOOP.episodeId]))
+      .markings?.size,
+  ).toBe(0);
+  expect(
+    (
+      await answeredEpisodeLookup({ answer: 'unanswered' }, [
+        HALF_LOOP.episodeId,
+      ])
+    ).markings,
+  ).toBeNull();
 });

@@ -177,6 +177,18 @@ export type SeasonDetails = {
  * still is the Episode's and stands where a backdrop would.
  */
 export type EpisodeDetails = Rating & {
+  /**
+   * TMDB's own id for the Episode, which is what its Watch Record is keyed
+   * on: the position it was found at may not find it next year.
+   * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
+   */
+  id: number;
+  /**
+   * The calendar day TMDB says the Episode airs, as TMDB spells it, or `null`
+   * where it has none. Unformatted, since `hasAired` reads it; the Facts
+   * carry the day as a reader sees it.
+   */
+  airDate: string | null;
   show: ShowName;
   season: { number: number; label: string };
   number: number;
@@ -224,6 +236,18 @@ export const isSeasonNumber = (value: string): boolean =>
 /** Guards the `episode` route segment; specials count from 1 as well. */
 export const isEpisodeNumber = (value: string): boolean =>
   EPISODE_PATTERN.test(value);
+
+/**
+ * Whether an Episode has aired by `today`, and so whether a Viewer can have
+ * watched it. An Episode with no air date has not: TMDB has not said it
+ * will air at all. The day it airs counts, since TMDB's day is a calendar
+ * day in no time zone and the app has no better one to hold it to.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ */
+export const hasAired = (airDate: string | null, today: Date): boolean =>
+  airDate !== null &&
+  !Number.isNaN(new Date(airDate).getTime()) &&
+  airDate.slice(0, 10) <= today.toISOString().slice(0, 10);
 
 /** Where a piece of Media's detail page is. */
 export const mediaAddress = ({ kind, id }: MediaRef): string =>
@@ -519,6 +543,8 @@ export const episodeDetails = async (
   const aired = airDate(episode);
 
   return {
+    id: episode.id,
+    airDate: episode.air_date || null,
     show,
     season: { number: season.season_number, label: season.name },
     number: episode.episode_number,

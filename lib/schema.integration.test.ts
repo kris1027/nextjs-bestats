@@ -2,7 +2,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { expect, test } from 'vitest';
 
 import { db } from '@/lib/db';
-import { watchRecords } from '@/lib/schema';
+import { episodeRecords, watchRecords } from '@/lib/schema';
 import { disposableViewers, dropViewer, newViewer } from '@/lib/test-viewers';
 
 /**
@@ -125,6 +125,55 @@ test('deleting a Viewer takes their Watch Records with it', async () => {
     .select()
     .from(watchRecords)
     .where(eq(watchRecords.viewerId, viewerId));
+
+  expect(left).toEqual([]);
+});
+
+// Severance S1E2: an Episode's own TMDB id, and the Show it belongs to
+const HALF_LOOP = { episodeId: 3396429, showId: 95396 };
+
+test('an Episode record without a Score is refused', async () => {
+  const viewerId = await viewer();
+
+  await expect(
+    db.execute(sql`
+      insert into episode_records (viewer_id, episode_id, show_id)
+      values (${viewerId}::uuid, ${HALF_LOOP.episodeId}, ${HALF_LOOP.showId})
+    `),
+  ).rejects.toThrow();
+});
+
+test("an Episode record's Score outside one to ten is refused at either end", async () => {
+  const viewerId = await viewer();
+
+  for (const score of [0, 11, -1]) {
+    await expect(
+      db.insert(episodeRecords).values({ viewerId, ...HALF_LOOP, score }),
+    ).rejects.toThrow();
+  }
+});
+
+test('a Viewer cannot record the same Episode twice', async () => {
+  const viewerId = await viewer();
+
+  await db.insert(episodeRecords).values({ viewerId, ...HALF_LOOP, score: 8 });
+
+  await expect(
+    db.insert(episodeRecords).values({ viewerId, ...HALF_LOOP, score: 9 }),
+  ).rejects.toThrow();
+});
+
+test('deleting a Viewer takes their Episode records with it', async () => {
+  const viewerId = await newViewer();
+
+  await db.insert(episodeRecords).values({ viewerId, ...HALF_LOOP, score: 8 });
+
+  await dropViewer(viewerId);
+
+  const left = await db
+    .select()
+    .from(episodeRecords)
+    .where(eq(episodeRecords.viewerId, viewerId));
 
   expect(left).toEqual([]);
 });

@@ -3,6 +3,7 @@ import { afterEach, expect, test, vi } from 'vitest';
 import {
   episodeAddress,
   episodeDetails,
+  hasAired,
   isEpisodeNumber,
   isMediaId,
   isSeasonNumber,
@@ -273,4 +274,48 @@ test('episodeDetails is null for a position the season does not have', async () 
   expect(
     await episodeDetails({ showId: 95396, season: 1, episode: 99 }),
   ).toBeNull();
+});
+
+test("episodeDetails carries the Episode's own id and its air date as TMDB spells it", async () => {
+  tmdb.findTMDB.mockResolvedValue({ ...show, 'season/1': season() });
+
+  const details = await episodeDetails({
+    showId: 95396,
+    season: 1,
+    episode: 2,
+  });
+
+  expect(details?.id).toBe(1002);
+  expect(details?.airDate).toBe('2022-02-17');
+});
+
+test('episodeDetails reads an empty air date as none', async () => {
+  tmdb.findTMDB.mockResolvedValue({
+    ...show,
+    'season/1': season({
+      episodes: [episode({ episode_number: 1, air_date: '' })],
+    }),
+  });
+
+  const details = await episodeDetails({
+    showId: 95396,
+    season: 1,
+    episode: 1,
+  });
+
+  expect(details?.airDate).toBeNull();
+});
+
+const MIDDAY = new Date('2026-09-14T12:00:00Z');
+
+test('hasAired counts an Episode that aired before today, and one that airs today', () => {
+  expect(hasAired('2022-02-17', MIDDAY)).toBe(true);
+  expect(hasAired('2026-09-13', MIDDAY)).toBe(true);
+  expect(hasAired('2026-09-14', MIDDAY)).toBe(true);
+});
+
+test('hasAired refuses an Episode that airs tomorrow, or has no air date', () => {
+  expect(hasAired('2026-09-15', MIDDAY)).toBe(false);
+  expect(hasAired(null, MIDDAY)).toBe(false);
+  expect(hasAired('not a date', MIDDAY)).toBe(false);
 });

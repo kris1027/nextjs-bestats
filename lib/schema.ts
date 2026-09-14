@@ -107,6 +107,49 @@ export const watchRecords = pgTable(
 );
 
 /**
+ * One Viewer's Watch Record for one Episode, which is only ever Watched at a
+ * Score: there is no Planned Episode, so there is no state column, and the
+ * Score is `not null` rather than checked against one.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ *
+ * Keyed on TMDB's id for the Episode and not on its season and number, which
+ * TMDB renumbers: a Score keyed on a position would stay behind when the
+ * Episode moved. The Show's id rides beside it as the app's own relationship,
+ * so a Show's records can be found without asking TMDB; nothing else from
+ * TMDB is kept.
+ * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
+ *
+ * A table of its own rather than rows in `watch_records`, since that would
+ * have made an Episode a Kind, and a Kind is a Show or a Movie.
+ */
+export const episodeRecords = pgTable(
+  'episode_records',
+  {
+    // a `uuid` for the reason `watch_records.viewer_id` is one, and its
+    // foreign key a migration of its own for the same reason
+    viewerId: uuid('viewer_id').notNull(),
+    episodeId: integer('episode_id').notNull(),
+    showId: integer('show_id').notNull(),
+    score: smallint('score').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => sql`now()`)
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.viewerId, table.episodeId] }),
+    // how a Show's page and the lists will ask for one Viewer's Episodes of
+    // one Show
+    index('episode_records_viewer_show_idx').on(table.viewerId, table.showId),
+    check(
+      'episode_records_score_in_range',
+      sql`${table.score} between 1 and 10`,
+    ),
+  ],
+);
+
+/**
  * How often one Viewer has marked lately: one row per Viewer, holding the
  * minute it started counting and how many presses it has seen since. The
  * marking action refuses a press once the tally passes `MARKS_PER_MINUTE`,

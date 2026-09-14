@@ -1,7 +1,7 @@
 import { afterEach, expect, test, vi } from 'vitest';
 
-import { MARKING_FIELD } from '@/lib/watch';
-import { mark } from '@/lib/watch-actions';
+import { MARKING_FIELD, watchedAt } from '@/lib/watch';
+import { mark, scoreEpisode } from '@/lib/watch-actions';
 
 /**
  * What `mark` does when the database refuses, which is the one branch
@@ -26,9 +26,21 @@ const queries = vi.hoisted(() => ({
   watchLookup: vi.fn(),
   writeWatchRecord: vi.fn(),
   clearWatchRecord: vi.fn(),
+  episodeLookup: vi.fn(),
+  writeEpisodeRecord: vi.fn(),
+  clearEpisodeRecord: vi.fn(),
 }));
 
 vi.mock('@/lib/watch-queries', () => queries);
+
+// TMDB's answer about an Episode, which is where scoring learns its id, its
+// Show and whether it has aired; the rest of `lib/media` is the real thing
+const media = vi.hoisted(() => ({ episodeDetails: vi.fn() }));
+
+vi.mock('@/lib/media', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/media')>()),
+  episodeDetails: media.episodeDetails,
+}));
 
 // the same stand-in the integration file uses: `mark` reads the Viewer from
 // the session and from nowhere else
@@ -120,4 +132,119 @@ test('a marking our own form could not have posted is a throw, not a message', a
   // tell the Visitor that would help them
   await expect(mark(tampered)).rejects.toThrow('Not a marking: 11');
   expect(queries.tallyMarking).not.toHaveBeenCalled();
+});
+
+/*
+ * Scoring an Episode. Its refusals are TMDB's answer and the guard's, which a
+ * unit test reaches with both mocked; the writes themselves are exercised
+ * against Postgres in the integration file.
+ */
+
+/** What an Episode page's star row posts: the position, and the Score. */
+const score = (value: string): FormData => {
+  const formData = new FormData();
+
+  formData.set('show', '95396');
+  formData.set('season', '1');
+  formData.set('episode', '2');
+  formData.set(MARKING_FIELD, value);
+  formData.set('next', '/tv/95396/season/1/episode/2');
+
+  return formData;
+};
+
+/** Enough of TMDB's answer for scoring: the id, the Show, the air date. */
+const halfLoop = (airDate: string | null) => ({
+  id: 3396429,
+  airDate,
+  show: { id: 95396, label: 'Severance' },
+});
+
+test('an Episode that has not aired is refused, and nothing is written', async () => {
+  queries.tallyMarking.mockResolvedValue(1);
+  media.episodeDetails.mockResolvedValue(halfLoop('2999-01-01'));
+
+  expect(await scoreEpisode(score('8'))).toEqual({
+    error: 'That episode has not aired yet.',
+  });
+  expect(queries.episodeLookup).not.toHaveBeenCalled();
+  expect(queries.writeEpisodeRecord).not.toHaveBeenCalled();
+});
+
+test('an Episode with no air date is refused the same way', async () => {
+  queries.tallyMarking.mockResolvedValue(1);
+  media.episodeDetails.mockResolvedValue(halfLoop(null));
+
+  expect(await scoreEpisode(score('8'))).toEqual({
+    error: 'That episode has not aired yet.',
+  });
+  expect(queries.writeEpisodeRecord).not.toHaveBeenCalled();
+});
+
+test("a Score is written against TMDB's id for the Episode and its Show", async () => {
+  queries.tallyMarking.mockResolvedValue(1);
+  queries.episodeLookup.mockResolvedValue(new Map());
+  media.episodeDetails.mockResolvedValue(halfLoop('2022-02-17'));
+
+  expect(await scoreEpisode(score('8'))).toEqual({ marking: watchedAt(8) });
+  expect(media.episodeDetails).toHaveBeenCalledWith({
+    showId: 95396,
+    season: 1,
+    episode: 2,
+  });
+  expect(queries.writeEpisodeRecord).toHaveBeenCalledWith(
+    'a-viewer',
+    { episodeId: 3396429, showId: 95396 },
+    watchedAt(8),
+  );
+});
+
+test('pressing the Score an Episode already holds unscores it', async () => {
+  queries.tallyMarking.mockResolvedValue(1);
+  queries.episodeLookup.mockResolvedValue(new Map([[3396429, watchedAt(8)]]));
+  media.episodeDetails.mockResolvedValue(halfLoop('2022-02-17'));
+
+  expect(await scoreEpisode(score('8'))).toEqual({ marking: null });
+  expect(queries.clearEpisodeRecord).toHaveBeenCalledWith('a-viewer', 3396429);
+  expect(queries.writeEpisodeRecord).not.toHaveBeenCalled();
+});
+
+test('an Episode TMDB no longer lists is a sentence, not a throw', async () => {
+  queries.tallyMarking.mockResolvedValue(1);
+  media.episodeDetails.mockResolvedValue(null);
+
+  expect(await scoreEpisode(score('8'))).toEqual({
+    error: 'TMDB no longer lists that episode.',
+  });
+});
+
+test('a press of an Episode is counted before TMDB is asked', async () => {
+  queries.tallyMarking.mockResolvedValue(61);
+
+  expect(await scoreEpisode(score('8'))).toEqual({
+    error: 'Slow down. Try again in a minute.',
+  });
+  expect(media.episodeDetails).not.toHaveBeenCalled();
+});
+
+test('Planned is not a marking an Episode can be pressed into', async () => {
+  // no button on an Episode's page posts it, so it is a throw like any other
+  // form nobody in the app rendered
+  await expect(scoreEpisode(score('planned'))).rejects.toThrow(
+    'Not a Score: planned',
+  );
+  expect(queries.tallyMarking).not.toHaveBeenCalled();
+});
+
+test('TMDB failing reaches the Viewer as a sentence and the log as its cause', async () => {
+  const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+  const cause = new Error('TMDB 503');
+
+  queries.tallyMarking.mockResolvedValue(1);
+  media.episodeDetails.mockRejectedValue(cause);
+
+  expect(await scoreEpisode(score('8'))).toEqual({
+    error: 'Could not score that. Try again in a moment.',
+  });
+  expect(logged).toHaveBeenCalledWith('Scoring tv/95396 S1E2 failed:', cause);
 });

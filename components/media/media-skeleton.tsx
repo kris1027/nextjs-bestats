@@ -2,7 +2,10 @@ import type { JSX, ReactNode } from 'react';
 
 import { MediaGrid } from '@/components/media/media-grid';
 import { BackButton } from '@/components/ui/back-button';
-import { MarkingControlSkeleton } from '@/components/watch/control-skeleton';
+import {
+  EpisodeScoreSkeleton,
+  MarkingControlSkeleton,
+} from '@/components/watch/control-skeleton';
 import { PAGE_SIZE } from '@/lib/watch';
 
 /**
@@ -153,14 +156,18 @@ const MediaDetailSkeleton = (): JSX.Element => (
 
 /**
  * What an Episode's page shows while TMDB is asked for it: the line naming
- * its Show and season above the heading, and no marking control, since an
- * Episode has none yet.
+ * its Show and season above the heading, and the star row's height. Whether
+ * the Episode has aired is not known yet, so the line an unaired one draws
+ * in the star row's place holds that same height.
  */
 const EpisodeDetailSkeleton = (): JSX.Element => (
   <DetailFrameSkeleton>
     {/* the line's own type size, so the block is one line of it */}
     <div className='w-1/2 animate-pulse bg-muted text-sm'>&nbsp;</div>
     <HeadingSkeleton facts={['Air date: February 17, 2022', '57m']} />
+    <div className='max-w-xs'>
+      <EpisodeScoreSkeleton />
+    </div>
     <OverviewSkeleton />
   </DetailFrameSkeleton>
 );

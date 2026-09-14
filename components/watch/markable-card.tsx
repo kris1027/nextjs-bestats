@@ -4,6 +4,7 @@ import type { JSX, ReactNode } from 'react';
 
 import { CardHead, type CardHeadContent } from '@/components/watch/card-head';
 import { MarkingForm } from '@/components/watch/marking-form';
+import { mediaTarget } from '@/components/watch/marking-target';
 import { PlannedButton } from '@/components/watch/planned-button';
 import { useMarking } from '@/components/watch/use-marking';
 import type { MediaRef } from '@/lib/media';
@@ -45,15 +46,15 @@ const MarkableCard = ({
   /** Anything between the title bar and the control. */
   children?: ReactNode;
 }): JSX.Element => {
-  const handle = useMarking(marking);
-  const { next, shown, error } = handle;
+  const handle = useMarking(marking, mediaTarget(media));
+  const { shown } = handle;
 
   return (
     <>
       <CardHead {...head} score={shown && scoreOf(shown)} />
       {children}
       <div className='px-2.5 pt-2.5'>
-        <MarkingForm media={media} next={next} error={error}>
+        <MarkingForm handle={handle}>
           <PlannedButton handle={handle} />
         </MarkingForm>
       </div>
