@@ -487,7 +487,9 @@ const APPENDS_PER_REQUEST = 20;
 
 /**
  * Every regular season of a Show with its Episodes' ids, in viewing order, or
- * `null` when TMDB has no such Show. Specials are left out, since they never
+ * `null` when TMDB has no such Show. Throws when TMDB answers for the Show and
+ * not for every one of its seasons, since part of a Show is Unanswered and not
+ * a shorter Show. Specials are left out, since they never
  * decide which Episode comes next. The Show's own request is the one its card
  * already made, and the seasons ride on as many more as TMDB's cap on appends
  * needs — one, for all but the longest Shows.
@@ -523,22 +525,25 @@ export const showEpisodes = async (
   // the Show went between the two requests, which is TMDB's answer too
   if (answers.some((answer) => answer === null)) return null;
 
-  return numbers.flatMap((number) => {
+  return numbers.map((number) => {
     const season = answers
       .map((answer) => answer?.[`season/${number}`])
       .find((found) => found !== undefined);
 
-    return season
-      ? [
-          {
-            number,
-            episodes: season.episodes.map((episode) => ({
-              id: episode.id,
-              number: episode.episode_number,
-            })),
-          },
-        ]
-      : [];
+    // a season the Show lists and the append left out is TMDB not answering,
+    // not a season without Episodes: counted from what did arrive, the
+    // furthest scored could sit in the missing one and the next be misnamed
+    if (!season) {
+      throw new Error(`TMDB left season ${number} of tv/${showId} unanswered`);
+    }
+
+    return {
+      number,
+      episodes: season.episodes.map((episode) => ({
+        id: episode.id,
+        number: episode.episode_number,
+      })),
+    };
   });
 };
 
