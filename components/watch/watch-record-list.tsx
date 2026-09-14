@@ -332,7 +332,7 @@ const NO_DATE = 'No date yet';
  */
 const leadOf = (
   list: PlacedList,
-  { tracked, answer, upNext, day }: PlacedMedia,
+  { tracked, placedBy, upNext, day }: PlacedMedia,
   today: Date,
 ): CardLead | null => {
   // unbroken, so a line too long for a 136px card at the 320px floor —
@@ -342,13 +342,13 @@ const leadOf = (
     ' ',
   );
 
-  if (answer === 'movie') {
+  if (placedBy === 'movie') {
     return list === 'upcoming'
       ? { label: 'Release date', text: date, episode: null }
       : null;
   }
 
-  if (answer !== 'show' || !upNext) return null;
+  if (placedBy !== 'show' || !upNext) return null;
 
   if ('episode' in upNext) {
     const episode = { showId: tracked.ref.id, ...upNext.episode };
