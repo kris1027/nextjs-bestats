@@ -14,17 +14,20 @@ import { PAGE_SIZE } from '@/lib/watch';
  * that marking left them. The same height as the card that replaces it, so
  * nothing moves when it lands.
  *
- * Two cards are taller, and this stands short for both. A list page's grid
- * can hold an `AbsentCard`, which still draws a control; and a Show on the
- * Watchlist names its next Episode in a line under the title bar. The
- * fallback is drawn before the address is read, so it cannot know whether
- * the Shows tab is open, and reserving either height on every grid would move
- * every card on Trending, on search and on the Movies tab instead.
+ * `lead` holds the line a list card draws under its title bar. Every card on
+ * Upcoming draws one, so its grid asks for it; on the Watchlist only a Show
+ * does, and this stands short for it there. The fallback is drawn before the
+ * address is read, so it cannot know whether the Shows tab is open, and
+ * reserving the line on the Movies tab would move every card there instead.
+ * A list page's grid can also hold an `AbsentCard`, which still draws a
+ * control, and this stands short for that too.
  */
-const MediaCardSkeleton = (): JSX.Element => (
+const MediaCardSkeleton = ({ lead }: { lead: boolean }): JSX.Element => (
   <li className='flex flex-col'>
     <div className='aspect-2/3 animate-pulse bg-muted' />
     <div className='h-7 animate-pulse bg-muted/60' />
+    {/* `CardHead`'s line: `pt-2` over one line of `text-xs` */}
+    {lead ? <div className='h-6' /> : null}
   </li>
 );
 
@@ -34,7 +37,11 @@ const MediaCardSkeleton = (): JSX.Element => (
  * fallback is the height of what replaces it. One "Loading" for a screen
  * reader rather than twenty blocks, and the blocks hidden from it.
  */
-const MediaGridSkeleton = (): JSX.Element => (
+const MediaGridSkeleton = ({
+  lead = false,
+}: {
+  lead?: boolean;
+}): JSX.Element => (
   // <output> is a live region on its own, as the marking control's is
   <output aria-busy='true' className='block'>
     <span className='sr-only'>Loading</span>
@@ -43,7 +50,7 @@ const MediaGridSkeleton = (): JSX.Element => (
         {Array.from({ length: PAGE_SIZE }, (_, index) => (
           // nothing distinguishes one block from another but its position
           // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity
-          <MediaCardSkeleton key={index} />
+          <MediaCardSkeleton key={index} lead={lead} />
         ))}
       </MediaGrid>
     </div>

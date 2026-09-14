@@ -31,7 +31,7 @@ const ViewerControl = async (): Promise<JSX.Element | null> => {
   const currentViewer = asked.viewer;
 
   return (
-    <div className='flex items-center gap-3 sm:gap-4'>
+    <div className='flex items-center gap-2 sm:gap-4'>
       <ListLinks />
       {/* who they are signed in as, and nothing to press: the name led to
           `/settings`, and that page went with the deletion it existed for

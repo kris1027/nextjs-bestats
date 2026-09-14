@@ -6,11 +6,17 @@ import { CardHead } from '@/components/watch/card-head';
 import {
   type EpisodeRef,
   episodeAddress,
-  episodeCode,
   type MediaItem,
   mediaAddress,
 } from '@/lib/media';
 import { markingOf, scoreOf, type ViewerLookup } from '@/lib/watch';
+
+/**
+ * The line a list card draws under its title bar: what it says, what a screen
+ * reader hears it called, and the Episode the card leads to when it names one
+ * TMDB lists — `null` leaves the card leading to the Media.
+ */
+type CardLead = { label: string; text: string; episode: EpisodeRef | null };
 
 /**
  * A card shows what a Viewer said about a piece of Media and gives them no
@@ -30,19 +36,21 @@ import { markingOf, scoreOf, type ViewerLookup } from '@/lib/watch';
  * sign-out simply does not carry it. Only a card that holds a marking of its
  * own needs the key, which is `AbsentCard` and the detail page.
  *
- * `next` is the Episode a Watchlist card for a Show leads to: the card names
- * it and links to its page rather than the Show's, so watching a run is
- * score, next, score. The badge is the Show's all the same.
+ * `lead` is the line a list card draws under its title bar — a Show's next
+ * Episode, when it airs, when a Movie is released — and, where it names an
+ * Episode TMDB lists, the card links to that Episode's page rather than the
+ * Show's, so watching a run is score, next, score. The badge is the Show's all
+ * the same.
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 const MediaCard = ({
   item,
   lookup,
-  next = null,
+  lead = null,
 }: {
   item: MediaItem;
   lookup: ViewerLookup;
-  next?: EpisodeRef | null;
+  lead?: CardLead | null;
 }): JSX.Element => {
   const poster = item.posterUrl ? (
     <Image
@@ -71,14 +79,12 @@ const MediaCard = ({
       <CardHead
         label={item.label}
         poster={poster}
-        href={next ? episodeAddress(next) : mediaAddress(item)}
-        detail={
-          next ? { label: 'Next episode', text: episodeCode(next) } : undefined
-        }
+        href={lead?.episode ? episodeAddress(lead.episode) : mediaAddress(item)}
+        detail={lead ? { label: lead.label, text: lead.text } : undefined}
         score={marking && scoreOf(marking)}
         tmdbRating={item}
       />
     </li>
   );
 };
-export { MediaCard };
+export { type CardLead, MediaCard };

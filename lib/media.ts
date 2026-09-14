@@ -148,11 +148,14 @@ export type EpisodeRef = { showId: number; season: number; episode: number };
 /**
  * A regular season of a Show as TMDB lists it for finding a next Episode: its
  * number, and its Episodes in order, each with TMDB's id — what a record
- * holds — and its number, what an address holds.
+ * holds — its number, what an address holds, and the calendar day TMDB says
+ * it airs, as TMDB spells it, or `null` where it has none — what places the
+ * Show on the Watchlist or Upcoming. An announced season with nothing more
+ * is listed with no Episodes.
  */
 export type SeasonEpisodes = {
   number: number;
-  episodes: readonly { id: number; number: number }[];
+  episodes: readonly { id: number; number: number; airDate: string | null }[];
 };
 
 /** A Show as a season or an Episode page names it: enough to link back. */
@@ -216,7 +219,7 @@ export const isKind = (value: string): value is Kind =>
 /**
  * Which Kind opens where an address names none: the one with something in it,
  * and Shows where both have something or neither does. Said here once because
- * both tab rows that read an address follow it — `/search` and the two lists
+ * both tab rows that read an address follow it — `/search` and the lists
  * — so a Kind with something behind its tab is never left behind a closed
  * one, whether that something is a Match or a Watch Record. What counts as
  * something is the caller's: Matches it can render, records it holds.
@@ -252,6 +255,10 @@ export const isEpisodeNumber = (value: string): boolean =>
  * watched it. An Episode with no air date has not: TMDB has not said it
  * will air at all. The day it airs counts, since TMDB's day is a calendar
  * day in no time zone and the app has no better one to hold it to.
+ *
+ * `today` is read as UTC's day, since the server does not know the Viewer's
+ * zone. West of UTC an Episode counts as aired from the evening before its
+ * day, and east of it only some hours into its day, once UTC reaches it.
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const hasAired = (airDate: string | null, today: Date): boolean =>
@@ -412,6 +419,21 @@ const findMedia = (
     : findTMDB<TmdbMovieDetails>(`/movie/${ref.id}`);
 
 /**
+ * The calendar day TMDB says a Movie is released, as TMDB spells it, or
+ * `null` where it has none — including a Movie TMDB no longer has, which
+ * `mediaItems` is the one to call Gone. Unformatted, since `hasAired` reads
+ * it. The request is the one the Movie's card already made, so it costs
+ * nothing the list was not already paying.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
+ */
+export const releaseDate = async (movieId: number): Promise<string | null> => {
+  const movie = await findTMDB<TmdbMovieDetails>(`/movie/${movieId}`);
+
+  // TMDB spells a date it does not have as an empty string
+  return movie?.release_date || null;
+};
+
+/**
  * What a detail page renders for one piece of Media. Which mapping applies
  * follows the Kind the ref carries, not the payload, since the payload does
  * not say.
@@ -542,6 +564,7 @@ export const showEpisodes = async (
       episodes: season.episodes.map((episode) => ({
         id: episode.id,
         number: episode.episode_number,
+        airDate: episode.air_date || null,
       })),
     };
   });

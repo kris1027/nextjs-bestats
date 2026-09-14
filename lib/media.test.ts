@@ -10,6 +10,7 @@ import {
   isSeasonNumber,
   mediaAddress,
   openKind,
+  releaseDate,
   seasonDetails,
   showEpisodes,
   showSeasons,
@@ -350,11 +351,11 @@ test("showEpisodes lists each season's Episode ids in order, Specials left out",
     {
       number: 1,
       episodes: [
-        { id: 1001, number: 1 },
-        { id: 1002, number: 2 },
+        { id: 1001, number: 1, airDate: '2022-02-17' },
+        { id: 1002, number: 2, airDate: '2022-02-17' },
       ],
     },
-    { number: 2, episodes: [{ id: 2001, number: 1 }] },
+    { number: 2, episodes: [{ id: 2001, number: 1, airDate: '2022-02-17' }] },
   ]);
   expect(tmdb.findTMDB).toHaveBeenCalledWith(
     '/tv/95396?append_to_response=season/1,season/2',
@@ -389,6 +390,25 @@ test('showEpisodes asks for twenty seasons a request, the most TMDB appends', as
   );
 });
 
+test('showEpisodes reads an empty air date as none, and keeps an announced season', async () => {
+  tmdb.findTMDB.mockImplementation(async (path: string) =>
+    path === '/tv/95396'
+      ? withSeasons([1, 2])
+      : {
+          ...show,
+          'season/1': season({
+            episodes: [episode({ episode_number: 1, air_date: '' })],
+          }),
+          'season/2': season({ season_number: 2, episodes: [] }),
+        },
+  );
+
+  expect(await showEpisodes(95396)).toEqual([
+    { number: 1, episodes: [{ id: 1001, number: 1, airDate: null }] },
+    { number: 2, episodes: [] },
+  ]);
+});
+
 test('showEpisodes is null for a Show TMDB does not have', async () => {
   tmdb.findTMDB.mockResolvedValue(null);
 
@@ -407,4 +427,19 @@ test('showEpisodes throws when TMDB leaves out a season the Show lists', async (
   await expect(showEpisodes(95396)).rejects.toThrow(
     'TMDB left season 1 of tv/95396 unanswered',
   );
+});
+
+test("releaseDate is the Movie's release day as TMDB spells it", async () => {
+  tmdb.findTMDB.mockResolvedValue({ release_date: '2026-11-20' });
+
+  expect(await releaseDate(550)).toBe('2026-11-20');
+  expect(tmdb.findTMDB).toHaveBeenCalledWith('/movie/550');
+});
+
+test('releaseDate is null for an empty date and for a Movie TMDB does not have', async () => {
+  tmdb.findTMDB.mockResolvedValueOnce({ release_date: '' });
+  tmdb.findTMDB.mockResolvedValueOnce(null);
+
+  expect(await releaseDate(550)).toBe(null);
+  expect(await releaseDate(550)).toBe(null);
 });

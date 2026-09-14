@@ -14,10 +14,13 @@ links, the avatar, the Viewer's name and "Sign out" measured **503px** of
 content in the 288px a 320px screen has inside `px-4`. It overflowed on every
 phone ever made, not merely on small ones.
 
-So the header gives up words. Below `sm:` the two list links are the icons the
-marking control already spells those states with — `Bookmark` for Planned,
-`Check` for Watched — and the Viewer's name is read but not drawn. It measures
-278px. "Sign out" keeps its word: it is the one control here with a
+So the header gives up words. Below `sm:` the list links are icons — the
+Watchlist and the Watched list wear the ones the marking control already
+spells those states with, `Bookmark` for Planned and `Check` for Watched, and
+Upcoming, which is no state, wears `CalendarClock` — and the Viewer's name is
+read but not drawn. With two links it measured 278px; the third brought it to
+322px, and narrowing the links to 28px edge to edge with an 8px gap in the
+Viewer half brought it back to 278.5px. "Sign out" keeps its word: it is the one control here with a
 consequence, and an icon for leaving is a glyph nobody reads the same way.
 
 ## Considered and rejected
@@ -40,10 +43,11 @@ consequence, and an icon for leaving is a glyph nobody reads the same way.
 - **44×44 hit areas.** The platform guidance. Rejected at 44 wide because it
   needs the gaps cut to `gap-2` and leaves 4px of margin at 320 — against
   measurements, not estimates, but still four pixels, and one heavier glyph
-  in a rendered font eats them. The links are **32 wide and 44 tall** instead.
-  Width is what separates the two links from each other and is the dimension
-  the row is short of; height is free inside a 56px header, so it is spent in
-  full. 32×44 clears WCAG 2.5.8's 24×24 with room.
+  in a rendered font eats them. The links were **32 wide and 44 tall** instead,
+  and are **28 wide** since a third joined them, standing edge to edge so the
+  icons keep 10px between them. Width is what the row is short of; height is
+  free inside a 56px header, so it is spent in full. 28×44 still clears WCAG
+  2.5.8's 24×24.
 
 - **Hiding the name with `hidden`.** Rejected because it takes the name out of
   the accessibility tree too, and the name is what says which account this is.

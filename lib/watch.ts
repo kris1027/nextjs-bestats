@@ -184,13 +184,24 @@ export const markingFrom = (value: string): Marking | null => {
 };
 
 /**
- * The two lists, one per state: where each lives and the word it wears. The
- * Watchlist is the Planned list and the glossary's own word for it; the
- * Watched list has no word but Watched. One row per state, like `KIND_WORDS`,
- * so the header's links, the tabs and the routes cannot drift apart.
+ * A Viewer's lists, in the order the header draws them. Not keyed on
+ * `WatchState`: a list is placed from what TMDB says as well as from what a
+ * record says, so a Planned record can be on one list or another.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
-export const LISTS: Record<WatchState, { path: string; label: string }> = {
-  planned: { path: '/watchlist', label: 'Watchlist' },
+export const LIST_NAMES = ['watchlist', 'upcoming', 'watched'] as const;
+
+/** One of a Viewer's lists. */
+export type List = (typeof LIST_NAMES)[number];
+
+/**
+ * Where each list lives and the word it wears. One row per list, like
+ * `KIND_WORDS`, so the header's links, the tabs and the routes cannot drift
+ * apart.
+ */
+export const LISTS: Record<List, { path: string; label: string }> = {
+  watchlist: { path: '/watchlist', label: 'Watchlist' },
+  upcoming: { path: '/upcoming', label: 'Upcoming' },
   watched: { path: '/watched', label: 'Watched' },
 };
 
@@ -319,46 +330,64 @@ export type WatchRecordsPage = {
 export type EpisodePosition = { season: number; episode: number };
 
 /**
- * The Episode a Viewer watches next: the one after the furthest they have
+ * What a Viewer watches next in a Show. The Episode, where TMDB lists one, at
+ * the day TMDB says it airs; otherwise the Viewer is caught up with what TMDB
+ * lists, and `season` is the first season TMDB has announced after the
+ * furthest scored with no Episodes in it yet — or `null` where it has
+ * announced none, which is waiting or finished and cannot be told apart
+ * without the Show's status.
+ */
+export type UpNext =
+  | { episode: EpisodePosition; airDate: string | null }
+  | { season: number | null };
+
+/**
+ * What a Viewer watches next: the Episode after the furthest they have
  * scored, and the Show's first when they have scored none. Furthest, not the
  * earliest unscored, so a Viewer who joined at season three is not sent back
  * to season one. Specials neither count nor come next, and a scored id TMDB
  * no longer lists is passed over rather than guessed at.
  *
- * `null` is TMDB listing nothing after the furthest — waiting or finished,
- * which this cannot tell apart without the Show's status. Seasons arrive in
- * viewing order, as `showEpisodes` gives them. It leaves Specials out already;
- * they are passed over here as well, so the rule is this function's and holds
- * whatever hands it the seasons.
+ * Seasons arrive in viewing order, as `showEpisodes` gives them. It leaves
+ * Specials out already; they are passed over here as well, so the rule is
+ * this function's and holds whatever hands it the seasons.
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
-export const nextEpisode = (
+export const upNext = (
   seasons: readonly SeasonEpisodes[],
   scored: ReadonlySet<number>,
-): EpisodePosition | null => {
+): UpNext => {
   // TMDB keeps Specials as season 0, which belongs to no run
-  const inOrder = seasons
-    .filter((season) => season.number !== 0)
-    .flatMap((season) =>
-      season.episodes.map((episode) => ({
-        id: episode.id,
-        position: { season: season.number, episode: episode.number },
-      })),
-    );
+  const regular = seasons.filter((season) => season.number !== 0);
+  const inOrder = regular.flatMap((season) =>
+    season.episodes.map((episode) => ({
+      id: episode.id,
+      airDate: episode.airDate,
+      position: { season: season.number, episode: episode.number },
+    })),
+  );
   // one past the furthest scored, or the first when none is: -1 + 1
   const furthest = inOrder.reduce(
     (found, { id }, index) => (scored.has(id) ? index : found),
     -1,
   );
+  const next = inOrder[furthest + 1];
 
-  return inOrder[furthest + 1]?.position ?? null;
+  if (next) return { episode: next.position, airDate: next.airDate };
+
+  const reached = inOrder[furthest]?.position.season ?? 0;
+  const announced = regular.find(
+    (season) => season.number > reached && season.episodes.length === 0,
+  );
+
+  return { season: announced?.number ?? null };
 };
 
 /**
  * A Movie or Show a Viewer is tracking, and when they last marked it — the
  * Movie, the Show, or any of the Show's Episodes. What a list places, orders
  * and pages. The ids of the Episodes the Viewer has scored come along, since a
- * Show's are what `nextEpisode` reads, and a Movie's or a Planned Show's are
+ * Show's are what `upNext` reads, and a Movie's or a Planned Show's are
  * none.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
@@ -375,51 +404,3 @@ export type TrackedMedia = {
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 export const TRACKED_CEILING = 200;
-
-/**
- * The Watchlist's Movies and Shows, the latest marked first and no more than
- * the ceiling: the one set a page is cut from and the tallies are counted
- * from, since Postgres can no longer say which list a record is on. TMDB is
- * asked about a page after it is cut, so nothing here can drop an item for
- * being Gone or Unanswered: it never sees the answer.
- */
-const placedOnWatchlist = (
-  tracked: readonly TrackedMedia[],
-  kind: Kind,
-): TrackedMedia[] =>
-  [...tracked]
-    .sort((a, b) => b.markedAt.getTime() - a.markedAt.getTime())
-    .slice(0, TRACKED_CEILING)
-    .filter((item) => item.ref.kind === kind);
-
-/**
- * One page of one Kind of the Watchlist, and that Kind's total, which the page
- * count is read off.
- */
-export type WatchlistPage = { items: TrackedMedia[]; total: number };
-
-/** One page of one Kind of the Watchlist, the latest marked first. */
-export const watchlistPage = (
-  tracked: readonly TrackedMedia[],
-  { kind, page }: { kind: Kind; page: number },
-): WatchlistPage => {
-  assertListPage(page);
-
-  const open = placedOnWatchlist(tracked, kind);
-
-  return {
-    items: open.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    total: open.length,
-  };
-};
-
-/**
- * What the Watchlist's tabs wear: how many of each Kind are placed on it,
- * counted from the set its pages are cut from.
- */
-export const watchlistTallies = (
-  tracked: readonly TrackedMedia[],
-): Record<Kind, number> => ({
-  tv: placedOnWatchlist(tracked, 'tv').length,
-  movie: placedOnWatchlist(tracked, 'movie').length,
-});

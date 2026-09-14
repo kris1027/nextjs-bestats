@@ -5,19 +5,19 @@ import { WatchRecordList } from '@/components/watch/watch-record-list';
 import type { SearchParams } from '@/lib/search-params';
 
 export const metadata: Metadata = {
-  title: 'Watched',
-  description: 'The shows and movies you have watched',
+  title: 'Upcoming',
+  description: 'The shows and movies you are waiting for',
 };
 
-// `watched` is a static segment, so the standing rule about top-level
+// `upcoming` is a static segment, so the standing rule about top-level
 // routes holds — docs/adr/0001-one-route-serves-both-kinds.md
-const WatchedPage = ({
+const UpcomingPage = ({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>;
 }): JSX.Element => (
   // the promise, unread: the list reads `?page=` behind its own boundaries
-  <WatchRecordList list='watched' searchParams={searchParams} />
+  <WatchRecordList list='upcoming' searchParams={searchParams} />
 );
 
-export default WatchedPage;
+export default UpcomingPage;

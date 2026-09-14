@@ -99,7 +99,8 @@ _Avoid_: Failed, error, missing, empty
 Media TMDB once had and no longer has. Not the same as Unanswered, which may
 answer next time: Gone is TMDB's answer. A Watch Record for Gone Media still
 exists and still renders, since what survives is that the Viewer watched
-something.
+something. TMDB no longer says whether Gone Media is out, so it is drawn on
+both the Watchlist and Upcoming rather than placed on one.
 _Avoid_: Deleted, removed, missing, 404
 
 **Rating**:
