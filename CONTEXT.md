@@ -160,9 +160,10 @@ _Avoid_: Seen, done, finished
 
 **Stopped**:
 The state of a Watch Record for a Show a Viewer has given up on. It keeps the
-Show off every list without touching the Scores its Episodes
-carry, and watching another of its Episodes takes the Viewer back to where they
-were.
+Show off every list without touching the Scores its Episodes carry, and
+watching another of its Episodes takes the Viewer back to where they were. A
+Stopped Show that is Gone is the exception: it has no page to take the record
+back on, so it is drawn on both the Watchlist and Upcoming as Gone Media is.
 _Avoid_: Dropped, abandoned, archived, paused, hidden
 
 **Score**:
