@@ -453,7 +453,8 @@ export type TrackedMedia = {
 /**
  * How many Movies and Shows a list places. Each costs a TMDB request before
  * any page of the list can be drawn, so this is where that cost stops: the
- * latest marked are kept, and the rest are on no page and in no tally.
+ * latest marked are kept, and the rest are on no page and in no tally, which
+ * the list says rather than leaving them to vanish.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 export const TRACKED_CEILING = 200;

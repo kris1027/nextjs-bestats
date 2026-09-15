@@ -23,6 +23,13 @@ A list render costs one TMDB round per tracked item, plus a season's Episodes
 for a Show under way, whatever page is open. The `lib/tmdb` cache is what
 keeps a second visit cheap, and the ceiling is what keeps a first one bounded.
 
+The ceiling bounds Watched → Shows too, since a finished Show is tracked like
+any other. It keeps the latest marked, and a finished Show is never marked
+again, so the Viewer's oldest finished Shows are the first it leaves off. What
+it leaves off is on no page and in no tally, so a list the ceiling cut short
+says so above its grid rather than letting those Shows vanish. The Watched
+list's Movies are Watch Records Postgres pages, and no ceiling touches them.
+
 Order is the lists' own again, but computed: the Watchlist by the Viewer's
 latest marking on the Movie, the Show or any of its Episodes; Upcoming by the
 soonest air or release date, undated last; Watched → Shows by when the
