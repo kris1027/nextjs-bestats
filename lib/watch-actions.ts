@@ -31,6 +31,7 @@ import {
   clearEpisodeRecord,
   clearWatchRecord,
   episodeLookup,
+  showEpisodeLookup,
   tallyMarking,
   watchLookup,
   writeEpisodeRecord,
@@ -42,8 +43,8 @@ import {
  * The Viewer a press belongs to, read from the session and from nowhere else:
  * a signed-out Visitor is sent to sign in and back to where they pressed, and
  * a sign-in that went Unanswered is a sentence under the buttons rather than
- * a trip to the sign-in page for someone who may well be signed in. Both
- * actions ask first, so this is said once.
+ * a trip to the sign-in page for someone who may well be signed in. Every
+ * action asks first, so this is said once.
  */
 const pressingViewer = async (
   formData: FormData,
@@ -254,4 +255,74 @@ export const scoreEpisodeFromForm = async (
   formData: FormData,
 ): Promise<void> => {
   await scoreEpisode(formData);
+};
+
+/**
+ * Unscores an Episode TMDB no longer lists, which a Show's page draws among
+ * its Gone Episodes. `scoreEpisode` cannot: it finds an Episode by its
+ * position, and a Gone Episode has none left.
+ * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
+ *
+ * So the form names the Episode by the id its record is keyed on, and the
+ * Show it is under, and TMDB is not asked. It only ever unscores. A Score is
+ * given on an Episode's page, where TMDB says the Episode has aired, so a
+ * press this action would turn into a Score — the record rescored in another
+ * tab, or already gone — writes nothing. The record is looked for among the
+ * Show's, so a form naming another Show's Episode finds no record to clear.
+ *
+ * The order is `mark`'s, for `mark`'s reasons.
+ */
+export const unscoreEpisode = async (
+  formData: FormData,
+): Promise<ScoreResult> => {
+  const asked = await pressingViewer(formData);
+
+  if ('error' in asked) return asked;
+
+  const show = String(formData.get('show') ?? '');
+  const id = String(formData.get('id') ?? '');
+  const field = String(formData.get(MARKING_FIELD) ?? '');
+  const pressed = markingFrom(field);
+
+  if (!isMediaId(show)) throw new Error(`Not a TMDB id: ${show}`);
+  if (!isMediaId(id)) throw new Error(`Not a TMDB id: ${id}`);
+  if (!pressed || !isEpisodeMarking(pressed)) {
+    throw new Error(`Not a Score: ${field}`);
+  }
+
+  const episodeId = Number(id);
+
+  try {
+    if ((await tallyMarking(asked.id)) > MARKS_PER_MINUTE) {
+      return { error: 'Slow down. Try again in a minute.' };
+    }
+
+    const lookup = await showEpisodeLookup(asked.id, Number(show));
+    const current = episodeMarkingOf(lookup, episodeId);
+
+    // nothing to unscore: another tab got here first, and the row says so
+    if (!current) return { marking: null };
+
+    if (marked(current, pressed)) {
+      return {
+        error:
+          'Your score for that episode changed elsewhere. Reload to see it.',
+      };
+    }
+
+    await clearEpisodeRecord(asked.id, episodeId);
+
+    return { marking: null };
+  } catch (cause) {
+    console.error(`Unscoring tv/${show} episode ${id} failed:`, cause);
+
+    return { error: 'Could not unscore that. Try again in a moment.' };
+  }
+};
+
+/** `unscoreEpisode` for the form before hydration, as `markFromForm` is. */
+export const unscoreEpisodeFromForm = async (
+  formData: FormData,
+): Promise<void> => {
+  await unscoreEpisode(formData);
 };
