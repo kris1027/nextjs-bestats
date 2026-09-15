@@ -317,36 +317,25 @@ export const trackedMedia = async (
 };
 
 /**
- * How many Watched records a Viewer holds of each Kind, in one grouped query:
- * the numbers the Watched list's tabs wear, so the Kind it is not showing
- * admits what waits there — and, for an address that names no Kind, the pair
- * the Kind it shows is chosen from. A Kind with no rows is `0` here rather
- * than absent, since a Viewer who has watched no Movies has none, not a
- * missing count. The Watchlist's tallies are counted from what it places
- * instead, by `placedTallies`.
+ * How many Movies a Viewer has watched: the number the Watched list's Movies
+ * tab wears. Only a Movie's record is Watched, so this is the only tally left
+ * that Postgres can answer; the Shows tab counts finished Shows, which only
+ * TMDB can say, and is counted from what is placed, by `placedTallies`.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
-export const watchedTallies = async (
-  viewerId: string,
-): Promise<Record<Kind, number>> => {
-  const rows = await db
-    .select({ kind: watchRecords.kind, total: count() })
+export const watchedMovieCount = async (viewerId: string): Promise<number> => {
+  const [tally] = await db
+    .select({ total: count() })
     .from(watchRecords)
     .where(
       and(
         eq(watchRecords.viewerId, viewerId),
         eq(watchRecords.state, 'watched'),
+        eq(watchRecords.kind, 'movie'),
       ),
-    )
-    .groupBy(watchRecords.kind);
+    );
 
-  // written out rather than built from `KINDS`, so adding a Kind without
-  // deciding what its zero is fails to compile
-  const tallies: Record<Kind, number> = { tv: 0, movie: 0 };
-
-  for (const row of rows) tallies[row.kind] = row.total;
-
-  return tallies;
+  return tally?.total ?? 0;
 };
 
 /**

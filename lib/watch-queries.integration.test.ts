@@ -20,7 +20,7 @@ import {
   episodeLookup,
   tallyMarking,
   trackedMedia,
-  watchedTallies,
+  watchedMovieCount,
   watchLookup,
   watchRecordsPage,
   writeEpisodeRecord,
@@ -319,26 +319,26 @@ test('a Viewer with nothing recorded has an empty list, not a missing one', asyn
   });
 });
 
-test('the Watched tallies split by Kind, count 0 for an empty one, and leave Planned out', async () => {
+test('the Watched Movie count leaves Planned out, and is 0 once there are none', async () => {
   const viewerId = await viewer();
 
   await writeWatchRecord(viewerId, GOT, PLANNED);
-  await writeWatchRecord(viewerId, BREAKING_BAD, PLANNED);
+  await writeWatchRecord(viewerId, ALIEN, PLANNED);
   await writeWatchRecord(viewerId, HEAT, watchedAt(9));
 
-  expect(await watchedTallies(viewerId)).toEqual({ tv: 0, movie: 1 });
+  expect(await watchedMovieCount(viewerId)).toBe(1);
 
   await clearWatchRecord(viewerId, HEAT);
 
-  expect(await watchedTallies(viewerId)).toEqual({ tv: 0, movie: 0 });
+  expect(await watchedMovieCount(viewerId)).toBe(0);
 });
 
-test('the Watched tallies are one Viewer’s and nobody else’s', async () => {
+test('the Watched Movie count is one Viewer’s and nobody else’s', async () => {
   const [mine, theirs] = await Promise.all([viewer(), viewer()]);
 
   await writeWatchRecord(theirs, HEAT, watchedAt(9));
 
-  expect(await watchedTallies(mine)).toEqual({ tv: 0, movie: 0 });
+  expect(await watchedMovieCount(mine)).toBe(0);
 });
 
 test('counting a marking starts at 1 and climbs within the minute', async () => {
