@@ -152,8 +152,8 @@ always carries their Score: watching something and saying what you thought of
 it are one act here, and there is no way to record the first without the
 second. It replaces Planned rather than joining it, because you no longer mean
 to watch what you have watched, and the Score does not survive the move back.
-A Show is never Watched: a Show is finished when it has ended and the Viewer
-has watched its every Episode.
+A Show is never Watched: a Show is finished when it has ended and TMDB lists
+no Episode after the furthest the Viewer has watched.
 _Avoid_: Seen, done, finished
 
 **Stopped**:

@@ -5,6 +5,7 @@ import {
   episodeCode,
   episodeDetails,
   hasAired,
+  hasEnded,
   isEpisodeNumber,
   isMediaId,
   isSeasonNumber,
@@ -323,13 +324,33 @@ test('hasAired refuses an Episode that airs tomorrow, or has no air date', () =>
   expect(hasAired('not a date', MIDDAY)).toBe(false);
 });
 
+test('hasEnded is true for an Ended or a Canceled Show', () => {
+  expect(hasEnded('Ended')).toBe(true);
+  expect(hasEnded('Canceled')).toBe(true);
+});
+
+test('hasEnded is false for a Show still running, and for a status TMDB has not used before', () => {
+  for (const status of [
+    'Returning Series',
+    'In Production',
+    'Planned',
+    'Pilot',
+    'Cancelled',
+    'Rebooted',
+    '',
+  ]) {
+    expect(hasEnded(status)).toBe(false);
+  }
+});
+
 test('episodeCode names an Episode by its season and number', () => {
   expect(episodeCode({ showId: 1396, season: 2, episode: 4 })).toBe('S2E4');
 });
 
 /** `/tv/{id}` listing these seasons, as `showEpisodes` first asks for it. */
-const withSeasons = (numbers: number[]) => ({
+const withSeasons = (numbers: number[], status = 'Returning Series') => ({
   ...show,
+  status,
   seasons: numbers.map((season_number) => summary({ season_number })),
 });
 
@@ -347,16 +368,19 @@ test("showEpisodes lists each season's Episode ids in order, Specials left out",
         },
   );
 
-  expect(await showEpisodes(95396)).toEqual([
-    {
-      number: 1,
-      episodes: [
-        { id: 1001, number: 1, airDate: '2022-02-17' },
-        { id: 1002, number: 2, airDate: '2022-02-17' },
-      ],
-    },
-    { number: 2, episodes: [{ id: 2001, number: 1, airDate: '2022-02-17' }] },
-  ]);
+  expect(await showEpisodes(95396)).toEqual({
+    ended: false,
+    seasons: [
+      {
+        number: 1,
+        episodes: [
+          { id: 1001, number: 1, airDate: '2022-02-17' },
+          { id: 1002, number: 2, airDate: '2022-02-17' },
+        ],
+      },
+      { number: 2, episodes: [{ id: 2001, number: 1, airDate: '2022-02-17' }] },
+    ],
+  });
   expect(tmdb.findTMDB).toHaveBeenCalledWith(
     '/tv/95396?append_to_response=season/1,season/2',
   );
@@ -403,10 +427,30 @@ test('showEpisodes reads an empty air date as none, and keeps an announced seaso
         },
   );
 
-  expect(await showEpisodes(95396)).toEqual([
-    { number: 1, episodes: [{ id: 1001, number: 1, airDate: null }] },
-    { number: 2, episodes: [] },
-  ]);
+  expect(await showEpisodes(95396)).toEqual({
+    ended: false,
+    seasons: [
+      { number: 1, episodes: [{ id: 1001, number: 1, airDate: null }] },
+      { number: 2, episodes: [] },
+    ],
+  });
+});
+
+test("showEpisodes says a Show has ended where TMDB's status does", async () => {
+  tmdb.findTMDB.mockImplementation(async (path: string) =>
+    path === '/tv/95396' ? withSeasons([1], 'Canceled') : appended(path),
+  );
+
+  expect((await showEpisodes(95396))?.ended).toBe(true);
+});
+
+test('showEpisodes says a Show has not ended where TMDB spells a status it has not used before', async () => {
+  // `Cancelled` is not TMDB's spelling, so a Show wearing it is waited for
+  tmdb.findTMDB.mockImplementation(async (path: string) =>
+    path === '/tv/95396' ? withSeasons([1], 'Cancelled') : appended(path),
+  );
+
+  expect((await showEpisodes(95396))?.ended).toBe(false);
 });
 
 test('showEpisodes is null for a Show TMDB does not have', async () => {

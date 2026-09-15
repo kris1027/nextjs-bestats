@@ -19,13 +19,13 @@ test('a Viewer cannot record the same Media twice', async () => {
 
   await db
     .insert(watchRecords)
-    .values({ viewerId, kind: 'tv', tmdbId: 1399, state: 'planned' });
+    .values({ viewerId, kind: 'movie', tmdbId: 949, state: 'planned' });
 
   await expect(
     db.insert(watchRecords).values({
       viewerId,
-      kind: 'tv',
-      tmdbId: 1399,
+      kind: 'movie',
+      tmdbId: 949,
       state: 'watched',
       score: 9,
     }),
@@ -38,8 +38,33 @@ test('a Watched record without a Score is refused', async () => {
   await expect(
     db
       .insert(watchRecords)
-      .values({ viewerId, kind: 'tv', tmdbId: 1399, state: 'watched' }),
+      .values({ viewerId, kind: 'movie', tmdbId: 949, state: 'watched' }),
   ).rejects.toThrow();
+});
+
+test('a Watched Show is refused, whatever its Score', async () => {
+  const viewerId = await viewer();
+
+  // a Show is followed through its Episodes, so the Score a Viewer gives is an
+  // Episode's; the same row for a Movie is the one the Watched list holds
+  await expect(
+    db.insert(watchRecords).values({
+      viewerId,
+      kind: 'tv',
+      tmdbId: 1399,
+      state: 'watched',
+      score: 9,
+    }),
+  ).rejects.toThrow();
+  await expect(
+    db.insert(watchRecords).values({
+      viewerId,
+      kind: 'movie',
+      tmdbId: 1399,
+      state: 'watched',
+      score: 9,
+    }),
+  ).resolves.not.toThrow();
 });
 
 test('a Planned record carrying a Score is refused', async () => {
@@ -63,8 +88,8 @@ test('a Score outside one to ten is refused at either end', async () => {
     await expect(
       db.insert(watchRecords).values({
         viewerId,
-        kind: 'tv',
-        tmdbId: 1399,
+        kind: 'movie',
+        tmdbId: 949,
         state: 'watched',
         score,
       }),
@@ -115,9 +140,13 @@ test('a Watch Record cannot belong to nobody', async () => {
 test('deleting a Viewer takes their Watch Records with it', async () => {
   const viewerId = await newViewer();
 
-  await db
-    .insert(watchRecords)
-    .values({ viewerId, kind: 'tv', tmdbId: 1396, state: 'watched', score: 9 });
+  await db.insert(watchRecords).values({
+    viewerId,
+    kind: 'movie',
+    tmdbId: 949,
+    state: 'watched',
+    score: 9,
+  });
 
   await dropViewer(viewerId);
 

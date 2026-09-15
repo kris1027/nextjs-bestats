@@ -80,19 +80,19 @@ test('a press creates the Watch Record, and the same press again unmarks it', as
 test('a press of the Score a record already holds unmarks it', async () => {
   currentViewer.id = await viewer();
 
-  expect(await mark(press('tv', '1399', '8'))).toEqual({
+  expect(await mark(press('movie', '949', '8'))).toEqual({
     marking: watchedAt(8),
   });
-  expect(await mark(press('tv', '1399', '8'))).toEqual({ marking: null });
+  expect(await mark(press('movie', '949', '8'))).toEqual({ marking: null });
   expect(await rowsOf(currentViewer.id)).toHaveLength(0);
 });
 
 test('a press of a different Score rescores rather than unmarks', async () => {
   currentViewer.id = await viewer();
 
-  await mark(press('tv', '1399', '8'));
+  await mark(press('movie', '949', '8'));
 
-  expect(await mark(press('tv', '1399', '3'))).toEqual({
+  expect(await mark(press('movie', '949', '3'))).toEqual({
     marking: watchedAt(3),
   });
 
@@ -105,9 +105,9 @@ test('a press of a different Score rescores rather than unmarks', async () => {
 test('a press of Planned on a scored record moves it and drops the Score', async () => {
   currentViewer.id = await viewer();
 
-  await mark(press('tv', '1399', '8'));
+  await mark(press('movie', '949', '8'));
 
-  expect(await mark(press('tv', '1399', 'planned'))).toEqual({
+  expect(await mark(press('movie', '949', 'planned'))).toEqual({
     marking: PLANNED,
   });
 

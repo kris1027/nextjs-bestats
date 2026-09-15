@@ -1,0 +1,1 @@
+ALTER TABLE "watch_records" ADD CONSTRAINT "watch_records_watched_is_a_movie" CHECK ("watch_records"."state" <> 'watched' or "watch_records"."kind" = 'movie');

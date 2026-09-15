@@ -22,7 +22,6 @@ import {
   type ViewerLookup,
   type WatchLookup,
   type WatchRecordsPage,
-  type WatchState,
   watchedAt,
 } from '@/lib/watch';
 
@@ -182,32 +181,27 @@ export const answeredEpisodeLookup = async (
 });
 
 /**
- * One page of one Kind of a Viewer's Watch Records in one state — the Movies
- * they have watched, the Shows they have Planned — newest marking first, with
- * the size of that whole list beside it so the page can count what it is
- * paging through. The Kind narrows here rather than in the page, because a
- * page that fetched both and threw one away would page through a list it was
- * not showing.
- *
- * The state, the Kind and the page arrive as one value, because none of the
- * three names a list without the other two — and because a `where` clause of
- * bare positional arguments is a `where` clause two of them can be swapped
- * in silently.
+ * One page of the Movies a Viewer has watched, newest marking first, with how
+ * many there are in all beside it so the page can count what it is paging
+ * through. The one list tab left that Postgres pages: only a Movie's record is
+ * Watched, and every other tab is placed from TMDB's answers, so the state and
+ * the Kind are this query's and not a caller's to pass.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  *
  * `page` counts from 1, and anything else is refused before Postgres sees it,
  * by `assertListPage`. The two queries are issued together because neither
  * needs the other.
  */
-export const watchRecordsPage = async (
+export const watchedMoviesPage = async (
   viewerId: string,
-  { state, kind, page }: { state: WatchState; kind: Kind; page: number },
+  page: number,
 ): Promise<WatchRecordsPage> => {
   assertListPage(page);
 
   const inList = and(
     eq(watchRecords.viewerId, viewerId),
-    eq(watchRecords.state, state),
-    eq(watchRecords.kind, kind),
+    eq(watchRecords.state, 'watched'),
+    eq(watchRecords.kind, 'movie'),
   );
 
   const [records, [tally]] = await Promise.all([
@@ -287,9 +281,12 @@ export const trackedMedia = async (
       markedAt: sql<Date>`max(${markings.markedAt})`.mapWith(
         watchRecords.updatedAt,
       ),
+      // each Episode's id and the moment it was scored, as epoch milliseconds:
+      // JSON because the driver parses it, where it hands a timestamp array
+      // over as the text of one
       scored: sql<
-        number[]
-      >`coalesce(array_agg(${markings.episodeId}) filter (where ${markings.episodeId} is not null), '{}')`,
+        Record<string, number>
+      >`coalesce(json_object_agg(${markings.episodeId}, extract(epoch from ${markings.markedAt}) * 1000) filter (where ${markings.episodeId} is not null), '{}'::json)`,
     })
     .from(markings)
     .groupBy(markings.kind, markings.tmdbId)
@@ -297,48 +294,43 @@ export const trackedMedia = async (
       sql`bool_or(${markings.planned}) or count(${markings.episodeId}) > 0`,
     )
     // the ceiling here too, so what is read is bounded and not only what is
-    // placed; `withinCeiling` keeps the same 200 of what it is handed
+    // placed; one past it, so `withinCeiling` can tell a list cut short from
+    // one that holds exactly 200, and keeps the same 200 of what it is handed
     .orderBy(sql`max(${markings.markedAt}) desc`)
-    .limit(TRACKED_CEILING);
+    .limit(TRACKED_CEILING + 1);
 
   return rows.map(({ kind, tmdbId, markedAt, scored }) => ({
     ref: { kind, id: tmdbId },
     markedAt,
-    scored: new Set(scored),
+    scored: new Map(
+      Object.entries(scored).map(([episodeId, at]) => [
+        Number(episodeId),
+        new Date(Number(at)),
+      ]),
+    ),
   }));
 };
 
 /**
- * How many Watched records a Viewer holds of each Kind, in one grouped query:
- * the numbers the Watched list's tabs wear, so the Kind it is not showing
- * admits what waits there — and, for an address that names no Kind, the pair
- * the Kind it shows is chosen from. A Kind with no rows is `0` here rather
- * than absent, since a Viewer who has watched no Movies has none, not a
- * missing count. The Watchlist's tallies are counted from what it places
- * instead, by `placedTallies`.
+ * How many Movies a Viewer has watched: the number the Watched list's Movies
+ * tab wears. Only a Movie's record is Watched, so this is the only tally left
+ * that Postgres can answer; the Shows tab counts finished Shows, which only
+ * TMDB can say, and is counted from what is placed, by `placedTallies`.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
-export const watchedTallies = async (
-  viewerId: string,
-): Promise<Record<Kind, number>> => {
-  const rows = await db
-    .select({ kind: watchRecords.kind, total: count() })
+export const watchedMovieCount = async (viewerId: string): Promise<number> => {
+  const [tally] = await db
+    .select({ total: count() })
     .from(watchRecords)
     .where(
       and(
         eq(watchRecords.viewerId, viewerId),
         eq(watchRecords.state, 'watched'),
+        eq(watchRecords.kind, 'movie'),
       ),
-    )
-    .groupBy(watchRecords.kind);
+    );
 
-  // written out rather than built from `KINDS`, so adding a Kind without
-  // deciding what its zero is fails to compile
-  const tallies: Record<Kind, number> = { tv: 0, movie: 0 };
-
-  for (const row of rows) tallies[row.kind] = row.total;
-
-  return tallies;
+  return tally?.total ?? 0;
 };
 
 /**

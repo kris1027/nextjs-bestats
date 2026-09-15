@@ -1,4 +1,4 @@
-import type { Kind, MediaRef, SeasonEpisodes } from '@/lib/media';
+import type { Kind, MediaRef, SeasonEpisodes, ShowEpisodes } from '@/lib/media';
 
 /**
  * The rules that move a Watch Record between states, and nothing that touches
@@ -53,6 +53,15 @@ export type WatchedMarking = Extract<Marking, { state: 'watched' }>;
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export type EpisodeMarking = WatchedMarking;
+
+/**
+ * Whether a Kind's own Watch Record can be Watched at a Score: a Movie's can,
+ * and a Show's never is, since a Show is followed through its Episodes. The
+ * star row, its skeleton, the action's refusal and the Watched list's paging
+ * all ask this, and the check constraint on `watch_records` says it too.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ */
+export const takesScore = (kind: Kind): boolean => kind === 'movie';
 
 /** Narrows a marking to one an Episode can hold. */
 export const isEpisodeMarking = (marking: Marking): marking is EpisodeMarking =>
@@ -326,6 +335,12 @@ export type WatchRecordsPage = {
   total: number;
 };
 
+/**
+ * The Episodes a Viewer has scored in a Show, by TMDB's id, and when each was
+ * last scored: `upNext` reads which, and `finishedAt` reads when.
+ */
+export type ScoredEpisodes = ReadonlyMap<number, Date>;
+
 /** Where an Episode sits in its Show, without the Show. */
 export type EpisodePosition = { season: number; episode: number };
 
@@ -342,6 +357,14 @@ export type UpNext =
   | { season: number | null };
 
 /**
+ * A Show's seasons without its Specials, which TMDB keeps as season 0 and
+ * which belong to no run: neither what comes next nor what finishes a Show.
+ */
+const regularSeasons = (
+  seasons: readonly SeasonEpisodes[],
+): readonly SeasonEpisodes[] => seasons.filter((season) => season.number !== 0);
+
+/**
  * What a Viewer watches next: the Episode after the furthest they have
  * scored, and the Show's first when they have scored none. Furthest, not the
  * earliest unscored, so a Viewer who joined at season three is not sent back
@@ -355,10 +378,9 @@ export type UpNext =
  */
 export const upNext = (
   seasons: readonly SeasonEpisodes[],
-  scored: ReadonlySet<number>,
+  scored: ScoredEpisodes,
 ): UpNext => {
-  // TMDB keeps Specials as season 0, which belongs to no run
-  const regular = seasons.filter((season) => season.number !== 0);
+  const regular = regularSeasons(seasons);
   const inOrder = regular.flatMap((season) =>
     season.episodes.map((episode) => ({
       id: episode.id,
@@ -384,23 +406,55 @@ export const upNext = (
 };
 
 /**
+ * When a Viewer finished a Show: the moment they scored its final Episode, once
+ * TMDB says the Show has ended and lists nothing after the furthest they have
+ * scored. `null` is a Show not finished — one still running, one with an
+ * Episode left, dated or not, or one with a season announced after it — and
+ * an ended Show with no Episodes, which nobody can have watched.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ *
+ * An announced season counts against it even on an ended Show, where the two
+ * contradict each other: wrongly calling a Show finished is a claim about the
+ * Viewer, and wrongly holding it in Upcoming is only visible.
+ */
+export const finishedAt = (
+  show: ShowEpisodes,
+  scored: ScoredEpisodes,
+): Date | null => {
+  if (!show.ended) return null;
+
+  const next = upNext(show.seasons, scored);
+
+  if ('episode' in next || next.season !== null) return null;
+
+  // with nothing after the furthest scored, the final Episode is the furthest
+  const final = regularSeasons(show.seasons)
+    .flatMap((season) => season.episodes)
+    .at(-1);
+
+  return (final && scored.get(final.id)) ?? null;
+};
+
+/**
  * A Movie or Show a Viewer is tracking, and when they last marked it — the
  * Movie, the Show, or any of the Show's Episodes. What a list places, orders
- * and pages. The ids of the Episodes the Viewer has scored come along, since a
- * Show's are what `upNext` reads, and a Movie's or a Planned Show's are
- * none.
+ * and pages. The Episodes the Viewer has scored come along, by TMDB's id and
+ * with when each was last scored, since a Show's are what `upNext` reads and
+ * the one that finished it says when the Show was finished; a Movie's or a
+ * Planned Show's are none.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 export type TrackedMedia = {
   ref: MediaRef;
   markedAt: Date;
-  scored: ReadonlySet<number>;
+  scored: ScoredEpisodes;
 };
 
 /**
  * How many Movies and Shows a list places. Each costs a TMDB request before
  * any page of the list can be drawn, so this is where that cost stops: the
- * latest marked are kept, and the rest are on no page and in no tally.
+ * latest marked are kept, and the rest are on no page and in no tally, which
+ * the list says rather than leaving them to vanish.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 export const TRACKED_CEILING = 200;

@@ -2,10 +2,11 @@ import {
   type Absence,
   hasAired,
   type Kind,
-  type SeasonEpisodes,
+  type ShowEpisodes,
 } from '@/lib/media';
 import {
   assertListPage,
+  finishedAt,
   PAGE_SIZE,
   TRACKED_CEILING,
   type TrackedMedia,
@@ -14,27 +15,29 @@ import {
 } from '@/lib/watch';
 
 /**
- * Where the Watchlist and Upcoming place what a Viewer is tracking, from what
- * TMDB says about it. Pure, and kept out of `lib/watch.ts` because it reads
+ * Where the lists place what a Viewer is tracking, from what TMDB says about
+ * it. Pure, and kept out of `lib/watch.ts` because it reads
  * `hasAired` from `lib/media`, which reaches `lib/tmdb` and `next/cache` — a
  * client component imports `lib/watch.ts`, and nothing here is a client's.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 
 /**
- * The lists placed from TMDB's answers. The Watched list is paged in Postgres.
+ * The lists placed from TMDB's answers: the Watchlist and Upcoming, and the
+ * Shows on the Watched list. Its Movies are Watch Records, paged in Postgres,
+ * so nothing placed is ever a Movie on Watched.
  */
-export type PlacedList = 'watchlist' | 'upcoming';
+export type PlacedList = 'watchlist' | 'upcoming' | 'watched';
 
 /**
  * What TMDB said about one tracked Movie or Show, as much as placing it
- * needs: a Movie's release day, a Show's seasons, or no answer to place it by.
- * A Show whose seasons went Unanswered is Unanswered here, whatever TMDB said
- * about the Show itself.
+ * needs: a Movie's release day, a Show's seasons and whether it has ended, or
+ * no answer to place it by. A Show whose seasons went Unanswered is Unanswered
+ * here, whatever TMDB said about the Show itself.
  */
 export type TrackedAnswer =
   | { answer: 'movie'; releaseDate: string | null }
-  | { answer: 'show'; seasons: readonly SeasonEpisodes[] }
+  | ({ answer: 'show' } & ShowEpisodes)
   | { answer: Absence };
 
 /**
@@ -62,19 +65,34 @@ export type PlacedMedia = {
    */
   day: CalendarDay | null;
   /**
-   * The lists it is on: one, or both where TMDB gave nothing to place it by,
-   * since Unanswered is never an absence from either.
+   * When the Viewer finished a Show, which is what Watched orders its Shows
+   * by; `null` for anything not finished.
+   */
+  finishedAt: Date | null;
+  /**
+   * The lists it is on: one, or the Watchlist and Upcoming both where TMDB
+   * gave nothing to place it by, since Unanswered is never an absence from
+   * either. Never Watched then: whether a Show is finished is TMDB's to say,
+   * and calling one finished without its answer is a claim about the Viewer.
    */
   lists: ReadonlySet<PlacedList>;
 };
 
 const WATCHLIST: ReadonlySet<PlacedList> = new Set(['watchlist']);
 const UPCOMING: ReadonlySet<PlacedList> = new Set(['upcoming']);
+const WATCHED: ReadonlySet<PlacedList> = new Set(['watched']);
 const BOTH: ReadonlySet<PlacedList> = new Set(['watchlist', 'upcoming']);
 
 /** The latest marked first, which is the Watchlist's order and the ceiling's. */
 const latestMarkedFirst = (a: TrackedMedia, b: TrackedMedia): number =>
   b.markedAt.getTime() - a.markedAt.getTime();
+
+/**
+ * The tracked Movies and Shows a list is placed from, and whether the ceiling
+ * left any off — which the list says, since what it left off is on no page and
+ * in no tally, and a finished Show is never marked again to climb back.
+ */
+export type WithinCeiling = { kept: TrackedMedia[]; cut: boolean };
 
 /**
  * The tracked Movies and Shows a list is placed from: the latest marked, no
@@ -83,8 +101,10 @@ const latestMarkedFirst = (a: TrackedMedia, b: TrackedMedia): number =>
  */
 export const withinCeiling = (
   tracked: readonly TrackedMedia[],
-): TrackedMedia[] =>
-  [...tracked].sort(latestMarkedFirst).slice(0, TRACKED_CEILING);
+): WithinCeiling => ({
+  kept: [...tracked].sort(latestMarkedFirst).slice(0, TRACKED_CEILING),
+  cut: tracked.length > TRACKED_CEILING,
+});
 
 /** A date TMDB spelled as the calendar day it names, or `null` for none. */
 const calendarDay = (date: string | null): CalendarDay | null =>
@@ -96,8 +116,9 @@ const calendarDay = (date: string | null): CalendarDay | null =>
  * Places one tracked Movie or Show. What can be watched by `today` — a
  * released Movie, a Show whose next Episode has aired — is on the Watchlist;
  * what is waited for — an unreleased or undated Movie, a Show whose next
- * Episode has not aired or has no date, a Show the Viewer is caught up with —
- * is Upcoming.
+ * Episode has not aired or has no date, a Show the Viewer is caught up with
+ * that has not ended — is Upcoming; a Show the Viewer has finished is on
+ * Watched and nowhere else.
  */
 export const placed = (
   tracked: TrackedMedia,
@@ -110,6 +131,7 @@ export const placed = (
       placedBy: 'movie',
       upNext: null,
       day: calendarDay(answer.releaseDate),
+      finishedAt: null,
       lists: hasAired(answer.releaseDate, today) ? WATCHLIST : UPCOMING,
     };
   }
@@ -117,13 +139,19 @@ export const placed = (
   if (answer.answer === 'show') {
     const next = upNext(answer.seasons, tracked.scored);
     const airDate = 'episode' in next ? next.airDate : null;
+    const finished = finishedAt(answer, tracked.scored);
 
     return {
       tracked,
       placedBy: 'show',
       upNext: next,
       day: calendarDay(airDate),
-      lists: hasAired(airDate, today) ? WATCHLIST : UPCOMING,
+      finishedAt: finished,
+      lists: finished
+        ? WATCHED
+        : hasAired(airDate, today)
+          ? WATCHLIST
+          : UPCOMING,
     };
   }
 
@@ -132,6 +160,7 @@ export const placed = (
     placedBy: answer.answer,
     upNext: null,
     day: null,
+    finishedAt: null,
     lists: BOTH,
   };
 };
@@ -151,9 +180,18 @@ const bySoonest = (a: PlacedMedia, b: PlacedMedia): number => {
   return a.day < b.day ? -1 : 1;
 };
 
+/**
+ * The latest finished first, which is Watched's order for its Shows, and the
+ * latest marked among those finished at one moment.
+ */
+const byLatestFinished = (a: PlacedMedia, b: PlacedMedia): number =>
+  (b.finishedAt?.getTime() ?? 0) - (a.finishedAt?.getTime() ?? 0) ||
+  byLatestMarked(a, b);
+
 const ORDERS: Record<PlacedList, (a: PlacedMedia, b: PlacedMedia) => number> = {
   watchlist: byLatestMarked,
   upcoming: bySoonest,
+  watched: byLatestFinished,
 };
 
 /** One Kind of one list, in that list's order. */
@@ -173,8 +211,8 @@ const onList = <T extends PlacedMedia>(
 export type PlacedPage<T extends PlacedMedia> = { items: T[]; total: number };
 
 /**
- * One page of one Kind of the Watchlist or Upcoming. The items come back as
- * they went in, so whatever a caller placed alongside each one stays with it.
+ * One page of one Kind of a placed list. The items come back as they went in,
+ * so whatever a caller placed alongside each one stays with it.
  */
 export const placedPage = <T extends PlacedMedia>(
   media: readonly T[],

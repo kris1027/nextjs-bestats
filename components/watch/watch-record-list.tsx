@@ -8,7 +8,7 @@ import { MediaGridSkeleton } from '@/components/media/media-skeleton';
 import { LinkTabs } from '@/components/navigation/link-tabs';
 import { AbsentCard } from '@/components/watch/absent-card';
 import { viewer } from '@/lib/auth';
-import { formatNumber, formatShortDate, type NounForms } from '@/lib/format';
+import { formatNumber, formatShortDate } from '@/lib/format';
 import {
   episodeCode,
   isKind,
@@ -31,7 +31,9 @@ import {
   type List,
   PAGE_SIZE,
   refOf,
+  TRACKED_CEILING,
   type TrackedMedia,
+  takesScore,
   toLookup,
   type WatchLookup,
   watchKey,
@@ -47,9 +49,9 @@ import {
 } from '@/lib/watch-lists';
 import {
   trackedMedia,
-  watchedTallies,
+  watchedMovieCount,
+  watchedMoviesPage,
   watchLookup,
-  watchRecordsPage,
 } from '@/lib/watch-queries';
 
 /**
@@ -80,14 +82,26 @@ const listAddress = (
  * the Shows tab of a Watchlist holding twenty movies. What the other tab holds
  * is the closed tab's tally to say, not this sentence's.
  */
-const EMPTY: Record<List, (words: NounForms) => string> = {
-  watchlist: ({ one, other }) =>
-    `No ${other} to watch now. A Planned ${one} that is out will appear here.`,
-  upcoming: ({ one, other }) =>
-    `No ${other} to wait for. A Planned ${one} that is not out yet will appear here.`,
-  watched: ({ one, other }) =>
-    `No ${other} watched yet. Mark a ${one} Watched and it will appear here.`,
+const EMPTY: Record<List, (kind: Kind) => string> = {
+  watchlist: (kind) =>
+    `No ${KIND_WORDS[kind].other} to watch now. A Planned ${KIND_WORDS[kind].one} that is out will appear here.`,
+  upcoming: (kind) =>
+    `No ${KIND_WORDS[kind].other} to wait for. A Planned ${KIND_WORDS[kind].one} that is not out yet will appear here.`,
+  // a Show is never marked Watched, so its tab says what finishing one takes
+  // — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+  watched: (kind) =>
+    takesScore(kind)
+      ? `No ${KIND_WORDS[kind].other} watched yet. Score a ${KIND_WORDS[kind].one} and it will appear here.`
+      : `No ${KIND_WORDS[kind].other} finished yet. A ${KIND_WORDS[kind].one} that has ended will appear here once you have scored its last episode.`,
 };
+
+/**
+ * Whether a tab is Watch Records that Postgres counts and pages, rather than
+ * tracked Media placed from TMDB's answers: the Watched list's Movies, since
+ * a Watched Movie is a record of its own. The tallies and the grid both ask.
+ */
+const pagedByRecords = (list: List, kind: Kind): boolean =>
+  list === 'watched' && takesScore(kind);
 
 /**
  * The list as an address opens it, which is what both halves of the page
@@ -103,27 +117,33 @@ type OpenList = {
    * id beside it — `lib/viewer-key.ts`.
    */
   viewerKey: string;
-  /** This list's two tallies, which the tabs wear and the Kind is read off. */
-  tallies: Record<Kind, number>;
-  contents: ListContents;
-  kind: Kind;
+  /**
+   * The Kind the address names, or `undefined` where it names none and the
+   * Kind is read off the tallies.
+   */
+  named: Kind | undefined;
   page: number;
 };
 
+/** This list's two tallies, which the tabs wear, and the Kind read off them. */
+type ListTallies = {
+  tallies: Record<Kind, number>;
+  kind: Kind;
+};
+
 /**
- * Which list is open and what its pages are cut from: on the Watchlist and
- * Upcoming, everything the Viewer is tracking, placed and paged in memory, and
- * the day it was placed against, which its cards' dates are read against too;
- * on the Watched list nothing, since Postgres still pages it. One value, so
- * which list it is and whether there are placements cannot disagree.
+ * Which list is open and what its pages are cut from: everything the Viewer is
+ * tracking, placed and paged in memory, and the day it was placed against,
+ * which its cards' dates are read against too. The Watched list's Movies are
+ * the exception, since a Watched Movie is a Watch Record and Postgres pages
+ * those; its Shows are finished, which only TMDB can say.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
-type ListContents = PlacedContents | { list: 'watched' };
-
-/** The Watchlist's or Upcoming's half of `ListContents`. */
-type PlacedContents = {
+type ListContents = {
   list: PlacedList;
   placements: Placement[];
+  /** Whether the ceiling left tracked Media off, which the page says. */
+  cut: boolean;
   today: Date;
 };
 
@@ -162,9 +182,9 @@ const trackedAnswer = async (
       return { answer: 'movie', releaseDate: await releaseDate(item.ref.id) };
     }
 
-    const seasons = await showEpisodes(item.ref.id);
+    const show = await showEpisodes(item.ref.id);
 
-    return seasons ? { answer: 'show', seasons } : { answer: 'gone' };
+    return show ? { answer: 'show', ...show } : { answer: 'gone' };
   } catch (cause) {
     console.error(`TMDB ${watchKey(item.ref)} placing went Unanswered:`, cause);
 
@@ -181,12 +201,11 @@ const trackedAnswer = async (
 const placeTracked = async (
   viewerId: string,
   today: Date,
-): Promise<Placement[]> => {
-  const tracked = withinCeiling(await trackedMedia(viewerId));
-  const answers = await mediaItems(tracked.map((item) => item.ref));
-
-  return Promise.all(
-    tracked.map(async (item, index): Promise<Placement> => {
+): Promise<{ placements: Placement[]; cut: boolean }> => {
+  const { kept, cut } = withinCeiling(await trackedMedia(viewerId));
+  const answers = await mediaItems(kept.map((item) => item.ref));
+  const placements = await Promise.all(
+    kept.map(async (item, index): Promise<Placement> => {
       const answer = answerAt(answers, index);
 
       return {
@@ -195,16 +214,20 @@ const placeTracked = async (
       };
     }),
   );
+
+  return { placements, cut };
 };
 
 /**
- * Everything both halves of a list need, asked for once per request. The tabs
- * wear the counts and the grid needs the Kind, and the Kind is read off the
- * counts, so one round trip answers both rather than two boundaries racing to
- * the same rows — the use `app/page.tsx` puts `cache` to, one page over.
+ * Who is asking and which tab of which page, asked for once per request and
+ * shared by both halves of the list — the use `app/page.tsx` puts `cache` to,
+ * one page over. `listContents` and `listTallies` are cached beside it for
+ * the same reason, and kept apart from it so a tab that is not placed from
+ * TMDB — the Watched list's Movies, named in the address — draws its grid
+ * without waiting on TMDB for the other tab's count.
  *
- * `cache` keys on argument identity, and both callers are handed the very
- * `searchParams` promise the page was given, so the two share one entry.
+ * `cache` keys on argument identity, and every caller is handed the very
+ * `searchParams` promise the page was given, so they share one entry.
  *
  * A Visitor is sent to sign in and back to this very address. It carries the
  * Kind only if the address named one — the default is read off counts this
@@ -234,31 +257,53 @@ const openList = cache(
       );
     }
 
-    // read once, so every item is placed, and every card dated, against the
-    // same day even when the request straddles midnight
-    const today = new Date();
-    const contents: ListContents =
-      list === 'watched'
-        ? { list }
-        : {
-            list,
-            placements: await placeTracked(currentViewer.id, today),
-            today,
-          };
-    const tallies =
-      contents.list === 'watched'
-        ? await watchedTallies(currentViewer.id)
-        : placedTallies(contents.placements, contents.list);
-
     return {
       viewerId: currentViewer.id,
       viewerKey: viewerKey(currentViewer),
+      named,
+      page,
+    };
+  },
+);
+
+/** Everything the Viewer is tracking, placed, once per request. */
+const listContents = cache(
+  async (
+    list: List,
+    searchParams: Promise<SearchParams>,
+  ): Promise<ListContents> => {
+    const { viewerId } = await openList(list, searchParams);
+    // read once, so every item is placed, and every card dated, against the
+    // same day even when the request straddles midnight
+    const today = new Date();
+
+    return { list, ...(await placeTracked(viewerId, today)), today };
+  },
+);
+
+/**
+ * This list's tallies and the Kind read off them, once per request. Both wait
+ * on TMDB, since one tab of every list is placed from its answers.
+ */
+const listTallies = cache(
+  async (
+    list: List,
+    searchParams: Promise<SearchParams>,
+  ): Promise<ListTallies> => {
+    const { viewerId, named } = await openList(list, searchParams);
+    const { placements } = await listContents(list, searchParams);
+    const placedCounts = placedTallies(placements, list);
+    const tallyOf = async (kind: Kind): Promise<number> =>
+      pagedByRecords(list, kind)
+        ? watchedMovieCount(viewerId)
+        : placedCounts[kind];
+    const tallies = { tv: await tallyOf('tv'), movie: await tallyOf('movie') };
+
+    return {
       tallies,
-      contents,
       // what this Viewer holds is this page's answer to what `openKind` asks,
       // so a Watchlist that is all Movies opens on Movies
       kind: named ?? openKind({ tv: tallies.tv > 0, movie: tallies.movie > 0 }),
-      page,
     };
   },
 );
@@ -271,7 +316,7 @@ const ListTabs = async ({
   list: List;
   searchParams: Promise<SearchParams>;
 }): Promise<JSX.Element> => {
-  const { kind, tallies } = await openList(list, searchParams);
+  const { kind, tallies } = await listTallies(list, searchParams);
 
   return <Tabs list={list} selected={kind} tallies={tallies} />;
 };
@@ -337,6 +382,13 @@ type ListEntries = {
   total: number;
 };
 
+/**
+ * What a placed list says when the ceiling left tracked Media off it, which
+ * would otherwise be on no page and in no tally without a word.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
+ */
+const CEILING_NOTE = `Only the ${formatNumber(TRACKED_CEILING)} movies and shows you marked most recently are placed on your lists. Older ones are left off.`;
+
 /** What a card says where TMDB has given no day. */
 const NO_DATE = 'No date yet';
 
@@ -346,13 +398,16 @@ const NO_DATE = 'No date yet';
  * everything there is out; on Upcoming every card says what it waits for and
  * when — **S3E1 · Mar 12**, **S3 · No date yet**, **Mar 12** for a Movie. A
  * card TMDB gave no answer to place by draws nothing, since its day is not
- * "no date" but unknown.
+ * "no date" but unknown, and neither does a finished Show on Watched, which
+ * has nothing next.
  */
 const leadOf = (
   list: PlacedList,
   { tracked, placedBy, upNext, day }: PlacedMedia,
   today: Date,
 ): CardLead | null => {
+  if (list === 'watched') return null;
+
   // unbroken, so a line too long for a 136px card at the 320px floor —
   // "S12E10 · Sep 17, 2027" — wraps at the dot rather than inside the date
   const date = ((day && formatShortDate(day, today)) ?? NO_DATE).replaceAll(
@@ -391,13 +446,13 @@ const leadOf = (
 };
 
 /**
- * One page of the Watchlist or Upcoming, cut from what is placed on it. TMDB
+ * One page of one Kind of a placed list, cut from what is placed on it. TMDB
  * has answered for every card on it already, in placing; only the markings
  * are asked for.
  */
 const placedEntries = async (
   viewerId: string,
-  { list, placements, today }: PlacedContents,
+  { list, placements, today }: ListContents,
   { kind, page }: { kind: Kind; page: number },
 ): Promise<ListEntries> => {
   const { items, total } = placedPage(placements, list, { kind, page });
@@ -418,18 +473,14 @@ const placedEntries = async (
 };
 
 /**
- * One page of the Watched list: the records are one round trip, and the Media
- * behind them a TMDB request apiece.
+ * One page of the Watched list's Movies: the records are one round trip, and
+ * the Media behind them a TMDB request apiece.
  */
-const watchedEntries = async (
+const watchedMovieEntries = async (
   viewerId: string,
-  { kind, page }: { kind: Kind; page: number },
+  page: number,
 ): Promise<ListEntries> => {
-  const { records, total } = await watchRecordsPage(viewerId, {
-    state: 'watched',
-    kind,
-    page,
-  });
+  const { records, total } = await watchedMoviesPage(viewerId, page);
   const refs = records.map(refOf);
   const answers = await mediaItems(refs);
 
@@ -457,26 +508,35 @@ const ListPage = async ({
   list: List;
   searchParams: Promise<SearchParams>;
 }): Promise<JSX.Element> => {
-  const { viewerId, viewerKey, contents, kind, page } = await openList(
+  const { viewerId, viewerKey, named, page } = await openList(
     list,
     searchParams,
   );
+  const kind = named ?? (await listTallies(list, searchParams)).kind;
 
   // a page past the end has no cards, so it asks for no markings before it
   // 404s; page 1 of nothing is the empty state below, since a tab with nothing on
   // it still exists
-  const { entries, markings, total } =
-    contents.list === 'watched'
-      ? await watchedEntries(viewerId, { kind, page })
-      : await placedEntries(viewerId, contents, { kind, page });
+  const contents = pagedByRecords(list, kind)
+    ? null
+    : await listContents(list, searchParams);
+  const { entries, markings, total } = contents
+    ? await placedEntries(viewerId, contents, { kind, page })
+    : await watchedMovieEntries(viewerId, page);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   if (page > pages) notFound();
 
+  // said on an empty tab too, since what the ceiling left off may be all of it
+  const ceiling = contents?.cut ? (
+    <p className='text-sm opacity-60'>{CEILING_NOTE}</p>
+  ) : null;
+
   if (total === 0) {
     return (
       <>
-        <p className='opacity-60'>{EMPTY[list](KIND_WORDS[kind])}</p>
+        {ceiling}
+        <p className='opacity-60'>{EMPTY[list](kind)}</p>
         <Link href='/' className={cn(control, 'self-start')}>
           Browse trending
         </Link>
@@ -488,6 +548,7 @@ const ListPage = async ({
 
   return (
     <>
+      {ceiling}
       <MediaGrid>
         {entries.map(({ ref, answer, lead }) => {
           const key = watchKey(ref);
@@ -553,10 +614,12 @@ const ListPage = async ({
  * The heading and the tabs are the shell, and the heading is where the list
  * is named: the tabs are the Kind, and the header's links are the way to the
  * other lists. The tallies stream into the tabs and the cards into the grid,
- * each behind a boundary of its own. On the Watched list the database answers
- * the tallies in one round trip and TMDB the cards in a request apiece; on the
- * Watchlist and Upcoming both wait on TMDB, which is asked about everything
- * tracked, and each Show's seasons, before either can be counted.
+ * each behind a boundary of its own. Both wait on TMDB, which is asked about
+ * everything tracked, and each Show's seasons, before either can be counted —
+ * on the Watched list too, whose Shows are the finished ones. Its Movies are
+ * the one tab the database counts and pages, with TMDB asked for their cards
+ * a request apiece, so an address naming that tab draws its grid without
+ * waiting for the Shows to be placed.
  *
  * Nothing moves when a card here is marked. A card pressed out of this list
  * shows its new state where it is, and the list catches up on the next
