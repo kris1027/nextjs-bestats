@@ -13,6 +13,7 @@ import {
   isScore,
   type Marking,
   PAGE_SIZE,
+  type RecordedEpisode,
   scoreOf,
   TRACKED_CEILING,
   type TrackedMedia,
@@ -469,7 +470,7 @@ export const clearWatchRecord = async (
  */
 export const writeEpisodeRecord = async (
   viewerId: string,
-  episode: { episodeId: number; showId: number },
+  episode: RecordedEpisode,
   marking: EpisodeMarking,
 ): Promise<void> => {
   await db.batch([

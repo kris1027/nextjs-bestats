@@ -1,4 +1,5 @@
 import type { EpisodeRef, MediaRef } from '@/lib/media';
+import type { RecordedEpisode } from '@/lib/watch';
 import {
   type MarkResult,
   mark,
@@ -57,10 +58,7 @@ const episodeTarget = ({
 const goneEpisodeTarget = ({
   showId,
   episodeId,
-}: {
-  showId: number;
-  episodeId: number;
-}): MarkingTarget => ({
+}: RecordedEpisode): MarkingTarget => ({
   press: unscoreEpisode,
   post: unscoreEpisodeFromForm,
   fields: { show: String(showId), id: String(episodeId) },

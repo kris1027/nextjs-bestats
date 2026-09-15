@@ -247,6 +247,14 @@ export type ViewerLookup = {
 export type EpisodeLookup = ReadonlyMap<number, EpisodeMarking>;
 
 /**
+ * An Episode as its Watch Record names it: TMDB's id for the Episode, which
+ * the record is keyed on, and the Show it belongs to, which is the app's own
+ * relationship and what finds a Show's records without TMDB.
+ * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
+ */
+export type RecordedEpisode = { showId: number; episodeId: number };
+
+/**
  * An Episode page's lookup and the key of the Viewer whose markings are in it:
  * `ViewerLookup` for Episodes, and one value for the same reason.
  */
