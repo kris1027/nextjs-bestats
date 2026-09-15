@@ -390,6 +390,13 @@ const regularSeasons = (
 ): readonly SeasonEpisodes[] => seasons.filter((season) => season.number !== 0);
 
 /**
+ * The Episodes a Viewer has scored in a Show, by TMDB's id, whatever else each
+ * carries: a list's `ScoredEpisodes`, with when, or a page's `EpisodeLookup`,
+ * with the Score. Which is scored is all `upNext` and `hasFinished` read.
+ */
+export type ScoredIds = ReadonlyMap<number, unknown>;
+
+/**
  * What a Viewer watches next: the Episode after the furthest they have
  * scored, and the Show's first when they have scored none. Furthest, not the
  * earliest unscored, so a Viewer who joined at season three is not sent back
@@ -404,7 +411,7 @@ const regularSeasons = (
  */
 export const upNext = (
   seasons: readonly SeasonEpisodes[],
-  scored: ScoredEpisodes,
+  scored: ScoredIds,
 ): UpNext => {
   const regular = regularSeasons(seasons);
   const inOrder = regular.flatMap((season) =>
@@ -431,32 +438,47 @@ export const upNext = (
   return { season: announced?.number ?? null };
 };
 
+/** The last Episode of a Show's last regular season, or none. */
+const finalEpisode = (show: ShowEpisodes): { id: number } | undefined =>
+  regularSeasons(show.seasons)
+    .flatMap((season) => season.episodes)
+    .at(-1);
+
 /**
- * When a Viewer finished a Show: the moment they scored its final Episode, once
- * TMDB says the Show has ended and lists nothing after the furthest they have
- * scored. `null` is a Show not finished — one still running, one with an
- * Episode left, dated or not, or one with a season announced after it — and
- * an ended Show with no Episodes, which nobody can have watched.
+ * Whether a Viewer has finished a Show: TMDB says it has ended and lists
+ * nothing after the furthest they have scored. Not a Show still running, one
+ * with an Episode left, dated or not, or one with a season announced after
+ * it — and not an ended Show with no Episodes, which nobody can have watched.
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  *
  * An announced season counts against it even on an ended Show, where the two
  * contradict each other: wrongly calling a Show finished is a claim about the
  * Viewer, and wrongly holding it in Upcoming is only visible.
  */
+export const hasFinished = (show: ShowEpisodes, scored: ScoredIds): boolean => {
+  if (!show.ended) return false;
+
+  const next = upNext(show.seasons, scored);
+
+  if ('episode' in next || next.season !== null) return false;
+
+  // with nothing after the furthest scored, the final Episode is the furthest
+  const final = finalEpisode(show);
+
+  return final !== undefined && scored.has(final.id);
+};
+
+/**
+ * When a Viewer finished a Show: the moment they scored its final Episode, or
+ * `null` for a Show `hasFinished` says they have not.
+ */
 export const finishedAt = (
   show: ShowEpisodes,
   scored: ScoredEpisodes,
 ): Date | null => {
-  if (!show.ended) return null;
+  if (!hasFinished(show, scored)) return null;
 
-  const next = upNext(show.seasons, scored);
-
-  if ('episode' in next || next.season !== null) return null;
-
-  // with nothing after the furthest scored, the final Episode is the furthest
-  const final = regularSeasons(show.seasons)
-    .flatMap((season) => season.episodes)
-    .at(-1);
+  const final = finalEpisode(show);
 
   return (final && scored.get(final.id)) ?? null;
 };

@@ -5,6 +5,7 @@ import {
   type EpisodeLookup,
   finishedAt,
   goneEpisodes,
+  hasFinished,
   isScore,
   marked,
   markingFrom,
@@ -394,4 +395,12 @@ test('an Unanswered season is not reported as Gone', () => {
 
 test('a Gone Show has no Gone Episodes to list', () => {
   expect(goneEpisodes({ answer: 'gone' }, records([101, 8]))).toBe(null);
+});
+
+test('hasFinished agrees with finishedAt', () => {
+  const show = { ended: true, seasons: [season(1, 2)] };
+
+  expect(hasFinished(show, scoredOn({ 101: 1, 102: 2 }))).toBe(true);
+  expect(hasFinished(show, scoredOn({ 101: 1 }))).toBe(false);
+  expect(hasFinished({ ended: true, seasons: [] }, new Map())).toBe(false);
 });
