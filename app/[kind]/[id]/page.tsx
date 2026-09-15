@@ -143,7 +143,7 @@ const GoneEpisodes = async ({
   let show: ShowEpisodes | null;
 
   try {
-    show = await showEpisodes(id);
+    show = await showEpisodes(id, { specials: true });
   } catch (cause) {
     console.error(`TMDB tv/${id} Gone Episodes went Unanswered:`, cause);
 

@@ -379,10 +379,10 @@ const regularSeasons = (
  * to season one. Specials neither count nor come next, and a scored id TMDB
  * no longer lists is passed over rather than guessed at.
  *
- * Seasons arrive in viewing order, as `showEpisodes` gives them, Specials
- * among them: it lists them so a scored one is not taken for Gone, and they
- * are passed over here, so the rule is this function's and holds whatever
- * hands it the seasons.
+ * Seasons arrive in viewing order, as `showEpisodes` gives them. The lists
+ * ask it to leave Specials out and a Show's page asks for them last; they are
+ * passed over here either way, so the rule is this function's and holds
+ * whatever hands it the seasons.
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const upNext = (
@@ -459,9 +459,9 @@ export type GoneEpisode = { episodeId: number; marking: EpisodeMarking };
  *
  * Only as true as the seasons it is handed: an Unanswered season read as an
  * empty one would make every record in it Gone, so it takes TMDB's whole
- * answer, which `showEpisodes` throws rather than cut short. It only reads,
- * and nothing it finds is deleted — one wrong answer from TMDB would
- * otherwise destroy a Score.
+ * answer, Specials included, which `showEpisodes` throws rather than cut
+ * short. It only reads, and nothing it finds is deleted — one wrong answer
+ * from TMDB would otherwise destroy a Score.
  */
 export const goneEpisodes = (
   seasons: readonly SeasonEpisodes[],

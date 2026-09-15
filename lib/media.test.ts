@@ -354,7 +354,7 @@ const withSeasons = (numbers: number[], status = 'Returning Series') => ({
   seasons: numbers.map((season_number) => summary({ season_number })),
 });
 
-test("showEpisodes lists each season's Episode ids in order, Specials last", async () => {
+test("showEpisodes lists each season's Episode ids in order, Specials last where asked for", async () => {
   tmdb.findTMDB.mockImplementation(async (path: string) =>
     path === '/tv/95396'
       ? withSeasons([0, 2, 1])
@@ -372,7 +372,7 @@ test("showEpisodes lists each season's Episode ids in order, Specials last", asy
         },
   );
 
-  expect(await showEpisodes(95396)).toEqual({
+  expect(await showEpisodes(95396, { specials: true })).toEqual({
     ended: false,
     seasons: [
       {
@@ -391,6 +391,23 @@ test("showEpisodes lists each season's Episode ids in order, Specials last", asy
   );
 });
 
+test('showEpisodes leaves Specials out unless asked, and never waits on them', async () => {
+  tmdb.findTMDB.mockImplementation(async (path: string) =>
+    path === '/tv/95396'
+      ? withSeasons([1, 0])
+      : { ...show, 'season/1': season({ season_number: 1 }) },
+  );
+
+  // the lists place a Show by its regular seasons, so Specials TMDB did not
+  // answer for cannot leave it Unanswered there
+  expect(
+    (await showEpisodes(95396))?.seasons.map(({ number }) => number),
+  ).toEqual([1]);
+  expect(tmdb.findTMDB).toHaveBeenCalledWith(
+    '/tv/95396?append_to_response=season/1',
+  );
+});
+
 test('showEpisodes throws when TMDB leaves out the Specials the Show lists', async () => {
   tmdb.findTMDB.mockImplementation(async (path: string) =>
     path === '/tv/95396'
@@ -400,7 +417,7 @@ test('showEpisodes throws when TMDB leaves out the Specials the Show lists', asy
 
   // read as a Show with no Specials, every Special a Viewer scored would be
   // listed as Gone when TMDB only did not answer for them
-  await expect(showEpisodes(95396)).rejects.toThrow(
+  await expect(showEpisodes(95396, { specials: true })).rejects.toThrow(
     'TMDB left season 0 of tv/95396 unanswered',
   );
 });

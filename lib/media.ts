@@ -538,20 +538,24 @@ const specialsLast = (a: number, b: number): number =>
 const APPENDS_PER_REQUEST = 20;
 
 /**
- * Every season of a Show with its Episodes' ids, in viewing order with
- * Specials last, and whether it has ended, or `null` when TMDB has no such
- * Show. Throws when TMDB answers for the Show and not for every one of its
- * seasons, since part of a Show is Unanswered and not a shorter Show.
- * Specials are listed although they never decide which Episode comes next —
- * `upNext` passes over them — because a Viewer can score one, and a scored
- * Episode missing from this answer is Gone. The Show's own request is the one
- * its card already made, and the seasons ride on as many more as TMDB's cap
- * on appends needs — one, for all but the longest Shows.
+ * Every regular season of a Show with its Episodes' ids, in viewing order,
+ * and whether it has ended, or `null` when TMDB has no such Show. Throws when
+ * TMDB answers for the Show and not for every season asked for, since part of
+ * a Show is Unanswered and not a shorter Show. The Show's own request is the
+ * one its card already made, and the seasons ride on as many more as TMDB's
+ * cap on appends needs — one, for all but the longest Shows.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
+ *
+ * Specials are left out unless `specials` asks for them, last: they never
+ * decide which Episode comes next, so the lists have no use for them and
+ * should not go Unanswered over them. Telling a Gone Episode from a listed
+ * one does need them, since a Viewer can score a Special, and one missing
+ * from this answer would be taken for Gone.
  * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
  */
 export const showEpisodes = async (
   showId: number,
+  { specials = false }: { specials?: boolean } = {},
 ): Promise<ShowEpisodes | null> => {
   const show = await findTMDB<TmdbShowDetails>(`/tv/${showId}`);
 
@@ -559,6 +563,7 @@ export const showEpisodes = async (
 
   const numbers = show.seasons
     .map((season) => season.season_number)
+    .filter((number) => specials || number !== 0)
     .sort(specialsLast);
   const batches = Array.from(
     { length: Math.ceil(numbers.length / APPENDS_PER_REQUEST) },
