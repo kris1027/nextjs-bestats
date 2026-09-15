@@ -95,6 +95,14 @@ const EMPTY: Record<List, (kind: Kind) => string> = {
 };
 
 /**
+ * Whether a tab is Watch Records that Postgres counts and pages, rather than
+ * tracked Media placed from TMDB's answers: the Watched list's Movies, since
+ * a Watched Movie is a record of its own. The tallies and the grid both ask.
+ */
+const pagedByRecords = (list: List, kind: Kind): boolean =>
+  list === 'watched' && takesScore(kind);
+
+/**
  * The list as an address opens it, which is what both halves of the page
  * read: who is asking, which tab, at which page. Not named `List`, which is
  * the word for which list this is, and this holds one of those rather than
@@ -245,13 +253,11 @@ const openList = cache(
       today,
     };
     const placedCounts = placedTallies(contents.placements, list);
-    const tallies =
-      list === 'watched'
-        ? {
-            tv: placedCounts.tv,
-            movie: await watchedMovieCount(currentViewer.id),
-          }
-        : placedCounts;
+    const tallyOf = async (kind: Kind): Promise<number> =>
+      pagedByRecords(list, kind)
+        ? watchedMovieCount(currentViewer.id)
+        : placedCounts[kind];
+    const tallies = { tv: await tallyOf('tv'), movie: await tallyOf('movie') };
 
     return {
       viewerId: currentViewer.id,
@@ -471,10 +477,9 @@ const ListPage = async ({
   // a page past the end has no cards, so it asks for no markings before it
   // 404s; page 1 of nothing is the empty state below, since a tab with nothing on
   // it still exists
-  const { entries, markings, total } =
-    list === 'watched' && takesScore(kind)
-      ? await watchedMovieEntries(viewerId, page)
-      : await placedEntries(viewerId, contents, { kind, page });
+  const { entries, markings, total } = pagedByRecords(list, kind)
+    ? await watchedMovieEntries(viewerId, page)
+    : await placedEntries(viewerId, contents, { kind, page });
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   if (page > pages) notFound();
