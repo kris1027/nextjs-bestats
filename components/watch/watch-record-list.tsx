@@ -373,6 +373,11 @@ type ListEntry = {
   answer: MediaAnswer;
   /** The line under its title bar, or `null` for a card that draws none. */
   lead: CardLead | null;
+  /**
+   * Whether the Viewer has scored an Episode of this Show, which is what an
+   * `AbsentCard` offers Stop watching for; never a Movie.
+   */
+  underWay: boolean;
 };
 
 /** What one page of a list draws: its cards in order, and their markings. */
@@ -466,6 +471,7 @@ const placedEntries = async (
       ref: item.tracked.ref,
       answer: item.answer,
       lead: leadOf(list, item, today),
+      underWay: item.tracked.scored.size > 0,
     })),
     markings,
     total,
@@ -489,6 +495,7 @@ const watchedMovieEntries = async (
       ref,
       answer: answerAt(answers, index),
       lead: null,
+      underWay: false,
     })),
     // the page's own records are its lookup: every card on it has a marking
     markings: toLookup(records),
@@ -550,7 +557,7 @@ const ListPage = async ({
     <>
       {ceiling}
       <MediaGrid>
-        {entries.map(({ ref, answer, lead }) => {
+        {entries.map(({ ref, answer, lead, underWay }) => {
           const key = watchKey(ref);
 
           return answer.answer === 'item' ? (
@@ -565,6 +572,7 @@ const ListPage = async ({
               key={key}
               media={ref}
               answer={answer.answer}
+              underWay={underWay}
               lookup={lookup}
             />
           );

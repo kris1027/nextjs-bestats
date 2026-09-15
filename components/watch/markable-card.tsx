@@ -6,6 +6,7 @@ import { CardHead, type CardHeadContent } from '@/components/watch/card-head';
 import { MarkingForm } from '@/components/watch/marking-form';
 import { mediaTarget } from '@/components/watch/marking-target';
 import { PlannedButton } from '@/components/watch/planned-button';
+import { ShowButton } from '@/components/watch/show-button';
 import { useMarking } from '@/components/watch/use-marking';
 import type { MediaRef } from '@/lib/media';
 import { type Marking, scoreOf } from '@/lib/watch';
@@ -32,15 +33,25 @@ import { type Marking, scoreOf } from '@/lib/watch';
  * width. Pressing Planned on a scored record moves it and drops the Score,
  * and pressing Planned again unmarks it — which is the only way at all to
  * remove a Watch Record whose Media is Gone.
+ *
+ * A Show draws the button its own page would: Planned where the Viewer has
+ * scored none of its Episodes, and Stop watching where they have, since a
+ * Show under way has no record for Planned to remove and a Gone one has no
+ * page left to stop it on. A card is never drawn for a finished Show, which
+ * is on the Watched list only once TMDB has said so.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 const MarkableCard = ({
   media,
   marking,
+  underWay,
   head,
   children,
 }: {
   media: MediaRef;
   marking: Marking | null;
+  /** Whether the Viewer has scored an Episode of this Show; never a Movie. */
+  underWay: boolean;
   /** Passed straight on; the Score on top of it is this component's. */
   head: CardHeadContent;
   /** Anything between the title bar and the control. */
@@ -55,7 +66,14 @@ const MarkableCard = ({
       {children}
       <div className='px-2.5 pt-2.5'>
         <MarkingForm handle={handle}>
-          <PlannedButton handle={handle} />
+          {media.kind === 'tv' ? (
+            <ShowButton
+              handle={handle}
+              progress={underWay ? 'underWay' : 'unstarted'}
+            />
+          ) : (
+            <PlannedButton handle={handle} />
+          )}
         </MarkingForm>
       </div>
     </>
