@@ -1,8 +1,10 @@
 import { expect, test } from 'vitest';
 
-import type { SeasonEpisodes } from '@/lib/media';
+import type { SeasonEpisodes, ShowEpisodesAnswer } from '@/lib/media';
 import {
+  type EpisodeLookup,
   finishedAt,
+  goneEpisodes,
   isScore,
   marked,
   markingFrom,
@@ -11,6 +13,7 @@ import {
   PLANNED,
   refOf,
   SCORES,
+  type Score,
   takesScore,
   toLookup,
   toMarkedMedia,
@@ -236,6 +239,14 @@ test('a scored Episode TMDB no longer lists never counts towards the furthest', 
   );
 });
 
+test('a Gone Episode never counts towards the furthest among Specials either', () => {
+  // the seasons as a Show's page asks for them, Specials last: a Gone id
+  // and a scored Special beside it still leave S1E3 next
+  expect(
+    upNext([season(1, 3), season(2, 3), season(0, 2)], scored([102, 2, 999])),
+  ).toEqual(episodeAt(1, 3));
+});
+
 /** When Episodes were scored, as days of September 2026. */
 const scoredOn = (days: Record<number, number>): Map<number, Date> =>
   new Map(
@@ -309,4 +320,66 @@ test('an unscored Special does not keep an ended Show from being finished', () =
       scoredOn({ 102: 5 }),
     ),
   ).toEqual(new Date(Date.UTC(2026, 8, 5)));
+});
+
+test('a Gone Episode scored last is not when an ended Show was finished', () => {
+  expect(
+    finishedAt(
+      { ended: true, seasons: [season(1, 2), season(0, 1)] },
+      scoredOn({ 101: 1, 102: 2, 999: 9 }),
+    ),
+  ).toEqual(new Date(Date.UTC(2026, 8, 2)));
+});
+
+/**
+ * A Viewer's Episode records for one Show, as id and Score pairs: pairs and
+ * not an object, whose integer keys would come back sorted.
+ */
+const records = (...scores: [number, Score][]): EpisodeLookup =>
+  new Map(scores.map(([id, score]) => [id, watchedAt(score)]));
+
+/** TMDB's answer listing these seasons, for a Show that has not ended. */
+const listing = (...seasons: SeasonEpisodes[]): ShowEpisodesAnswer => ({
+  answer: 'show',
+  show: { ended: false, seasons },
+});
+
+test('a record for an Episode TMDB no longer lists is Gone, with its Score', () => {
+  expect(
+    goneEpisodes(listing(season(1, 3)), records([101, 8], [999, 6], [102, 7])),
+  ).toEqual([{ episodeId: 999, marking: watchedAt(6) }]);
+});
+
+test('a scored Special TMDB still lists is not Gone', () => {
+  expect(
+    goneEpisodes(
+      listing(season(1, 2), season(0, 2)),
+      records([1, 9], [101, 4]),
+    ),
+  ).toEqual([]);
+});
+
+test('Gone Episodes keep the order the records came in', () => {
+  expect(
+    goneEpisodes(listing(season(1, 1)), records([998, 3], [101, 5], [997, 10])),
+  ).toEqual([
+    { episodeId: 998, marking: watchedAt(3) },
+    { episodeId: 997, marking: watchedAt(10) },
+  ]);
+});
+
+test('a Show with no records has no Gone Episodes', () => {
+  expect(goneEpisodes(listing(season(1, 3)), records())).toEqual([]);
+});
+
+test('an Unanswered season is not reported as Gone', () => {
+  // TMDB leaving out any season the Show lists makes the whole answer
+  // Unanswered, so no record in the season it did not answer for is Gone
+  expect(
+    goneEpisodes({ answer: 'unanswered' }, records([101, 8], [201, 6])),
+  ).toBe(null);
+});
+
+test('a Gone Show has no Gone Episodes to list', () => {
+  expect(goneEpisodes({ answer: 'gone' }, records([101, 8]))).toBe(null);
 });

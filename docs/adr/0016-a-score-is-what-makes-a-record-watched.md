@@ -105,6 +105,8 @@ Watched: a second check constraint refuses a Watched row whose Kind is `tv`,
 `drizzle/0009_watched_show_records.sql` deleted every one before it could, and
 the Watched list's Shows are the ones a Viewer has finished, placed from
 TMDB's answer rather than read off a record. Everything above about the Score
-still holds where a Score exists; a Show's page draws Planned and no stars,
-and a Show's card always shows TMDB's Rating, since no Score of the Viewer's
-belongs to the Show.
+still holds where a Score exists; a Show's own control draws Planned and no
+stars, and a Show's card always shows TMDB's Rating, since no Score of the
+Viewer's belongs to the Show. The stars a Show's page does draw are its Gone
+Episodes' Scores, which are the Episodes' and not the Show's —
+`docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`.

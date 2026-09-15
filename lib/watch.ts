@@ -1,4 +1,10 @@
-import type { Kind, MediaRef, SeasonEpisodes, ShowEpisodes } from '@/lib/media';
+import type {
+  Kind,
+  MediaRef,
+  SeasonEpisodes,
+  ShowEpisodes,
+  ShowEpisodesAnswer,
+} from '@/lib/media';
 
 /**
  * The rules that move a Watch Record between states, and nothing that touches
@@ -247,6 +253,14 @@ export type ViewerLookup = {
 export type EpisodeLookup = ReadonlyMap<number, EpisodeMarking>;
 
 /**
+ * An Episode as its Watch Record names it: TMDB's id for the Episode, which
+ * the record is keyed on, and the Show it belongs to, which is the app's own
+ * relationship and what finds a Show's records without TMDB.
+ * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
+ */
+export type RecordedEpisode = { showId: number; episodeId: number };
+
+/**
  * An Episode page's lookup and the key of the Viewer whose markings are in it:
  * `ViewerLookup` for Episodes, and one value for the same reason.
  */
@@ -371,9 +385,10 @@ const regularSeasons = (
  * to season one. Specials neither count nor come next, and a scored id TMDB
  * no longer lists is passed over rather than guessed at.
  *
- * Seasons arrive in viewing order, as `showEpisodes` gives them. It leaves
- * Specials out already; they are passed over here as well, so the rule is
- * this function's and holds whatever hands it the seasons.
+ * Seasons arrive in viewing order, as `showEpisodes` gives them. The lists
+ * ask it to leave Specials out and a Show's page asks for them last; they are
+ * passed over here either way, so the rule is this function's and holds
+ * whatever hands it the seasons.
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const upNext = (
@@ -433,6 +448,43 @@ export const finishedAt = (
     .at(-1);
 
   return (final && scored.get(final.id)) ?? null;
+};
+
+/**
+ * A Viewer's record for an Episode TMDB no longer lists: the id it is keyed
+ * on and the Score it holds, which is all that is left to draw, since a
+ * record stores nothing from TMDB.
+ * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
+ */
+export type GoneEpisode = { episodeId: number; marking: EpisodeMarking };
+
+/**
+ * The records among a Show's that are for Episodes TMDB no longer lists, in
+ * the order the lookup holds them, or `null` when TMDB's answer cannot say
+ * which those are. Specials count as listed, since a Viewer can score one.
+ *
+ * Only as true as the answer it is handed. An Unanswered one is `null` and
+ * never every record: a season TMDB did not answer for is not a season
+ * without Episodes, which is why `showEpisodes` throws rather than cut one
+ * short and asking for Specials matters. A Gone Show is `null` too, since its
+ * page is a 404 with nothing to list on. It only reads, and nothing it finds
+ * is deleted — one wrong answer from TMDB would otherwise destroy a Score.
+ */
+export const goneEpisodes = (
+  answer: ShowEpisodesAnswer,
+  records: EpisodeLookup,
+): GoneEpisode[] | null => {
+  if (answer.answer !== 'show') return null;
+
+  const listed = new Set(
+    answer.show.seasons.flatMap((season) =>
+      season.episodes.map((episode) => episode.id),
+    ),
+  );
+
+  return [...records]
+    .filter(([episodeId]) => !listed.has(episodeId))
+    .map(([episodeId, marking]) => ({ episodeId, marking }));
 };
 
 /**

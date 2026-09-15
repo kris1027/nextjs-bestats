@@ -6,9 +6,11 @@ import { LinkRows } from '@/components/media/link-rows';
 import { MediaDetail } from '@/components/media/media-detail';
 import { MediaDetailSkeleton } from '@/components/media/media-skeleton';
 import { MarkingControlSkeleton } from '@/components/watch/control-skeleton';
+import { GoneEpisodeRow } from '@/components/watch/gone-episode-row';
 import { MarkingControl } from '@/components/watch/marking-control';
 import { answeredViewer } from '@/lib/auth';
 import {
+  answeredShowEpisodes,
   isKind,
   isMediaId,
   type MediaDetails,
@@ -17,8 +19,11 @@ import {
   seasonAddress,
   showSeasons,
 } from '@/lib/media';
-import { markingOf } from '@/lib/watch';
-import { answeredWatchLookup } from '@/lib/watch-queries';
+import { goneEpisodes, markingOf } from '@/lib/watch';
+import {
+  answeredShowEpisodeLookup,
+  answeredWatchLookup,
+} from '@/lib/watch-queries';
 
 type RouteParams = { kind: string; id: string };
 
@@ -114,6 +119,67 @@ const Seasons = async ({ id }: { id: number }): Promise<JSX.Element | null> => {
 };
 
 /**
+ * The Viewer's records for Episodes of this Show that TMDB no longer lists,
+ * each with its Score and a way to unscore it, since a Gone Episode has no
+ * page of its own to do that on. Nothing for a Visitor, for a Viewer with no
+ * such records — the common case, which is why the boundary's fallback is
+ * nothing — and for an answer Unanswered on either side: a season TMDB did
+ * not answer for is not a season without Episodes, and reading it as one
+ * would list every record in it as Gone.
+ * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
+ */
+const GoneEpisodes = async ({
+  id,
+}: {
+  id: number;
+}): Promise<JSX.Element | null> => {
+  const asked = await answeredViewer();
+  const lookup = await answeredShowEpisodeLookup(asked, id);
+
+  // TMDB is asked only once there is a record it could have stopped listing
+  if (!lookup.markings || lookup.markings.size === 0) return null;
+
+  const candidates = goneEpisodes(
+    await answeredShowEpisodes(id, { specials: true }),
+    lookup.markings,
+  );
+
+  if (!candidates || candidates.length === 0) return null;
+
+  // the cached Show can predate an Episode scored since, so Gone is said only
+  // on an answer as new as this request
+  const gone = goneEpisodes(
+    await answeredShowEpisodes(id, { specials: true, fresh: true }),
+    lookup.markings,
+  );
+
+  if (!gone || gone.length === 0) return null;
+
+  return (
+    <section className='flex flex-col gap-3 pt-4'>
+      <h2 className='font-black text-xl'>No longer on TMDB</h2>
+      <p className='text-sm opacity-60'>
+        TMDB no longer lists these episodes, so only your scores are left.
+      </p>
+      <ol
+        aria-label='Episodes no longer on TMDB'
+        className='flex flex-col border-foreground/20 border-t'
+      >
+        {gone.map((episode) => (
+          <GoneEpisodeRow
+            // keyed on the Viewer as every marking control is, so a row's
+            // state does not outlive a sign-out
+            key={`${lookup.viewerKey}/${episode.episodeId}`}
+            showId={id}
+            episode={episode}
+          />
+        ))}
+      </ol>
+    </section>
+  );
+};
+
+/**
  * The Media, once TMDB has answered. Behind the page's boundary because
  * the address is read at request time; the skeleton holds the frame.
  */
@@ -137,7 +203,14 @@ const Found = async ({
         </Suspense>
       }
     >
-      {ref.kind === 'tv' ? <Seasons id={ref.id} /> : null}
+      {ref.kind === 'tv' ? (
+        <>
+          <Seasons id={ref.id} />
+          <Suspense fallback={null}>
+            <GoneEpisodes id={ref.id} />
+          </Suspense>
+        </>
+      ) : null}
     </MediaDetail>
   );
 };

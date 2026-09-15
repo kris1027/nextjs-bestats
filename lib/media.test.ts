@@ -1,6 +1,7 @@
 import { afterEach, expect, test, vi } from 'vitest';
 
 import {
+  answeredShowEpisodes,
   episodeAddress,
   episodeCode,
   episodeDetails,
@@ -21,10 +22,14 @@ import type { TmdbEpisode, TmdbSeason, TmdbSeasonSummary } from '@/lib/tmdb';
 // TMDB stands in here: the requests are what is mocked, and the mapping into
 // the glossary's shapes is what is tested. The image hosts come from the
 // environment, which a commit has no copy of.
-const tmdb = vi.hoisted(() => ({ findTMDB: vi.fn() }));
+const tmdb = vi.hoisted(() => ({
+  findTMDB: vi.fn(),
+  findTMDBUncached: vi.fn(),
+}));
 
 vi.mock('@/lib/tmdb', () => ({
   findTMDB: tmdb.findTMDB,
+  findTMDBUncached: tmdb.findTMDBUncached,
   fetchTMDB: vi.fn(),
   posterUrl: (path: string) => `poster${path}`,
   backdropUrl: (path: string) => `backdrop${path}`,
@@ -33,6 +38,7 @@ vi.mock('@/lib/tmdb', () => ({
 
 afterEach(() => {
   tmdb.findTMDB.mockReset();
+  tmdb.findTMDBUncached.mockReset();
 });
 
 test('isMediaId admits a positive integer', () => {
@@ -354,12 +360,16 @@ const withSeasons = (numbers: number[], status = 'Returning Series') => ({
   seasons: numbers.map((season_number) => summary({ season_number })),
 });
 
-test("showEpisodes lists each season's Episode ids in order, Specials left out", async () => {
+test("showEpisodes lists each season's Episode ids in order, Specials last where asked for", async () => {
   tmdb.findTMDB.mockImplementation(async (path: string) =>
     path === '/tv/95396'
       ? withSeasons([0, 2, 1])
       : {
           ...show,
+          'season/0': season({
+            season_number: 0,
+            episodes: [episode({ episode_number: 1, id: 9001 })],
+          }),
           'season/1': season({ season_number: 1 }),
           'season/2': season({
             season_number: 2,
@@ -368,7 +378,7 @@ test("showEpisodes lists each season's Episode ids in order, Specials left out",
         },
   );
 
-  expect(await showEpisodes(95396)).toEqual({
+  expect(await showEpisodes(95396, { specials: true })).toEqual({
     ended: false,
     seasons: [
       {
@@ -379,10 +389,42 @@ test("showEpisodes lists each season's Episode ids in order, Specials left out",
         ],
       },
       { number: 2, episodes: [{ id: 2001, number: 1, airDate: '2022-02-17' }] },
+      { number: 0, episodes: [{ id: 9001, number: 1, airDate: '2022-02-17' }] },
     ],
   });
   expect(tmdb.findTMDB).toHaveBeenCalledWith(
-    '/tv/95396?append_to_response=season/1,season/2',
+    '/tv/95396?append_to_response=season/1,season/2,season/0',
+  );
+});
+
+test('showEpisodes leaves Specials out unless asked, and never waits on them', async () => {
+  tmdb.findTMDB.mockImplementation(async (path: string) =>
+    path === '/tv/95396'
+      ? withSeasons([1, 0])
+      : { ...show, 'season/1': season({ season_number: 1 }) },
+  );
+
+  // the lists place a Show by its regular seasons, so Specials TMDB did not
+  // answer for cannot leave it Unanswered there
+  expect(
+    (await showEpisodes(95396))?.seasons.map(({ number }) => number),
+  ).toEqual([1]);
+  expect(tmdb.findTMDB).toHaveBeenCalledWith(
+    '/tv/95396?append_to_response=season/1',
+  );
+});
+
+test('showEpisodes throws when TMDB leaves out the Specials the Show lists', async () => {
+  tmdb.findTMDB.mockImplementation(async (path: string) =>
+    path === '/tv/95396'
+      ? withSeasons([1, 0])
+      : { ...show, 'season/1': season({ season_number: 1 }) },
+  );
+
+  // read as a Show with no Specials, every Special a Viewer scored would be
+  // listed as Gone when TMDB only did not answer for them
+  await expect(showEpisodes(95396, { specials: true })).rejects.toThrow(
+    'TMDB left season 0 of tv/95396 unanswered',
   );
 });
 
@@ -471,6 +513,35 @@ test('showEpisodes throws when TMDB leaves out a season the Show lists', async (
   await expect(showEpisodes(95396)).rejects.toThrow(
     'TMDB left season 1 of tv/95396 unanswered',
   );
+});
+
+test('answeredShowEpisodes is Unanswered where showEpisodes throws, never a shorter Show', async () => {
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  tmdb.findTMDB.mockImplementation(async (path: string) =>
+    path === '/tv/95396'
+      ? withSeasons([1, 2])
+      : { ...show, 'season/2': season({ season_number: 2 }) },
+  );
+
+  expect(await answeredShowEpisodes(95396)).toEqual({ answer: 'unanswered' });
+});
+
+test('showEpisodes asks past the cache for every request when fresh', async () => {
+  tmdb.findTMDBUncached.mockImplementation(async (path: string) =>
+    path === '/tv/95396' ? withSeasons([1]) : appended(path),
+  );
+
+  await showEpisodes(95396, { fresh: true });
+
+  // half a fresh answer would pair a new season list with stale Episodes
+  expect(tmdb.findTMDBUncached).toHaveBeenCalledTimes(2);
+  expect(tmdb.findTMDB).not.toHaveBeenCalled();
+});
+
+test('answeredShowEpisodes is Gone for a Show TMDB does not have', async () => {
+  tmdb.findTMDB.mockResolvedValue(null);
+
+  expect(await answeredShowEpisodes(95396)).toEqual({ answer: 'gone' });
 });
 
 test("releaseDate is the Movie's release day as TMDB spells it", async () => {

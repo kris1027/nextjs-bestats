@@ -1,7 +1,7 @@
 import { afterEach, expect, test, vi } from 'vitest';
 
 import { MARKING_FIELD, PLANNED, watchedAt } from '@/lib/watch';
-import { mark, scoreEpisode } from '@/lib/watch-actions';
+import { mark, scoreEpisode, unscoreEpisode } from '@/lib/watch-actions';
 
 /**
  * What `mark` does when the database refuses, which is the one branch
@@ -27,6 +27,7 @@ const queries = vi.hoisted(() => ({
   writeWatchRecord: vi.fn(),
   clearWatchRecord: vi.fn(),
   episodeLookup: vi.fn(),
+  showEpisodeLookup: vi.fn(),
   writeEpisodeRecord: vi.fn(),
   clearEpisodeRecord: vi.fn(),
   writePlannedShow: vi.fn(),
@@ -287,4 +288,90 @@ test('TMDB failing reaches the Viewer as a sentence and the log as its cause', a
     error: 'Could not score that. Try again in a moment.',
   });
   expect(logged).toHaveBeenCalledWith('Scoring tv/95396 S1E2 failed:', cause);
+});
+
+/** What a Show's page posts to unscore a Gone Episode: its id and its Show. */
+const unscore = (value: string, id = '3396429'): FormData => {
+  const formData = new FormData();
+
+  formData.set('show', '95396');
+  formData.set('id', id);
+  formData.set(MARKING_FIELD, value);
+  formData.set('next', '/tv/95396');
+
+  return formData;
+};
+
+test("pressing a Gone Episode's Score clears its record, found among its Show's", async () => {
+  queries.tallyMarking.mockResolvedValue(1);
+  queries.showEpisodeLookup.mockResolvedValue(
+    new Map([[3396429, watchedAt(8)]]),
+  );
+
+  expect(await unscoreEpisode(unscore('8'))).toEqual({ marking: null });
+  expect(queries.showEpisodeLookup).toHaveBeenCalledWith('a-viewer', 95396);
+  expect(queries.clearEpisodeRecord).toHaveBeenCalledWith('a-viewer', 3396429);
+  // a Gone Episode has no position to ask about, and unscoring needs none
+  expect(media.episodeDetails).not.toHaveBeenCalled();
+});
+
+test('a Score the record no longer holds is refused rather than written', async () => {
+  queries.tallyMarking.mockResolvedValue(1);
+  queries.showEpisodeLookup.mockResolvedValue(
+    new Map([[3396429, watchedAt(3)]]),
+  );
+
+  expect(await unscoreEpisode(unscore('8'))).toEqual({
+    error: 'Your score for that episode changed elsewhere. Reload to see it.',
+  });
+  expect(queries.clearEpisodeRecord).not.toHaveBeenCalled();
+  expect(queries.writeEpisodeRecord).not.toHaveBeenCalled();
+});
+
+test('unscoring an Episode with no record, or one under another Show, writes nothing', async () => {
+  queries.tallyMarking.mockResolvedValue(1);
+  queries.showEpisodeLookup.mockResolvedValue(
+    new Map([[3396430, watchedAt(8)]]),
+  );
+
+  // the press would make a Score of nothing, which only an Episode's page
+  // gives, so the answer is the record as it is: none
+  expect(await unscoreEpisode(unscore('8'))).toEqual({ marking: null });
+  expect(queries.clearEpisodeRecord).not.toHaveBeenCalled();
+  expect(queries.writeEpisodeRecord).not.toHaveBeenCalled();
+});
+
+test('an unscore press is counted before the record is read', async () => {
+  queries.tallyMarking.mockResolvedValue(61);
+
+  expect(await unscoreEpisode(unscore('8'))).toEqual({
+    error: 'Slow down. Try again in a minute.',
+  });
+  expect(queries.showEpisodeLookup).not.toHaveBeenCalled();
+});
+
+test('an unscore form our own page could not have posted is a throw', async () => {
+  await expect(unscoreEpisode(unscore('planned'))).rejects.toThrow(
+    'Not a Score: planned',
+  );
+  await expect(unscoreEpisode(unscore('8', 'S1E2'))).rejects.toThrow(
+    'Not a TMDB id: S1E2',
+  );
+  expect(queries.tallyMarking).not.toHaveBeenCalled();
+});
+
+test('a failed unscore reaches the Viewer as a sentence and the log as its cause', async () => {
+  const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+  const cause = new Error('connection reset');
+
+  queries.tallyMarking.mockResolvedValue(1);
+  queries.showEpisodeLookup.mockRejectedValue(cause);
+
+  expect(await unscoreEpisode(unscore('8'))).toEqual({
+    error: 'Could not unscore that. Try again in a moment.',
+  });
+  expect(logged).toHaveBeenCalledWith(
+    'Unscoring tv/95396 episode 3396429 failed:',
+    cause,
+  );
 });

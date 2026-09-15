@@ -8,6 +8,7 @@ import {
   backdropUrl,
   fetchTMDB,
   findTMDB,
+  findTMDBUncached,
   posterUrl,
   type SearchResponse,
   stillUrl,
@@ -146,7 +147,7 @@ export type MediaDetails = Rating & {
 export type EpisodeRef = { showId: number; season: number; episode: number };
 
 /**
- * A regular season of a Show as TMDB lists it for finding a next Episode: its
+ * A season of a Show as TMDB lists it for finding a next Episode: its
  * number, and its Episodes in order, each with TMDB's id — what a record
  * holds — its number, what an address holds, and the calendar day TMDB says
  * it airs, as TMDB spells it, or `null` where it has none — what places the
@@ -159,7 +160,7 @@ export type SeasonEpisodes = {
 };
 
 /**
- * A Show's regular seasons with their Episodes, and whether TMDB says the Show
+ * A Show's seasons with their Episodes, and whether TMDB says the Show
  * has ended — which, with nothing left after the furthest a Viewer has
  * scored, is what makes the Show finished rather than waited for.
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
@@ -527,30 +528,51 @@ const ENDED_STATUSES: ReadonlySet<string> = new Set(['Ended', 'Canceled']);
 /** Whether TMDB's `status` says a Show will air nothing more. */
 export const hasEnded = (status: string): boolean => ENDED_STATUSES.has(status);
 
+/**
+ * Season numbers in viewing order: the numbered runs in order, then Specials,
+ * which TMDB keeps as season 0 and which belong to no run.
+ */
+const specialsLast = (a: number, b: number): number =>
+  Number(a === 0) - Number(b === 0) || a - b;
+
 /** The most sub-requests TMDB folds into one `append_to_response`. */
+
+/** What `showEpisodes` asks for beyond a Show's regular seasons. */
+type ShowEpisodesOptions = { specials?: boolean; fresh?: boolean };
 const APPENDS_PER_REQUEST = 20;
 
 /**
- * Every regular season of a Show with its Episodes' ids, in viewing order, and
- * whether it has ended, or `null` when TMDB has no such Show. Throws when TMDB
- * answers for the Show and not for every one of its seasons, since part of a
- * Show is Unanswered and not a shorter Show. Specials are left out, since they
- * never decide which Episode comes next. The Show's own request is the one its
- * card already made, and the seasons ride on as many more as TMDB's cap on
- * appends needs — one, for all but the longest Shows.
+ * Every regular season of a Show with its Episodes' ids, in viewing order,
+ * and whether it has ended, or `null` when TMDB has no such Show. Throws when
+ * TMDB answers for the Show and not for every season asked for, since part of
+ * a Show is Unanswered and not a shorter Show. The Show's own request is the
+ * one its card already made, and the seasons ride on as many more as TMDB's
+ * cap on appends needs — one, for all but the longest Shows.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
+ *
+ * Specials are left out unless `specials` asks for them, last: they never
+ * decide which Episode comes next, so the lists have no use for them and
+ * should not go Unanswered over them. Telling a Gone Episode from a listed
+ * one does need them, since a Viewer can score a Special, and one missing
+ * from this answer would be taken for Gone.
+ * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
+ *
+ * `fresh` goes past the `lib/tmdb` cache, which only confirming a Gone
+ * Episode may ask for; `findTMDBUncached` says why.
  */
 export const showEpisodes = async (
   showId: number,
+  { specials = false, fresh = false }: ShowEpisodesOptions = {},
 ): Promise<ShowEpisodes | null> => {
-  const show = await findTMDB<TmdbShowDetails>(`/tv/${showId}`);
+  const find = fresh ? findTMDBUncached : findTMDB;
+  const show = await find<TmdbShowDetails>(`/tv/${showId}`);
 
   if (!show) return null;
 
   const numbers = show.seasons
     .map((season) => season.season_number)
-    .filter((number) => number !== 0)
-    .sort((a, b) => a - b);
+    .filter((number) => specials || number !== 0)
+    .sort(specialsLast);
   const batches = Array.from(
     { length: Math.ceil(numbers.length / APPENDS_PER_REQUEST) },
     (_, index) =>
@@ -561,7 +583,7 @@ export const showEpisodes = async (
   );
   const answers = await Promise.all(
     batches.map((batch) =>
-      findTMDB<TmdbShowWithSeason>(
+      find<TmdbShowWithSeason>(
         `/tv/${showId}?append_to_response=${batch.map((number) => `season/${number}`).join(',')}`,
       ),
     ),
@@ -593,6 +615,35 @@ export const showEpisodes = async (
   });
 
   return { ended: hasEnded(show.status), seasons };
+};
+
+/**
+ * What TMDB said about a Show's Episodes: its seasons, or why there are none
+ * to read — Gone, or Unanswered where TMDB left the Show or any season asked
+ * for without an answer, which is never a Show with fewer Episodes.
+ */
+export type ShowEpisodesAnswer =
+  | { answer: 'show'; show: ShowEpisodes }
+  | { answer: Absence };
+
+/**
+ * `showEpisodes` settled into an answer, the way `mediaItems` settles a ref:
+ * the throw becomes Unanswered, with its cause in the log, so a caller cannot
+ * catch it into an empty Show.
+ */
+export const answeredShowEpisodes = async (
+  showId: number,
+  options: ShowEpisodesOptions = {},
+): Promise<ShowEpisodesAnswer> => {
+  try {
+    const show = await showEpisodes(showId, options);
+
+    return show ? { answer: 'show', show } : { answer: 'gone' };
+  } catch (cause) {
+    logUnanswered(`tv/${showId} episodes`, cause);
+
+    return { answer: 'unanswered' };
+  }
 };
 
 /**

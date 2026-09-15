@@ -11,7 +11,7 @@ import {
   PLANNED,
   watchedAt,
 } from '@/lib/watch';
-import { mark, scoreEpisode } from '@/lib/watch-actions';
+import { mark, scoreEpisode, unscoreEpisode } from '@/lib/watch-actions';
 import { tallyMarking } from '@/lib/watch-queries';
 
 /**
@@ -280,4 +280,33 @@ test('Planned is refused on a Show under way, until its last Episode is unscored
   expect(await mark(press('tv', '95396', 'planned'))).toEqual({
     marking: PLANNED,
   });
+});
+
+/** What a Show's page posts to unscore a Gone Episode. */
+const unscoring = (show: string, id: string, value: string): FormData => {
+  const formData = new FormData();
+
+  formData.set('show', show);
+  formData.set('id', id);
+  formData.set(MARKING_FIELD, value);
+  formData.set('next', `/tv/${show}`);
+
+  return formData;
+};
+
+test("an Episode's Score is unscored by its id, and only under its own Show", async () => {
+  currentViewer.id = await viewer();
+
+  await scoreEpisode(scoring('8'));
+
+  // the same id under another Show finds no record of it
+  expect(await unscoreEpisode(unscoring('1399', '3396429', '8'))).toEqual({
+    marking: null,
+  });
+  expect(await episodesOf(currentViewer.id)).toHaveLength(1);
+
+  expect(await unscoreEpisode(unscoring('95396', '3396429', '8'))).toEqual({
+    marking: null,
+  });
+  expect(await episodesOf(currentViewer.id)).toHaveLength(0);
 });

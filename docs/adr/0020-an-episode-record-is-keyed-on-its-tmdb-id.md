@@ -38,3 +38,12 @@ its page cannot exist; the Show's page lists it among the Episodes no longer
 on TMDB, with its Score and a way to unscore it, and it never counts towards
 furthest. It is never deleted by a read, since one wrong answer from TMDB
 would otherwise destroy a Score.
+
+Gone is only said on an answer TMDB gave for this request. The `lib/tmdb`
+cache holds a Show for hours, and an Episode scored since — one aired after
+the Show was cached — is missing from that answer without being Gone. So a
+record missing from the cached Show is a candidate, and the page asks TMDB
+again past the cache before listing it. That costs a Viewer with an Episode
+truly Gone a fresh request on every visit to its Show, which is rare, and
+nobody else anything. Specials are asked for too, since a Viewer can score
+one, though the lists that place a Show leave them out.

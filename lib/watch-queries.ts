@@ -13,6 +13,7 @@ import {
   isScore,
   type Marking,
   PAGE_SIZE,
+  type RecordedEpisode,
   scoreOf,
   TRACKED_CEILING,
   type TrackedMedia,
@@ -176,6 +177,51 @@ export const answeredEpisodeLookup = async (
 ): Promise<ViewerEpisodeLookup> => ({
   markings: await answeredFor<EpisodeLookup>(asked, new Map(), (viewerId) =>
     episodeLookup(viewerId, episodeIds),
+  ),
+  viewerKey: viewerKeyOf(asked),
+});
+
+/**
+ * Every Score one Viewer has given the Episodes of one Show, keyed by TMDB's
+ * id for each Episode, latest scored first. Found by the Show's id without
+ * asking TMDB, which is what lets a Show's page find the records TMDB no
+ * longer lists an Episode for.
+ * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
+ */
+export const showEpisodeLookup = async (
+  viewerId: string,
+  showId: number,
+): Promise<EpisodeLookup> => {
+  const rows = await db
+    .select({
+      episodeId: episodeRecords.episodeId,
+      score: episodeRecords.score,
+    })
+    .from(episodeRecords)
+    .where(
+      and(
+        eq(episodeRecords.viewerId, viewerId),
+        eq(episodeRecords.showId, showId),
+      ),
+    )
+    .orderBy(desc(episodeRecords.updatedAt), episodeRecords.episodeId);
+
+  // a Map keeps the order it was built in, which is the query's
+  return new Map(
+    rows.map((row) => [row.episodeId, toEpisodeMarking(row.score)]),
+  );
+};
+
+/**
+ * `showEpisodeLookup` for a page, answered the way `answeredEpisodeLookup`
+ * is and with its key beside it for the same reason.
+ */
+export const answeredShowEpisodeLookup = async (
+  asked: ViewerAnswer,
+  showId: number,
+): Promise<ViewerEpisodeLookup> => ({
+  markings: await answeredFor<EpisodeLookup>(asked, new Map(), (viewerId) =>
+    showEpisodeLookup(viewerId, showId),
   ),
   viewerKey: viewerKeyOf(asked),
 });
@@ -424,7 +470,7 @@ export const clearWatchRecord = async (
  */
 export const writeEpisodeRecord = async (
   viewerId: string,
-  episode: { episodeId: number; showId: number },
+  episode: RecordedEpisode,
   marking: EpisodeMarking,
 ): Promise<void> => {
   await db.batch([
