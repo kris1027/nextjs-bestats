@@ -82,7 +82,8 @@ const Control = async ({
 }): Promise<JSX.Element | null> => {
   const asked = await answeredViewer();
 
-  if (media.kind === 'tv') return <ShowMarking asked={asked} id={media.id} />;
+  if (media.kind === 'tv')
+    return <ShowControlSlot asked={asked} id={media.id} />;
 
   const lookup = await answeredWatchLookup(asked, [media]);
 
@@ -107,7 +108,7 @@ const Control = async ({
  * this path is the one the lists place the Show by, so it is their cache.
  * Nothing when either lookup went Unanswered, which is one question.
  */
-const ShowMarking = async ({
+const ShowControlSlot = async ({
   asked,
   id,
 }: {
