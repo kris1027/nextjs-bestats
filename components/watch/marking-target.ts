@@ -5,6 +5,8 @@ import {
   markFromForm,
   scoreEpisode,
   scoreEpisodeFromForm,
+  unscoreEpisode,
+  unscoreEpisodeFromForm,
 } from '@/lib/watch-actions';
 
 /**
@@ -47,4 +49,21 @@ const episodeTarget = ({
   },
 });
 
-export { episodeTarget, mediaTarget, type MarkingTarget };
+/**
+ * An Episode TMDB no longer lists, unscored. Named by the id its record is
+ * keyed on and its Show, since it has no position left for TMDB to find it at.
+ * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
+ */
+const goneEpisodeTarget = ({
+  showId,
+  episodeId,
+}: {
+  showId: number;
+  episodeId: number;
+}): MarkingTarget => ({
+  press: unscoreEpisode,
+  post: unscoreEpisodeFromForm,
+  fields: { show: String(showId), id: String(episodeId) },
+});
+
+export { episodeTarget, goneEpisodeTarget, mediaTarget, type MarkingTarget };
