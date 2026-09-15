@@ -313,6 +313,32 @@ test('a Stopped Movie is a throw, and nothing is written', async () => {
   expect(await rowsOf(currentViewer.id)).toHaveLength(0);
 });
 
+test('scoring an Episode of a Stopped Show ends the Stopped record, which is how it resumes', async () => {
+  currentViewer.id = await viewer();
+
+  await scoreEpisode(scoring('8'));
+  await mark(press('tv', '95396', 'stopped'));
+
+  // rescoring is scoring: the Viewer watched it again
+  expect(await scoreEpisode(scoring('9'))).toEqual({ marking: watchedAt(9) });
+  expect(await rowsOf(currentViewer.id)).toHaveLength(0);
+});
+
+test('unscoring every Episode of a Stopped Show leaves it Stopped', async () => {
+  currentViewer.id = await viewer();
+
+  await scoreEpisode(scoring('8'));
+  await mark(press('tv', '95396', 'stopped'));
+
+  // the same Score again unscores the only Episode scored
+  expect(await scoreEpisode(scoring('8'))).toEqual({ marking: null });
+
+  const rows = await rowsOf(currentViewer.id);
+
+  expect(rows).toHaveLength(1);
+  expect(rows[0]?.state).toBe('stopped');
+});
+
 /** What a Show's page posts to unscore a Gone Episode. */
 const unscoring = (show: string, id: string, value: string): FormData => {
   const formData = new FormData();

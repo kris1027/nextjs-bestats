@@ -462,10 +462,11 @@ export const clearWatchRecord = async (
  * reason `writeWatchRecord` gives. The Show's id is written on the insert
  * only: an Episode does not change Shows.
  *
- * The Show's Planned record goes in the same batch, since Planned lasts only
- * until the first Episode. One batch because the HTTP driver has no
- * interactive transactions, and a Score written without the delete would
- * leave the Show Planned and under way at once.
+ * The Show's own record goes in the same batch, whichever it is: Planned
+ * lasts only until the first Episode, and watching another Episode of a
+ * Stopped Show is how a Viewer resumes it. One batch because the HTTP driver
+ * has no interactive transactions, and a Score written without the delete
+ * would leave the Show Planned and under way at once.
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const writeEpisodeRecord = async (
@@ -487,7 +488,6 @@ export const writeEpisodeRecord = async (
         and(
           eq(watchRecords.viewerId, viewerId),
           whereMedia({ kind: 'tv', id: episode.showId }),
-          eq(watchRecords.state, 'planned'),
         ),
       ),
   ]);

@@ -359,6 +359,16 @@ test('a Show is written Stopped only once one of its Episodes is scored', async 
   expect(markingOf(await watchLookup(viewerId, [show]), show)).toEqual(STOPPED);
 });
 
+test("scoring an Episode deletes its Show's record, Planned or Stopped", async () => {
+  const viewerId = await viewer();
+  const show = { kind: 'tv', id: HALF_LOOP.showId } as const;
+
+  await writeWatchRecord(viewerId, show, STOPPED);
+  await writeEpisodeRecord(viewerId, HALF_LOOP, watchedAt(8));
+
+  expect((await watchLookup(viewerId, [show])).size).toBe(0);
+});
+
 test("another Show's scored Episodes do not refuse Planned on this one", async () => {
   const viewerId = await viewer();
 
