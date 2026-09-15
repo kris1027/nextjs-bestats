@@ -99,7 +99,7 @@ reads `lib/media`, never the other way — and `lib/watch.ts` reads only its
 types: `lib/media` reaches `lib/tmdb` and `next/cache`, so a value imported
 there puts TMDB's client in a browser bundle with no type error. A rule that
 needs one, like `hasAired`, goes in `lib/watch-lists.ts`, which places what a
-Viewer tracks on the Watchlist or Upcoming.
+Viewer tracks on the Watchlist, Upcoming or Watched.
 
 A `ViewerLookup` is what a page hands its cards: that answer, and the key of
 the Viewer whose markings are in it. An Episode page has no cards and hands
