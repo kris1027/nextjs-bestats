@@ -159,7 +159,7 @@ const MediaDetailSkeleton = (): JSX.Element => (
   <DetailFrameSkeleton>
     <HeadingSkeleton facts={['Released: October 15, 1999', '2h 19m']} />
     <div className='max-w-xs'>
-      <MarkingControlSkeleton kind='movie' />
+      <MarkingControlSkeleton />
     </div>
     <OverviewSkeleton />
   </DetailFrameSkeleton>

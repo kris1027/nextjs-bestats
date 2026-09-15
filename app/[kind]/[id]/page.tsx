@@ -5,7 +5,10 @@ import { type JSX, Suspense } from 'react';
 import { LinkRows } from '@/components/media/link-rows';
 import { MediaDetail } from '@/components/media/media-detail';
 import { MediaDetailSkeleton } from '@/components/media/media-skeleton';
-import { MarkingControlSkeleton } from '@/components/watch/control-skeleton';
+import {
+  MarkingControlSkeleton,
+  ShowControlSkeleton,
+} from '@/components/watch/control-skeleton';
 import { GoneEpisodeRow } from '@/components/watch/gone-episode-row';
 import { MarkingControl } from '@/components/watch/marking-control';
 import { ShowControl } from '@/components/watch/show-control';
@@ -243,7 +246,15 @@ const Found = async ({
     <MediaDetail
       media={media}
       control={
-        <Suspense fallback={<MarkingControlSkeleton kind={ref.kind} />}>
+        <Suspense
+          fallback={
+            ref.kind === 'tv' ? (
+              <ShowControlSkeleton />
+            ) : (
+              <MarkingControlSkeleton />
+            )
+          }
+        >
           <Control media={ref} />
         </Suspense>
       }
