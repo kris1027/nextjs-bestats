@@ -2,7 +2,9 @@ import { expect, test } from 'vitest';
 
 import type { SeasonEpisodes } from '@/lib/media';
 import {
+  type EpisodeLookup,
   finishedAt,
+  goneEpisodes,
   isScore,
   marked,
   markingFrom,
@@ -11,6 +13,7 @@ import {
   PLANNED,
   refOf,
   SCORES,
+  type Score,
   takesScore,
   toLookup,
   toMarkedMedia,
@@ -309,4 +312,36 @@ test('an unscored Special does not keep an ended Show from being finished', () =
       scoredOn({ 102: 5 }),
     ),
   ).toEqual(new Date(Date.UTC(2026, 8, 5)));
+});
+
+/**
+ * A Viewer's Episode records for one Show, as id and Score pairs: pairs and
+ * not an object, whose integer keys would come back sorted.
+ */
+const records = (...scores: [number, Score][]): EpisodeLookup =>
+  new Map(scores.map(([id, score]) => [id, watchedAt(score)]));
+
+test('a record for an Episode TMDB no longer lists is Gone, with its Score', () => {
+  expect(
+    goneEpisodes([season(1, 3)], records([101, 8], [999, 6], [102, 7])),
+  ).toEqual([{ episodeId: 999, marking: watchedAt(6) }]);
+});
+
+test('a scored Special TMDB still lists is not Gone', () => {
+  expect(
+    goneEpisodes([season(1, 2), season(0, 2)], records([1, 9], [101, 4])),
+  ).toEqual([]);
+});
+
+test('Gone Episodes keep the order the records came in', () => {
+  expect(
+    goneEpisodes([season(1, 1)], records([998, 3], [101, 5], [997, 10])),
+  ).toEqual([
+    { episodeId: 998, marking: watchedAt(3) },
+    { episodeId: 997, marking: watchedAt(10) },
+  ]);
+});
+
+test('a Show with no records has no Gone Episodes', () => {
+  expect(goneEpisodes([season(1, 3)], records())).toEqual([]);
 });

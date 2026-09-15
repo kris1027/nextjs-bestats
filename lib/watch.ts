@@ -437,6 +437,38 @@ export const finishedAt = (
 };
 
 /**
+ * A Viewer's record for an Episode TMDB no longer lists: the id it is keyed
+ * on and the Score it holds, which is all that is left to draw, since a
+ * record stores nothing from TMDB.
+ * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
+ */
+export type GoneEpisode = { episodeId: number; marking: EpisodeMarking };
+
+/**
+ * The records among a Show's that are for Episodes TMDB no longer lists, in
+ * the order the lookup holds them. Specials count as listed, since a Viewer
+ * can score one.
+ *
+ * Only as true as the seasons it is handed: an Unanswered season read as an
+ * empty one would make every record in it Gone, so it takes TMDB's whole
+ * answer, which `showEpisodes` throws rather than cut short. It only reads,
+ * and nothing it finds is deleted — one wrong answer from TMDB would
+ * otherwise destroy a Score.
+ */
+export const goneEpisodes = (
+  seasons: readonly SeasonEpisodes[],
+  records: EpisodeLookup,
+): GoneEpisode[] => {
+  const listed = new Set(
+    seasons.flatMap((season) => season.episodes.map((episode) => episode.id)),
+  );
+
+  return [...records]
+    .filter(([episodeId]) => !listed.has(episodeId))
+    .map(([episodeId, marking]) => ({ episodeId, marking }));
+};
+
+/**
  * A Movie or Show a Viewer is tracking, and when they last marked it — the
  * Movie, the Show, or any of the Show's Episodes. What a list places, orders
  * and pages. The Episodes the Viewer has scored come along, by TMDB's id and
