@@ -41,6 +41,13 @@ export type TmdbShowDetails = {
   number_of_seasons: number;
   overview: string;
   seasons: TmdbSeasonSummary[];
+  /**
+   * TMDB's word for where a Show is in its run: `Returning Series`,
+   * `In Production`, `Planned`, `Pilot`, `Ended` or `Canceled`. A string
+   * rather than those six, since TMDB may add a seventh and the app has to
+   * go on reading the rest.
+   */
+  status: string;
 };
 
 /**

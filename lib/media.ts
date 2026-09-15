@@ -158,6 +158,14 @@ export type SeasonEpisodes = {
   episodes: readonly { id: number; number: number; airDate: string | null }[];
 };
 
+/**
+ * A Show's regular seasons with their Episodes, and whether TMDB says the Show
+ * has ended — which, with nothing left after the furthest a Viewer has
+ * scored, is what makes the Show finished rather than waited for.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ */
+export type ShowEpisodes = { ended: boolean; seasons: SeasonEpisodes[] };
+
 /** A Show as a season or an Episode page names it: enough to link back. */
 export type ShowName = { id: number; label: string };
 
@@ -504,12 +512,24 @@ export const showSeasons = async (id: number): Promise<Listing[] | null> => {
   return show.seasons.map(toSeasonListing).sort(bySeasonOrder);
 };
 
+/**
+ * TMDB's two statuses for a Show that will air nothing more. Anything else —
+ * `Returning Series`, `In Production`, a status TMDB adds tomorrow — is a
+ * Show that has not ended, since calling one finished wrongly is a claim
+ * about the Viewer, while holding one in Upcoming wrongly is only visible.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ */
+const ENDED_STATUSES: ReadonlySet<string> = new Set(['Ended', 'Canceled']);
+
+/** Whether TMDB's `status` says a Show will air nothing more. */
+export const hasEnded = (status: string): boolean => ENDED_STATUSES.has(status);
+
 /** The most sub-requests TMDB folds into one `append_to_response`. */
 const APPENDS_PER_REQUEST = 20;
 
 /**
- * Every regular season of a Show with its Episodes' ids, in viewing order, or
- * `null` when TMDB has no such Show. Throws when TMDB answers for the Show and
+ * Every regular season of a Show with its Episodes' ids, in viewing order, and
+ * whether it has ended, or `null` when TMDB has no such Show. Throws when TMDB answers for the Show and
  * not for every one of its seasons, since part of a Show is Unanswered and not
  * a shorter Show. Specials are left out, since they never decide which Episode
  * comes next. The Show's own request is the one its card already made, and the
@@ -519,7 +539,7 @@ const APPENDS_PER_REQUEST = 20;
  */
 export const showEpisodes = async (
   showId: number,
-): Promise<SeasonEpisodes[] | null> => {
+): Promise<ShowEpisodes | null> => {
   const show = await findTMDB<TmdbShowDetails>(`/tv/${showId}`);
 
   if (!show) return null;
@@ -547,7 +567,7 @@ export const showEpisodes = async (
   // the Show went between the two requests, which is TMDB's answer too
   if (answers.some((answer) => answer === null)) return null;
 
-  return numbers.map((number) => {
+  const seasons = numbers.map((number) => {
     const season = answers
       .map((answer) => answer?.[`season/${number}`])
       .find((found) => found !== undefined);
@@ -568,6 +588,8 @@ export const showEpisodes = async (
       })),
     };
   });
+
+  return { ended: hasEnded(show.status), seasons };
 };
 
 /**
