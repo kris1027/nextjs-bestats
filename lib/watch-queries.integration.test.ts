@@ -15,9 +15,11 @@ import {
 } from '@/lib/watch';
 import {
   answeredEpisodeLookup,
+  answeredShowEpisodeLookup,
   clearEpisodeRecord,
   clearWatchRecord,
   episodeLookup,
+  showEpisodeLookup,
   tallyMarking,
   trackedMedia,
   watchedMovieCount,
@@ -368,6 +370,44 @@ test('a Visitor has an empty Episode lookup and an Unanswered sign-in has none',
       await answeredEpisodeLookup({ answer: 'unanswered' }, [
         HALF_LOOP.episodeId,
       ])
+    ).markings,
+  ).toBeNull();
+});
+
+test("a Show's Episode lookup holds every Score its Episodes have, latest first, and no other Show's", async () => {
+  const viewerId = await viewer();
+  const otherShow = { episodeId: 63056, showId: GOT.id };
+
+  await writeEpisodeRecord(viewerId, HALF_LOOP, watchedAt(8));
+  await writeEpisodeRecord(viewerId, otherShow, watchedAt(5));
+  await writeEpisodeRecord(viewerId, IN_PERPETUITY, watchedAt(6));
+
+  expect([...(await showEpisodeLookup(viewerId, HALF_LOOP.showId))]).toEqual([
+    [IN_PERPETUITY.episodeId, watchedAt(6)],
+    [HALF_LOOP.episodeId, watchedAt(8)],
+  ]);
+});
+
+test("one Viewer's Episodes of a Show are not another's", async () => {
+  const scored = await viewer();
+  const other = await viewer();
+
+  await writeEpisodeRecord(scored, HALF_LOOP, watchedAt(8));
+
+  expect((await showEpisodeLookup(other, HALF_LOOP.showId)).size).toBe(0);
+});
+
+test("a Visitor has an empty lookup of a Show's Episodes and an Unanswered sign-in has none", async () => {
+  expect(
+    (await answeredShowEpisodeLookup({ answer: 'visitor' }, HALF_LOOP.showId))
+      .markings?.size,
+  ).toBe(0);
+  expect(
+    (
+      await answeredShowEpisodeLookup(
+        { answer: 'unanswered' },
+        HALF_LOOP.showId,
+      )
     ).markings,
   ).toBeNull();
 });
