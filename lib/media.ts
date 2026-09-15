@@ -532,12 +532,12 @@ const APPENDS_PER_REQUEST = 20;
 
 /**
  * Every regular season of a Show with its Episodes' ids, in viewing order, and
- * whether it has ended, or `null` when TMDB has no such Show. Throws when TMDB answers for the Show and
- * not for every one of its seasons, since part of a Show is Unanswered and not
- * a shorter Show. Specials are left out, since they never decide which Episode
- * comes next. The Show's own request is the one its card already made, and the
- * seasons ride on as many more as TMDB's cap on appends needs — one, for all
- * but the longest Shows.
+ * whether it has ended, or `null` when TMDB has no such Show. Throws when TMDB
+ * answers for the Show and not for every one of its seasons, since part of a
+ * Show is Unanswered and not a shorter Show. Specials are left out, since they
+ * never decide which Episode comes next. The Show's own request is the one its
+ * card already made, and the seasons ride on as many more as TMDB's cap on
+ * appends needs — one, for all but the longest Shows.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 export const showEpisodes = async (
