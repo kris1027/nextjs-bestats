@@ -139,8 +139,17 @@ const GoneEpisodes = async ({
   // TMDB is asked only once there is a record it could have stopped listing
   if (!lookup.markings || lookup.markings.size === 0) return null;
 
-  const gone = goneEpisodes(
+  const candidates = goneEpisodes(
     await answeredShowEpisodes(id, { specials: true }),
+    lookup.markings,
+  );
+
+  if (!candidates || candidates.length === 0) return null;
+
+  // the cached Show can predate an Episode scored since, so Gone is said only
+  // on an answer as new as this request
+  const gone = goneEpisodes(
+    await answeredShowEpisodes(id, { specials: true, fresh: true }),
     lookup.markings,
   );
 

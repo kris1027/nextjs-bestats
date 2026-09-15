@@ -22,10 +22,14 @@ import type { TmdbEpisode, TmdbSeason, TmdbSeasonSummary } from '@/lib/tmdb';
 // TMDB stands in here: the requests are what is mocked, and the mapping into
 // the glossary's shapes is what is tested. The image hosts come from the
 // environment, which a commit has no copy of.
-const tmdb = vi.hoisted(() => ({ findTMDB: vi.fn() }));
+const tmdb = vi.hoisted(() => ({
+  findTMDB: vi.fn(),
+  findTMDBUncached: vi.fn(),
+}));
 
 vi.mock('@/lib/tmdb', () => ({
   findTMDB: tmdb.findTMDB,
+  findTMDBUncached: tmdb.findTMDBUncached,
   fetchTMDB: vi.fn(),
   posterUrl: (path: string) => `poster${path}`,
   backdropUrl: (path: string) => `backdrop${path}`,
@@ -34,6 +38,7 @@ vi.mock('@/lib/tmdb', () => ({
 
 afterEach(() => {
   tmdb.findTMDB.mockReset();
+  tmdb.findTMDBUncached.mockReset();
 });
 
 test('isMediaId admits a positive integer', () => {
@@ -519,6 +524,18 @@ test('answeredShowEpisodes is Unanswered where showEpisodes throws, never a shor
   );
 
   expect(await answeredShowEpisodes(95396)).toEqual({ answer: 'unanswered' });
+});
+
+test('showEpisodes asks past the cache for every request when fresh', async () => {
+  tmdb.findTMDBUncached.mockImplementation(async (path: string) =>
+    path === '/tv/95396' ? withSeasons([1]) : appended(path),
+  );
+
+  await showEpisodes(95396, { fresh: true });
+
+  // half a fresh answer would pair a new season list with stale Episodes
+  expect(tmdb.findTMDBUncached).toHaveBeenCalledTimes(2);
+  expect(tmdb.findTMDB).not.toHaveBeenCalled();
 });
 
 test('answeredShowEpisodes is Gone for a Show TMDB does not have', async () => {

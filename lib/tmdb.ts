@@ -140,7 +140,7 @@ const request = async (path: string): Promise<Response> => {
 };
 
 /**
- * The two fetchers below are cached by directive rather than by a fetch
+ * `fetchTMDB` and `findTMDB` are cached by directive rather than by a fetch
  * option: under `cacheComponents` the option is superseded, and this is the
  * one module that knows a request is made at all. An hour, as the option
  * said. A thrown request never reaches the cache, so Unanswered stays a
@@ -173,6 +173,18 @@ export const findTMDB = async <T>(path: string): Promise<T | null> => {
   'use cache';
   cacheLife(TMDB_CACHE_LIFE);
 
+  return findTMDBUncached<T>(path);
+};
+
+/**
+ * `findTMDB` past the cache, for the one claim that cannot wait out its
+ * hours: that an Episode is Gone. A cached Show can predate an Episode the
+ * Viewer has scored since, so a record missing from it is only a candidate,
+ * and this is what confirms it. Never a first read — every Show page would
+ * ask TMDB on every visit.
+ * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
+ */
+export const findTMDBUncached = async <T>(path: string): Promise<T | null> => {
   const res = await request(path);
 
   if (res.status === 404) return null;

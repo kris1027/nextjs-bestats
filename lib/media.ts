@@ -8,6 +8,7 @@ import {
   backdropUrl,
   fetchTMDB,
   findTMDB,
+  findTMDBUncached,
   posterUrl,
   type SearchResponse,
   stillUrl,
@@ -535,6 +536,9 @@ const specialsLast = (a: number, b: number): number =>
   Number(a === 0) - Number(b === 0) || a - b;
 
 /** The most sub-requests TMDB folds into one `append_to_response`. */
+
+/** What `showEpisodes` asks for beyond a Show's regular seasons. */
+type ShowEpisodesOptions = { specials?: boolean; fresh?: boolean };
 const APPENDS_PER_REQUEST = 20;
 
 /**
@@ -552,12 +556,16 @@ const APPENDS_PER_REQUEST = 20;
  * one does need them, since a Viewer can score a Special, and one missing
  * from this answer would be taken for Gone.
  * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
+ *
+ * `fresh` goes past the `lib/tmdb` cache, which only confirming a Gone
+ * Episode may ask for; `findTMDBUncached` says why.
  */
 export const showEpisodes = async (
   showId: number,
-  { specials = false }: { specials?: boolean } = {},
+  { specials = false, fresh = false }: ShowEpisodesOptions = {},
 ): Promise<ShowEpisodes | null> => {
-  const show = await findTMDB<TmdbShowDetails>(`/tv/${showId}`);
+  const find = fresh ? findTMDBUncached : findTMDB;
+  const show = await find<TmdbShowDetails>(`/tv/${showId}`);
 
   if (!show) return null;
 
@@ -575,7 +583,7 @@ export const showEpisodes = async (
   );
   const answers = await Promise.all(
     batches.map((batch) =>
-      findTMDB<TmdbShowWithSeason>(
+      find<TmdbShowWithSeason>(
         `/tv/${showId}?append_to_response=${batch.map((number) => `season/${number}`).join(',')}`,
       ),
     ),
@@ -625,7 +633,7 @@ export type ShowEpisodesAnswer =
  */
 export const answeredShowEpisodes = async (
   showId: number,
-  options: { specials?: boolean } = {},
+  options: ShowEpisodesOptions = {},
 ): Promise<ShowEpisodesAnswer> => {
   try {
     const show = await showEpisodes(showId, options);
