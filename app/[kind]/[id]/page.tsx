@@ -8,7 +8,8 @@ import { MediaDetailSkeleton } from '@/components/media/media-skeleton';
 import { MarkingControlSkeleton } from '@/components/watch/control-skeleton';
 import { GoneEpisodeRow } from '@/components/watch/gone-episode-row';
 import { MarkingControl } from '@/components/watch/marking-control';
-import { answeredViewer } from '@/lib/auth';
+import { ShowControl } from '@/components/watch/show-control';
+import { answeredViewer, type ViewerAnswer } from '@/lib/auth';
 import {
   answeredShowEpisodes,
   isKind,
@@ -19,7 +20,7 @@ import {
   seasonAddress,
   showSeasons,
 } from '@/lib/media';
-import { goneEpisodes, markingOf } from '@/lib/watch';
+import { goneEpisodes, markingOf, showProgress } from '@/lib/watch';
 import {
   answeredShowEpisodeLookup,
   answeredWatchLookup,
@@ -80,6 +81,9 @@ const Control = async ({
   media: MediaRef;
 }): Promise<JSX.Element | null> => {
   const asked = await answeredViewer();
+
+  if (media.kind === 'tv') return <ShowMarking asked={asked} id={media.id} />;
+
   const lookup = await answeredWatchLookup(asked, [media]);
 
   if (lookup.markings === null) return null;
@@ -87,8 +91,48 @@ const Control = async ({
   return (
     <MarkingControl
       key={lookup.viewerKey}
-      media={media}
+      movie={{ kind: 'movie', id: media.id }}
       marking={markingOf(lookup.markings, media)}
+    />
+  );
+};
+
+/**
+ * A Show's control, which needs how far the Viewer has got as well as its
+ * record: the one button it draws is Planned before they have scored an
+ * Episode, Stop watching after, and nothing once they have finished it.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ *
+ * TMDB is asked only for a Show under way, since only finishing needs it;
+ * this path is the one the lists place the Show by, so it is their cache.
+ * Nothing when either lookup went Unanswered, which is one question.
+ */
+const ShowMarking = async ({
+  asked,
+  id,
+}: {
+  asked: ViewerAnswer;
+  id: number;
+}): Promise<JSX.Element | null> => {
+  const show = { kind: 'tv', id } as const;
+  const [lookup, episodes] = await Promise.all([
+    answeredWatchLookup(asked, [show]),
+    answeredShowEpisodeLookup(asked, id),
+  ]);
+
+  if (lookup.markings === null || episodes.markings === null) return null;
+
+  const progress =
+    episodes.markings.size === 0
+      ? 'unstarted'
+      : showProgress(await answeredShowEpisodes(id), episodes.markings);
+
+  return (
+    <ShowControl
+      key={lookup.viewerKey}
+      show={show}
+      marking={markingOf(lookup.markings, show)}
+      progress={progress}
     />
   );
 };
