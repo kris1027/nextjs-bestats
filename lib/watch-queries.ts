@@ -280,12 +280,17 @@ export const watchedMoviesPage = async (
 
 /**
  * Every Movie and Show a Viewer is tracking: each Planned record, and each
- * Show with an Episode scored, whether or not it has a record of its own —
- * unless that record is Stopped, since a Stopped Show is on no list.
+ * Show with an Episode scored, whether or not it has a record of its own.
  * `markedAt` is the latest marking on the Movie, the Show or any of its
  * Episodes, which is what the Watchlist orders by, and a Show brings the ids
  * of its scored Episodes for `upNext`.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
+ *
+ * Each Stopped Show comes too, flagged, though it is tracked by no list:
+ * whether it is Gone is TMDB's to say, and a Gone one is drawn so its record
+ * can be taken back. `placed` leaves every other one off. It shares the
+ * ceiling with what is tracked, since it costs TMDB the same request.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const trackedMedia = async (
   viewerId: string,
@@ -336,14 +341,15 @@ export const trackedMedia = async (
       scored: sql<
         Record<string, number>
       >`coalesce(json_object_agg(${markings.episodeId}, extract(epoch from ${markings.markedAt}) * 1000) filter (where ${markings.episodeId} is not null), '{}'::json)`,
+      stopped: sql<boolean>`bool_or(${markings.stopped})`,
     })
     .from(markings)
     .groupBy(markings.kind, markings.tmdbId)
-    // a Stopped Show keeps its Episodes' Scores and leaves every list
-    // — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+    // a Stopped Show whose Episodes are all unscored still comes, since its
+    // record is what a Gone one's card takes back
     .having(
-      sql`not bool_or(${markings.stopped})
-        and (bool_or(${markings.planned}) or count(${markings.episodeId}) > 0)`,
+      sql`bool_or(${markings.planned}) or bool_or(${markings.stopped})
+        or count(${markings.episodeId}) > 0`,
     )
     // the ceiling here too, so what is read is bounded and not only what is
     // placed; one past it, so `withinCeiling` can tell a list cut short from
@@ -351,7 +357,7 @@ export const trackedMedia = async (
     .orderBy(sql`max(${markings.markedAt}) desc`)
     .limit(TRACKED_CEILING + 1);
 
-  return rows.map(({ kind, tmdbId, markedAt, scored }) => ({
+  return rows.map(({ kind, tmdbId, markedAt, scored, stopped }) => ({
     ref: { kind, id: tmdbId },
     markedAt,
     scored: new Map(
@@ -360,6 +366,7 @@ export const trackedMedia = async (
         new Date(Number(at)),
       ]),
     ),
+    stopped,
   }));
 };
 

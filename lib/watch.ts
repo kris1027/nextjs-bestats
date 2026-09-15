@@ -579,6 +579,13 @@ export type TrackedMedia = {
   ref: MediaRef;
   markedAt: Date;
   scored: ScoredEpisodes;
+  /**
+   * Whether this is a Stopped Show, which is tracked by no list and comes
+   * along only because TMDB may call it Gone: then its card is the one place
+   * left to take the record back, so it is drawn as Gone Media is.
+   * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+   */
+  stopped: boolean;
 };
 
 /**

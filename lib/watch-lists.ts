@@ -82,6 +82,7 @@ const WATCHLIST: ReadonlySet<PlacedList> = new Set(['watchlist']);
 const UPCOMING: ReadonlySet<PlacedList> = new Set(['upcoming']);
 const WATCHED: ReadonlySet<PlacedList> = new Set(['watched']);
 const BOTH: ReadonlySet<PlacedList> = new Set(['watchlist', 'upcoming']);
+const NONE: ReadonlySet<PlacedList> = new Set();
 
 /** The latest marked first, which is the Watchlist's order and the ceiling's. */
 const latestMarkedFirst = (a: TrackedMedia, b: TrackedMedia): number =>
@@ -119,8 +120,26 @@ const calendarDay = (date: string | null): CalendarDay | null =>
  * Episode has not aired or has no date, a Show the Viewer is caught up with
  * that has not ended — is Upcoming; a Show the Viewer has finished is on
  * Watched and nowhere else.
+ *
+ * A Stopped Show is on no list, unless TMDB says it is Gone: its page is a
+ * 404, so the card Gone Media gets on both lists is the one place left to
+ * take its record back. One TMDB did not answer for still has a page.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const placed = (
+  tracked: TrackedMedia,
+  answer: TrackedAnswer,
+  today: Date,
+): PlacedMedia => {
+  const placement = placedByAnswer(tracked, answer, today);
+
+  return tracked.stopped && answer.answer !== 'gone'
+    ? { ...placement, lists: NONE }
+    : placement;
+};
+
+/** Places one tracked Movie or Show by TMDB's answer alone. */
+const placedByAnswer = (
   tracked: TrackedMedia,
   answer: TrackedAnswer,
   today: Date,

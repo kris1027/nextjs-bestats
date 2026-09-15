@@ -507,7 +507,7 @@ test('a Show under way is tracked with when each Episode was scored, at the late
   expect(show?.markedAt).toEqual(new Date('2026-09-10T12:00:00Z'));
 });
 
-test('a Stopped Show is not tracked, however many of its Episodes are scored', async () => {
+test('a Stopped Show comes flagged, however many of its Episodes are scored', async () => {
   const viewerId = await viewer();
 
   await writeEpisodeRecord(
@@ -519,8 +519,21 @@ test('a Stopped Show is not tracked, however many of its Episodes are scored', a
   await writeWatchRecord(viewerId, GOT, STOPPED);
   await writeWatchRecord(viewerId, HEAT, PLANNED);
 
-  // the Show with no Episodes scored is left out too, Stopped all the same
-  expect(await trackedOf(viewerId)).toEqual([{ ref: HEAT, scored: [] }]);
+  // flagged rather than left out, since only TMDB can say one is Gone; the
+  // Show with no Episodes scored comes too, Stopped all the same
+  const stopped = (await trackedMedia(viewerId)).map((item) => ({
+    ref: item.ref,
+    stopped: item.stopped,
+  }));
+
+  expect(stopped).toEqual(
+    expect.arrayContaining([
+      { ref: BREAKING_BAD, stopped: true },
+      { ref: GOT, stopped: true },
+      { ref: HEAT, stopped: false },
+    ]),
+  );
+  expect(stopped).toHaveLength(3);
 });
 
 test('tracked Media comes latest marked first, and stops one past the ceiling', async () => {
