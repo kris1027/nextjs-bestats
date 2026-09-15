@@ -66,6 +66,34 @@ const pressingViewer = async (
 };
 
 /**
+ * The sentence a press past `MARKS_PER_MINUTE` gets, or `null` for one that
+ * may go on. Counting is the first thing each action does once its input is
+ * read, so a refused press costs one statement and no read or write.
+ */
+const slowedDown = async (
+  viewerId: string,
+): Promise<{ error: string } | null> =>
+  (await tallyMarking(viewerId)) > MARKS_PER_MINUTE
+    ? { error: 'Slow down. Try again in a minute.' }
+    : null;
+
+/**
+ * The Score an Episode's form says was pressed. Throws for anything else:
+ * Planned is a marking, but not one an Episode can hold, and no button that
+ * posts to an Episode's action carries it.
+ */
+const pressedScore = (formData: FormData): EpisodeMarking => {
+  const field = String(formData.get(MARKING_FIELD) ?? '');
+  const pressed = markingFrom(field);
+
+  if (!pressed || !isEpisodeMarking(pressed)) {
+    throw new Error(`Not a Score: ${field}`);
+  }
+
+  return pressed;
+};
+
+/**
  * What `mark` hands back to the control. On success, what the Watch Record
  * says now — `null` once unmarked, and a Score with it where it is Watched.
  * On a failed write, a sentence for the Visitor; the cause goes to the server
@@ -118,9 +146,9 @@ export const mark = async (formData: FormData): Promise<MarkResult> => {
   const ref: MediaRef = { kind, id: Number(id) };
 
   try {
-    if ((await tallyMarking(currentViewer.id)) > MARKS_PER_MINUTE) {
-      return { error: 'Slow down. Try again in a minute.' };
-    }
+    const refused = await slowedDown(currentViewer.id);
+
+    if (refused) return refused;
 
     const lookup = await watchLookup(currentViewer.id, [ref]);
     const marking = marked(markingOf(lookup, ref), pressed);
@@ -191,17 +219,12 @@ export const scoreEpisode = async (
   const show = String(formData.get('show') ?? '');
   const season = String(formData.get('season') ?? '');
   const number = String(formData.get('episode') ?? '');
-  const field = String(formData.get(MARKING_FIELD) ?? '');
-  const pressed = markingFrom(field);
 
   if (!isMediaId(show)) throw new Error(`Not a TMDB id: ${show}`);
   if (!isSeasonNumber(season)) throw new Error(`Not a season: ${season}`);
   if (!isEpisodeNumber(number)) throw new Error(`Not an Episode: ${number}`);
-  // Planned is a marking, but not one an Episode can hold, and no button on
-  // an Episode's page posts it
-  if (!pressed || !isEpisodeMarking(pressed)) {
-    throw new Error(`Not a Score: ${field}`);
-  }
+
+  const pressed = pressedScore(formData);
 
   const ref: EpisodeRef = {
     showId: Number(show),
@@ -211,9 +234,9 @@ export const scoreEpisode = async (
   const where = `tv/${show} S${season}E${number}`;
 
   try {
-    if ((await tallyMarking(asked.id)) > MARKS_PER_MINUTE) {
-      return { error: 'Slow down. Try again in a minute.' };
-    }
+    const refused = await slowedDown(asked.id);
+
+    if (refused) return refused;
 
     const episode = await episodeDetails(ref);
 
@@ -281,21 +304,18 @@ export const unscoreEpisode = async (
 
   const show = String(formData.get('show') ?? '');
   const id = String(formData.get('id') ?? '');
-  const field = String(formData.get(MARKING_FIELD) ?? '');
-  const pressed = markingFrom(field);
 
   if (!isMediaId(show)) throw new Error(`Not a TMDB id: ${show}`);
   if (!isMediaId(id)) throw new Error(`Not a TMDB id: ${id}`);
-  if (!pressed || !isEpisodeMarking(pressed)) {
-    throw new Error(`Not a Score: ${field}`);
-  }
+
+  const pressed = pressedScore(formData);
 
   const episodeId = Number(id);
 
   try {
-    if ((await tallyMarking(asked.id)) > MARKS_PER_MINUTE) {
-      return { error: 'Slow down. Try again in a minute.' };
-    }
+    const refused = await slowedDown(asked.id);
+
+    if (refused) return refused;
 
     const lookup = await showEpisodeLookup(asked.id, Number(show));
     const current = episodeMarkingOf(lookup, episodeId);
