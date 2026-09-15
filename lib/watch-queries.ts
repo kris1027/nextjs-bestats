@@ -287,9 +287,12 @@ export const trackedMedia = async (
       markedAt: sql<Date>`max(${markings.markedAt})`.mapWith(
         watchRecords.updatedAt,
       ),
+      // each Episode's id and the moment it was scored, as epoch milliseconds:
+      // JSON because the driver parses it, where it hands a timestamp array
+      // over as the text of one
       scored: sql<
-        number[]
-      >`coalesce(array_agg(${markings.episodeId}) filter (where ${markings.episodeId} is not null), '{}')`,
+        Record<string, number>
+      >`coalesce(json_object_agg(${markings.episodeId}, extract(epoch from ${markings.markedAt}) * 1000) filter (where ${markings.episodeId} is not null), '{}'::json)`,
     })
     .from(markings)
     .groupBy(markings.kind, markings.tmdbId)
@@ -304,7 +307,12 @@ export const trackedMedia = async (
   return rows.map(({ kind, tmdbId, markedAt, scored }) => ({
     ref: { kind, id: tmdbId },
     markedAt,
-    scored: new Set(scored),
+    scored: new Map(
+      Object.entries(scored).map(([episodeId, at]) => [
+        Number(episodeId),
+        new Date(Number(at)),
+      ]),
+    ),
   }));
 };
 

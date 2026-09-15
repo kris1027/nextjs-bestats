@@ -14,7 +14,8 @@ import {
 // every placement below is read on this day
 const TODAY = new Date(Date.UTC(2026, 8, 14));
 
-// days counted from the end of August 2026, so a later day is a later marking
+// days counted from the end of August 2026, so a later day is a later
+// marking; each Episode is scored on the day the Media was last marked
 const tracked = (
   kind: Kind,
   id: number,
@@ -23,7 +24,9 @@ const tracked = (
 ): TrackedMedia => ({
   ref: { kind, id },
   markedAt: new Date(Date.UTC(2026, 8, day)),
-  scored: new Set(scored),
+  scored: new Map(
+    scored.map((episodeId) => [episodeId, new Date(Date.UTC(2026, 8, day))]),
+  ),
 });
 
 // Episode ids are season * 100 + number, so a failure names the Episode

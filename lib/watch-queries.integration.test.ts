@@ -459,7 +459,7 @@ test('a Visitor has an empty Episode lookup and an Unanswered sign-in has none',
 const trackedOf = async (viewerId: string) =>
   (await trackedMedia(viewerId)).map(({ ref, scored }) => ({
     ref,
-    scored: [...scored].sort(),
+    scored: [...scored.keys()].sort(),
   }));
 
 test('Planned Movies and Shows are tracked, and a Watched Movie is not', async () => {
@@ -495,7 +495,7 @@ const episodeMarkedAt = async (
     );
 };
 
-test('a Show under way is tracked with its scored Episodes, at the latest of them', async () => {
+test('a Show under way is tracked with when each Episode was scored, at the latest of them', async () => {
   const viewerId = await viewer();
 
   await writeEpisodeRecord(
@@ -515,7 +515,12 @@ test('a Show under way is tracked with its scored Episodes, at the latest of the
 
   expect(rest).toEqual([]);
   expect(show?.ref).toEqual(BREAKING_BAD);
-  expect([...(show?.scored ?? [])].sort()).toEqual([62085, 62086]);
+  expect(show?.scored).toEqual(
+    new Map([
+      [62085, new Date('2026-09-10T12:00:00Z')],
+      [62086, new Date('2026-09-02T12:00:00Z')],
+    ]),
+  );
   expect(show?.markedAt).toEqual(new Date('2026-09-10T12:00:00Z'));
 });
 

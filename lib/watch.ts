@@ -326,6 +326,12 @@ export type WatchRecordsPage = {
   total: number;
 };
 
+/**
+ * Which Episodes a Viewer has scored, by TMDB's id: as much as `upNext` asks
+ * of them, so a set of ids answers it as well as a tracked Show's map does.
+ */
+export type ScoredEpisodes = Pick<ReadonlySet<number>, 'has'>;
+
 /** Where an Episode sits in its Show, without the Show. */
 export type EpisodePosition = { season: number; episode: number };
 
@@ -355,7 +361,7 @@ export type UpNext =
  */
 export const upNext = (
   seasons: readonly SeasonEpisodes[],
-  scored: ReadonlySet<number>,
+  scored: ScoredEpisodes,
 ): UpNext => {
   // TMDB keeps Specials as season 0, which belongs to no run
   const regular = seasons.filter((season) => season.number !== 0);
@@ -386,15 +392,16 @@ export const upNext = (
 /**
  * A Movie or Show a Viewer is tracking, and when they last marked it — the
  * Movie, the Show, or any of the Show's Episodes. What a list places, orders
- * and pages. The ids of the Episodes the Viewer has scored come along, since a
- * Show's are what `upNext` reads, and a Movie's or a Planned Show's are
- * none.
+ * and pages. The Episodes the Viewer has scored come along, by TMDB's id and
+ * with when each was last scored, since a Show's are what `upNext` reads and
+ * the one that finished it says when the Show was finished; a Movie's or a
+ * Planned Show's are none.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 export type TrackedMedia = {
   ref: MediaRef;
   markedAt: Date;
-  scored: ReadonlySet<number>;
+  scored: ReadonlyMap<number, Date>;
 };
 
 /**
