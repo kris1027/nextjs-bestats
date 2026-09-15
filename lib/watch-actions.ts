@@ -24,6 +24,7 @@ import {
   marked,
   markingFrom,
   markingOf,
+  takesScore,
   watchKey,
 } from '@/lib/watch';
 import {
@@ -109,7 +110,7 @@ export const mark = async (formData: FormData): Promise<MarkResult> => {
   if (!pressed) throw new Error(`Not a marking: ${field}`);
   // a Show is followed through its Episodes, and its page draws no stars
   // — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
-  if (kind === 'tv' && pressed.state === 'watched') {
+  if (pressed.state === 'watched' && !takesScore(kind)) {
     throw new Error(`A Show is never Watched: ${field}`);
   }
 

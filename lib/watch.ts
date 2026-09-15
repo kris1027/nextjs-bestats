@@ -54,6 +54,15 @@ export type WatchedMarking = Extract<Marking, { state: 'watched' }>;
  */
 export type EpisodeMarking = WatchedMarking;
 
+/**
+ * Whether a Kind's own Watch Record can be Watched at a Score: a Movie's can,
+ * and a Show's never is, since a Show is followed through its Episodes. The
+ * star row, its skeleton, the action's refusal and the Watched list's paging
+ * all ask this, and the check constraint on `watch_records` says it too.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ */
+export const takesScore = (kind: Kind): boolean => kind === 'movie';
+
 /** Narrows a marking to one an Episode can hold. */
 export const isEpisodeMarking = (marking: Marking): marking is EpisodeMarking =>
   marking.state === 'watched';

@@ -8,7 +8,7 @@ import { PlannedButton } from '@/components/watch/planned-button';
 import { StarRow } from '@/components/watch/star-row';
 import { useMarking } from '@/components/watch/use-marking';
 import type { MediaRef } from '@/lib/media';
-import type { Marking } from '@/lib/watch';
+import { type Marking, takesScore } from '@/lib/watch';
 
 /**
  * The whole marking control for a piece of Media: Planned, and for a Movie the
@@ -43,7 +43,7 @@ const MarkingControl = ({
   return (
     <MarkingForm handle={handle}>
       <PlannedButton handle={handle} />
-      {media.kind === 'movie' ? <StarRow handle={handle} /> : null}
+      {takesScore(media.kind) ? <StarRow handle={handle} /> : null}
     </MarkingForm>
   );
 };

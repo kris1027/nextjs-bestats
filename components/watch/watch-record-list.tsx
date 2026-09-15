@@ -32,6 +32,7 @@ import {
   PAGE_SIZE,
   refOf,
   type TrackedMedia,
+  takesScore,
   toLookup,
   type WatchLookup,
   watchKey,
@@ -88,9 +89,9 @@ const EMPTY: Record<List, (kind: Kind) => string> = {
   // a Show is never marked Watched, so its tab says what finishing one takes
   // — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
   watched: (kind) =>
-    kind === 'tv'
-      ? 'No shows finished yet. A show that has ended will appear here once you have scored its last episode.'
-      : 'No movies watched yet. Score a movie and it will appear here.',
+    takesScore(kind)
+      ? `No ${KIND_WORDS[kind].other} watched yet. Score a ${KIND_WORDS[kind].one} and it will appear here.`
+      : `No ${KIND_WORDS[kind].other} finished yet. A ${KIND_WORDS[kind].one} that has ended will appear here once you have scored its last episode.`,
 };
 
 /**
@@ -471,7 +472,7 @@ const ListPage = async ({
   // 404s; page 1 of nothing is the empty state below, since a tab with nothing on
   // it still exists
   const { entries, markings, total } =
-    list === 'watched' && kind === 'movie'
+    list === 'watched' && takesScore(kind)
       ? await watchedMovieEntries(viewerId, page)
       : await placedEntries(viewerId, contents, { kind, page });
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));

@@ -11,6 +11,7 @@ import {
   PLANNED,
   refOf,
   SCORES,
+  takesScore,
   toLookup,
   toMarkedMedia,
   toMarking,
@@ -130,6 +131,11 @@ test('toMarkedMedia makes a marking of a row and keeps the Media', () => {
       score: null,
     }),
   ).toEqual({ kind: 'movie', tmdbId: 603, ...PLANNED });
+});
+
+test("a Movie's record takes a Score, and a Show's never does", () => {
+  expect(takesScore('movie')).toBe(true);
+  expect(takesScore('tv')).toBe(false);
 });
 
 test('refOf spells a Watch Record the way lib/media spells a ref', () => {

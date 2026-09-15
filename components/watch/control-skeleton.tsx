@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 
 import type { Kind } from '@/lib/media';
+import { takesScore } from '@/lib/watch';
 
 /**
  * The detail page's marking control while the Watch Record behind it is being
@@ -14,7 +15,7 @@ import type { Kind } from '@/lib/media';
 const MarkingControlSkeleton = ({ kind }: { kind: Kind }): JSX.Element => (
   <div className='flex flex-col gap-1.5' aria-hidden='true'>
     <div className='h-7 animate-pulse bg-muted' />
-    {kind === 'movie' ? <div className='h-9 animate-pulse bg-muted' /> : null}
+    {takesScore(kind) ? <div className='h-9 animate-pulse bg-muted' /> : null}
     <div className='min-h-4' />
   </div>
 );
