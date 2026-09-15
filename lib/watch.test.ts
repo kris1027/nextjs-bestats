@@ -14,6 +14,7 @@ import {
   refOf,
   SCORES,
   type Score,
+  STOPPED,
   takesScore,
   toLookup,
   toMarkedMedia,
@@ -31,11 +32,13 @@ test('marking Media with no Watch Record creates one saying what was pressed', (
 test('marking the other state moves the Watch Record', () => {
   expect(marked(PLANNED, watchedAt(7))).toEqual(watchedAt(7));
   expect(marked(watchedAt(7), PLANNED)).toEqual(PLANNED);
+  expect(marked(PLANNED, STOPPED)).toEqual(STOPPED);
 });
 
 test('marking what a Watch Record already says unmarks it', () => {
   expect(marked(PLANNED, PLANNED)).toBe(null);
   expect(marked(watchedAt(7), watchedAt(7))).toBe(null);
+  expect(marked(STOPPED, STOPPED)).toBe(null);
 });
 
 test('a different Score rescores rather than unmarks', () => {
@@ -44,9 +47,9 @@ test('a different Score rescores rather than unmarks', () => {
 });
 
 test('every marking is reachable from every other in one press', () => {
-  const markings = [PLANNED, ...SCORES.map(watchedAt)];
+  const markings = [PLANNED, STOPPED, ...SCORES.map(watchedAt)];
 
-  // Media with no Watch Record agrees with nothing, so all eleven mark it
+  // Media with no Watch Record agrees with nothing, so all twelve mark it
   for (const pressed of markings)
     expect(marked(null, pressed)).toEqual(pressed);
 
@@ -72,6 +75,7 @@ test('isScore admits one to ten whole and nothing else', () => {
 
 test('markingFrom reads the field the buttons post and refuses the rest', () => {
   expect(markingFrom('planned')).toEqual(PLANNED);
+  expect(markingFrom('stopped')).toEqual(STOPPED);
   expect(markingFrom('1')).toEqual(watchedAt(1));
   expect(markingFrom('10')).toEqual(watchedAt(10));
 
@@ -81,10 +85,11 @@ test('markingFrom reads the field the buttons post and refuses the rest', () => 
   expect(markingFrom('7.5')).toBe(null);
   expect(markingFrom('')).toBe(null);
   expect(markingFrom('Planned')).toBe(null);
+  expect(markingFrom('dropped')).toBe(null);
 });
 
 test('every marking survives the round trip through a form field', () => {
-  for (const marking of [PLANNED, ...SCORES.map(watchedAt)]) {
+  for (const marking of [PLANNED, STOPPED, ...SCORES.map(watchedAt)]) {
     expect(markingFrom(markingValue(marking))).toEqual(marking);
   }
 });
@@ -92,6 +97,7 @@ test('every marking survives the round trip through a form field', () => {
 test('toMarking makes one value of the two columns a row holds', () => {
   expect(toMarking({ state: 'planned', score: null })).toEqual(PLANNED);
   expect(toMarking({ state: 'watched', score: 9 })).toEqual(watchedAt(9));
+  expect(toMarking({ state: 'stopped', score: null })).toEqual(STOPPED);
 });
 
 test('a Watched row with no Score is a row that cannot exist', () => {
@@ -103,6 +109,12 @@ test('a Watched row with no Score is a row that cannot exist', () => {
 test('watchKey spells a piece of Media the way its URL does', () => {
   expect(watchKey({ kind: 'tv', id: 1399 })).toBe('tv/1399');
   expect(watchKey({ kind: 'movie', id: 1399 })).toBe('movie/1399');
+});
+
+test('toLookup holds a Stopped Show as Stopped', () => {
+  const lookup = toLookup([{ kind: 'tv', tmdbId: 1399, ...STOPPED }]);
+
+  expect(markingOf(lookup, { kind: 'tv', id: 1399 })).toEqual(STOPPED);
 });
 
 test('toLookup keeps the same TMDB id in each Kind apart', () => {

@@ -67,6 +67,37 @@ test('a Watched Show is refused, whatever its Score', async () => {
   ).resolves.not.toThrow();
 });
 
+test('a Stopped Movie is refused, and a Stopped Show is not', async () => {
+  const viewerId = await viewer();
+
+  // a Movie is watched once, so there is nothing partway through to give up
+  // on; the same row for a Show is how a Viewer stops one
+  await expect(
+    db
+      .insert(watchRecords)
+      .values({ viewerId, kind: 'movie', tmdbId: 1399, state: 'stopped' }),
+  ).rejects.toThrow();
+  await expect(
+    db
+      .insert(watchRecords)
+      .values({ viewerId, kind: 'tv', tmdbId: 1399, state: 'stopped' }),
+  ).resolves.not.toThrow();
+});
+
+test('a Stopped record carrying a Score is refused', async () => {
+  const viewerId = await viewer();
+
+  await expect(
+    db.insert(watchRecords).values({
+      viewerId,
+      kind: 'tv',
+      tmdbId: 1399,
+      state: 'stopped',
+      score: 9,
+    }),
+  ).rejects.toThrow();
+});
+
 test('a Planned record carrying a Score is refused', async () => {
   const viewerId = await viewer();
 
@@ -115,7 +146,7 @@ test('the same TMDB id in each Kind is two different Media', async () => {
   expect(rows.map((row) => row.kind).sort()).toEqual(['movie', 'tv']);
 });
 
-test('a state that is neither Planned nor Watched is refused', async () => {
+test('a state that is not Planned, Watched or Stopped is refused', async () => {
   const viewerId = await viewer();
 
   await expect(

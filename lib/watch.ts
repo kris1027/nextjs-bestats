@@ -16,13 +16,15 @@ import type {
  */
 
 /**
- * The two states, in the order a Viewer moves through them. `WatchState` is
- * read off this list rather than declared beside it, and the Postgres enum in
- * `lib/schema.ts` satisfies it, so the domain and the database cannot drift.
+ * The three states. `WatchState` is read off this list rather than declared
+ * beside it, and the Postgres enum in `lib/schema.ts` satisfies it, so the
+ * domain and the database cannot drift. Watched is a Movie's alone and
+ * Stopped a Show's alone, which the check constraints on `watch_records` say.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
-export const WATCH_STATES = ['planned', 'watched'] as const;
+export const WATCH_STATES = ['planned', 'watched', 'stopped'] as const;
 
-/** Planned or Watched, and never a third thing. */
+/** Planned, Watched or Stopped, and never a fourth thing. */
 export type WatchState = (typeof WATCH_STATES)[number];
 
 /**
@@ -40,14 +42,17 @@ export const isScore = (value: number): value is Score =>
   SCORES.some((score) => score === value);
 
 /**
- * What a Watch Record says, and what a press of a control says: Planned, or
- * Watched at a Score. One value rather than a state and a Score passed
- * alongside each other, because the two are only ever right together — the
- * pairs this union cannot spell are exactly the pairs the check constraint on
- * `watch_records` refuses.
+ * What a Watch Record says, and what a press of a control says: Planned,
+ * Watched at a Score, or Stopped. One value rather than a state and a Score
+ * passed alongside each other, because the two are only ever right together —
+ * the pairs this union cannot spell are exactly the pairs the check constraint
+ * on `watch_records` refuses.
  * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
  */
-export type Marking = { state: 'planned' } | { state: 'watched'; score: Score };
+export type Marking =
+  | { state: 'planned' }
+  | { state: 'watched'; score: Score }
+  | { state: 'stopped' };
 
 /** The Watched half of `Marking`, which is the half that carries a Score. */
 export type WatchedMarking = Extract<Marking, { state: 'watched' }>;
@@ -76,13 +81,16 @@ export const isEpisodeMarking = (marking: Marking): marking is EpisodeMarking =>
 /** The Planned marking, which has nothing to vary. */
 export const PLANNED: Marking = { state: 'planned' };
 
+/** The Stopped marking, which a Show's record alone can hold. */
+export const STOPPED: Marking = { state: 'stopped' };
+
 /** The Watched marking at a Score, which is the only way to reach Watched. */
 export const watchedAt = (score: Score): WatchedMarking => ({
   state: 'watched',
   score,
 });
 
-/** A marking's Score, or `null` for Planned, which never carries one. */
+/** A marking's Score, or `null` for Planned or Stopped, which never carry one. */
 export const scoreOf = (marking: Marking): Score | null =>
   marking.state === 'watched' ? marking.score : null;
 
@@ -94,6 +102,7 @@ export const scoreOf = (marking: Marking): Score | null =>
  */
 export const toMarking = ({ state, score }: MarkingColumns): Marking => {
   if (state === 'planned') return PLANNED;
+  if (state === 'stopped') return STOPPED;
   if (typeof score === 'number' && isScore(score)) return watchedAt(score);
 
   throw new Error(`A Watched row with no Score: ${score}`);
@@ -116,7 +125,7 @@ export type MarkedMedia = Marking & { kind: Kind; tmdbId: number };
 
 /**
  * A marking as Postgres stores it: the enum, and a Score that is `null` on a
- * Planned row. `toMarking` is the one place the two become one value, so
+ * Planned or Stopped row. `toMarking` is the one place the two become one value, so
  * nothing above the queries ever holds a state and a Score apart.
  */
 export type MarkingColumns = { state: WatchState; score: number | null };
@@ -175,14 +184,15 @@ export const markingsAgree = (
 /**
  * The name of the one form field a press travels in. One field because a
  * submit button posts one name and one value, and the buttons have to keep
- * working before hydration — `planned` and `1`…`10` are values of the same
- * field rather than a state and a Score the browser cannot post together.
+ * working before hydration — `planned`, `stopped` and `1`…`10` are values of
+ * the same field rather than a state and a Score the browser cannot post
+ * together.
  */
 export const MARKING_FIELD = 'marking';
 
 /** How a marking is spelled in that field. */
 export const markingValue = (marking: Marking): string =>
-  marking.state === 'planned' ? 'planned' : String(marking.score);
+  marking.state === 'watched' ? String(marking.score) : marking.state;
 
 /**
  * The marking a field holds, or `null` for anything else. The guard the
@@ -191,6 +201,7 @@ export const markingValue = (marking: Marking): string =>
  */
 export const markingFrom = (value: string): Marking | null => {
   if (value === 'planned') return PLANNED;
+  if (value === 'stopped') return STOPPED;
 
   const score = Number(value);
 
@@ -300,7 +311,7 @@ export const toLookup = (items: readonly MarkedMedia[]): WatchLookup =>
 
 /** The marking half of a `MarkedMedia`, without the Media it is about. */
 const markingIn = (item: MarkedMedia): Marking =>
-  item.state === 'planned' ? PLANNED : watchedAt(item.score);
+  item.state === 'watched' ? watchedAt(item.score) : { state: item.state };
 
 /**
  * A piece of Media's marking in a lookup, or `null` when the Viewer has said
