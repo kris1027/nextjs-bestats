@@ -160,7 +160,7 @@ _Avoid_: Seen, done, finished
 
 **Stopped**:
 The state of a Watch Record for a Show a Viewer has given up on. It keeps the
-Show off the Watchlist and Upcoming without touching the Scores its Episodes
+Show off every list without touching the Scores its Episodes
 carry, and watching another of its Episodes takes the Viewer back to where they
 were.
 _Avoid_: Dropped, abandoned, archived, paused, hidden
@@ -190,8 +190,8 @@ _Avoid_: Coming soon, scheduled, calendar, future
 **Tracked**:
 A Movie or Show a Viewer is following, which is what the lists are placed
 from: each one they have Planned, and each Show they have watched an Episode
-of, whether or not it has a record of its own. A Watched Movie is not tracked,
-and neither is anything the Viewer has said nothing about. Not a state: a
+of, unless its record is Stopped. A Watched Movie is not tracked, a Stopped
+Show is not, and neither is anything the Viewer has said nothing about. Not a state: a
 Show under way is tracked with no Watch Record at all.
 _Avoid_: Followed, active, in progress
 
