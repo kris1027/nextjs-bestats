@@ -444,6 +444,15 @@ test("showEpisodes says a Show has ended where TMDB's status does", async () => 
   expect((await showEpisodes(95396))?.ended).toBe(true);
 });
 
+test('showEpisodes says a Show has not ended where TMDB spells a status it has not used before', async () => {
+  // `Cancelled` is not TMDB's spelling, so a Show wearing it is waited for
+  tmdb.findTMDB.mockImplementation(async (path: string) =>
+    path === '/tv/95396' ? withSeasons([1], 'Cancelled') : appended(path),
+  );
+
+  expect((await showEpisodes(95396))?.ended).toBe(false);
+});
+
 test('showEpisodes is null for a Show TMDB does not have', async () => {
   tmdb.findTMDB.mockResolvedValue(null);
 
