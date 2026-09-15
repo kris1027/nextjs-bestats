@@ -7,6 +7,7 @@ import { mediaTarget } from '@/components/watch/marking-target';
 import { PlannedButton } from '@/components/watch/planned-button';
 import { StarRow } from '@/components/watch/star-row';
 import { useMarking } from '@/components/watch/use-marking';
+import type { MediaRef } from '@/lib/media';
 import type { Marking } from '@/lib/watch';
 
 /**
@@ -33,7 +34,7 @@ const MarkingControl = ({
   movie,
   marking,
 }: {
-  movie: { kind: 'movie'; id: number };
+  movie: MediaRef<'movie'>;
   marking: Marking | null;
 }): JSX.Element => {
   const handle = useMarking(marking, mediaTarget(movie));

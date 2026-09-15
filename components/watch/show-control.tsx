@@ -6,6 +6,7 @@ import { MarkingForm } from '@/components/watch/marking-form';
 import { mediaTarget } from '@/components/watch/marking-target';
 import { ShowButton } from '@/components/watch/show-button';
 import { useMarking } from '@/components/watch/use-marking';
+import type { MediaRef } from '@/lib/media';
 import { type Marking, type ShowProgress, showPress } from '@/lib/watch';
 
 /**
@@ -26,7 +27,7 @@ const ShowControl = ({
   marking,
   progress,
 }: {
-  show: { kind: 'tv'; id: number };
+  show: MediaRef<'tv'>;
   marking: Marking | null;
   /** `null` is Unanswered: only a record the Show holds is drawn. */
   progress: ShowProgress | null;

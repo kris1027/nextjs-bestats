@@ -114,7 +114,7 @@ const ShowMarking = async ({
   asked: ViewerAnswer;
   id: number;
 }): Promise<JSX.Element | null> => {
-  const show = { kind: 'tv', id } as const;
+  const show: MediaRef<'tv'> = { kind: 'tv', id };
   const [lookup, episodes] = await Promise.all([
     answeredWatchLookup(asked, [show]),
     answeredShowEpisodeLookup(asked, id),
