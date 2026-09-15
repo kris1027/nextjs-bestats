@@ -116,11 +116,18 @@ type OpenList = {
    * id beside it — `lib/viewer-key.ts`.
    */
   viewerKey: string;
-  /** This list's two tallies, which the tabs wear and the Kind is read off. */
-  tallies: Record<Kind, number>;
-  contents: ListContents;
-  kind: Kind;
+  /**
+   * The Kind the address names, or `undefined` where it names none and the
+   * Kind is read off the tallies.
+   */
+  named: Kind | undefined;
   page: number;
+};
+
+/** This list's two tallies, which the tabs wear, and the Kind read off them. */
+type ListTallies = {
+  tallies: Record<Kind, number>;
+  kind: Kind;
 };
 
 /**
@@ -208,13 +215,15 @@ const placeTracked = async (
 };
 
 /**
- * Everything both halves of a list need, asked for once per request. The tabs
- * wear the counts and the grid needs the Kind, and the Kind is read off the
- * counts, so one round trip answers both rather than two boundaries racing to
- * the same rows — the use `app/page.tsx` puts `cache` to, one page over.
+ * Who is asking and which tab of which page, asked for once per request and
+ * shared by both halves of the list — the use `app/page.tsx` puts `cache` to,
+ * one page over. `listContents` and `listTallies` are cached beside it for
+ * the same reason, and kept apart from it so a tab that is not placed from
+ * TMDB — the Watched list's Movies, named in the address — draws its grid
+ * without waiting on TMDB for the other tab's count.
  *
- * `cache` keys on argument identity, and both callers are handed the very
- * `searchParams` promise the page was given, so the two share one entry.
+ * `cache` keys on argument identity, and every caller is handed the very
+ * `searchParams` promise the page was given, so they share one entry.
  *
  * A Visitor is sent to sign in and back to this very address. It carries the
  * Kind only if the address named one — the default is read off counts this
@@ -244,30 +253,53 @@ const openList = cache(
       );
     }
 
+    return {
+      viewerId: currentViewer.id,
+      viewerKey: viewerKey(currentViewer),
+      named,
+      page,
+    };
+  },
+);
+
+/** Everything the Viewer is tracking, placed, once per request. */
+const listContents = cache(
+  async (
+    list: List,
+    searchParams: Promise<SearchParams>,
+  ): Promise<ListContents> => {
+    const { viewerId } = await openList(list, searchParams);
     // read once, so every item is placed, and every card dated, against the
     // same day even when the request straddles midnight
     const today = new Date();
-    const contents: ListContents = {
-      list,
-      placements: await placeTracked(currentViewer.id, today),
-      today,
-    };
-    const placedCounts = placedTallies(contents.placements, list);
+
+    return { list, placements: await placeTracked(viewerId, today), today };
+  },
+);
+
+/**
+ * This list's tallies and the Kind read off them, once per request. Both wait
+ * on TMDB, since one tab of every list is placed from its answers.
+ */
+const listTallies = cache(
+  async (
+    list: List,
+    searchParams: Promise<SearchParams>,
+  ): Promise<ListTallies> => {
+    const { viewerId, named } = await openList(list, searchParams);
+    const { placements } = await listContents(list, searchParams);
+    const placedCounts = placedTallies(placements, list);
     const tallyOf = async (kind: Kind): Promise<number> =>
       pagedByRecords(list, kind)
-        ? watchedMovieCount(currentViewer.id)
+        ? watchedMovieCount(viewerId)
         : placedCounts[kind];
     const tallies = { tv: await tallyOf('tv'), movie: await tallyOf('movie') };
 
     return {
-      viewerId: currentViewer.id,
-      viewerKey: viewerKey(currentViewer),
       tallies,
-      contents,
       // what this Viewer holds is this page's answer to what `openKind` asks,
       // so a Watchlist that is all Movies opens on Movies
       kind: named ?? openKind({ tv: tallies.tv > 0, movie: tallies.movie > 0 }),
-      page,
     };
   },
 );
@@ -280,7 +312,7 @@ const ListTabs = async ({
   list: List;
   searchParams: Promise<SearchParams>;
 }): Promise<JSX.Element> => {
-  const { kind, tallies } = await openList(list, searchParams);
+  const { kind, tallies } = await listTallies(list, searchParams);
 
   return <Tabs list={list} selected={kind} tallies={tallies} />;
 };
@@ -469,17 +501,21 @@ const ListPage = async ({
   list: List;
   searchParams: Promise<SearchParams>;
 }): Promise<JSX.Element> => {
-  const { viewerId, viewerKey, contents, kind, page } = await openList(
+  const { viewerId, viewerKey, named, page } = await openList(
     list,
     searchParams,
   );
+  const kind = named ?? (await listTallies(list, searchParams)).kind;
 
   // a page past the end has no cards, so it asks for no markings before it
   // 404s; page 1 of nothing is the empty state below, since a tab with nothing on
   // it still exists
   const { entries, markings, total } = pagedByRecords(list, kind)
     ? await watchedMovieEntries(viewerId, page)
-    : await placedEntries(viewerId, contents, { kind, page });
+    : await placedEntries(viewerId, await listContents(list, searchParams), {
+        kind,
+        page,
+      });
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   if (page > pages) notFound();
@@ -568,7 +604,8 @@ const ListPage = async ({
  * everything tracked, and each Show's seasons, before either can be counted —
  * on the Watched list too, whose Shows are the finished ones. Its Movies are
  * the one tab the database counts and pages, with TMDB asked for their cards
- * a request apiece.
+ * a request apiece, so an address naming that tab draws its grid without
+ * waiting for the Shows to be placed.
  *
  * Nothing moves when a card here is marked. A card pressed out of this list
  * shows its new state where it is, and the list catches up on the next
