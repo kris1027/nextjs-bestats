@@ -74,6 +74,21 @@ export type EpisodeMarking = WatchedMarking;
  */
 export const takesScore = (kind: Kind): boolean => kind === 'movie';
 
+/**
+ * Whether a Kind's own Watch Record can say what a marking says: Planned
+ * either Kind's, Watched only one that `takesScore`, and Stopped only one that
+ * does not, since only a Show is followed through Episodes it can give up on.
+ * The action refuses a press this fails, and the check constraints on
+ * `watch_records` refuse the row besides.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ */
+export const recordHolds = (kind: Kind, marking: Marking): boolean => {
+  if (marking.state === 'watched') return takesScore(kind);
+  if (marking.state === 'stopped') return !takesScore(kind);
+
+  return true;
+};
+
 /** Narrows a marking to one an Episode can hold. */
 export const isEpisodeMarking = (marking: Marking): marking is EpisodeMarking =>
   marking.state === 'watched';

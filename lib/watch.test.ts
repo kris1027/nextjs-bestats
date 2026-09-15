@@ -13,6 +13,7 @@ import {
   markingsAgree,
   markingValue,
   PLANNED,
+  recordHolds,
   refOf,
   SCORES,
   type Score,
@@ -155,6 +156,16 @@ test('toMarkedMedia makes a marking of a row and keeps the Media', () => {
 test("a Movie's record takes a Score, and a Show's never does", () => {
   expect(takesScore('movie')).toBe(true);
   expect(takesScore('tv')).toBe(false);
+});
+
+test("a Movie's record is never Stopped, and a Show's never Watched", () => {
+  expect(recordHolds('movie', PLANNED)).toBe(true);
+  expect(recordHolds('movie', watchedAt(7))).toBe(true);
+  expect(recordHolds('movie', STOPPED)).toBe(false);
+
+  expect(recordHolds('tv', PLANNED)).toBe(true);
+  expect(recordHolds('tv', STOPPED)).toBe(true);
+  expect(recordHolds('tv', watchedAt(7))).toBe(false);
 });
 
 test('refOf spells a Watch Record the way lib/media spells a ref', () => {
