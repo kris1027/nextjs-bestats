@@ -496,28 +496,51 @@ export const writeEpisodeRecord = async (
 /**
  * `writeWatchRecord` for a Planned Show, refused while the Viewer is under way
  * with it: `false`, and nothing written, once any of its Episodes is scored.
- * The check and the write are one statement, because the HTTP driver has no
- * interactive transactions and an Episode scored between a read and a write
- * would leave the Show Planned and under way at once.
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ */
+export const writePlannedShow = (
+  viewerId: string,
+  showId: number,
+): Promise<boolean> => writeShowRecord(viewerId, showId, 'planned');
+
+/**
+ * `writeWatchRecord` for a Stopped Show, refused before the Viewer has
+ * started it: `false`, and nothing written, while none of its Episodes is
+ * scored. A Show not yet started has nothing to give up on.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ */
+export const writeStoppedShow = (
+  viewerId: string,
+  showId: number,
+): Promise<boolean> => writeShowRecord(viewerId, showId, 'stopped');
+
+/**
+ * A Show's own record at `state`, written only where the Viewer's Episodes
+ * allow it: Planned while none is scored, Stopped once one is. The check and
+ * the write are one statement, because the HTTP driver has no interactive
+ * transactions and an Episode scored or unscored between a read and a write
+ * would leave the record saying what the Episodes no longer do.
  *
  * SQL rather than the builder, since an `insert … select` with no table to
  * select from is not something Drizzle can spell. The casts are there because
  * a parameter in a select list reaches Postgres as text.
  */
-export const writePlannedShow = async (
+const writeShowRecord = async (
   viewerId: string,
   showId: number,
+  state: 'planned' | 'stopped',
 ): Promise<boolean> => {
-  const { rows } = await db.execute(sql`
-    insert into ${watchRecords} (viewer_id, kind, tmdb_id, state, score)
-    select ${viewerId}::uuid, 'tv'::media_kind, ${showId}::integer,
-      'planned'::watch_state, null
-    where not exists (
+  const scored = sql`exists (
       select 1 from ${episodeRecords}
       where ${episodeRecords.viewerId} = ${viewerId}::uuid
         and ${episodeRecords.showId} = ${showId}::integer
-    )
+    )`;
+
+  const { rows } = await db.execute(sql`
+    insert into ${watchRecords} (viewer_id, kind, tmdb_id, state, score)
+    select ${viewerId}::uuid, 'tv'::media_kind, ${showId}::integer,
+      ${state}::watch_state, null
+    where ${state === 'stopped' ? scored : sql`not ${scored}`}
     on conflict (viewer_id, kind, tmdb_id)
     do update set state = excluded.state, score = excluded.score,
       updated_at = now()

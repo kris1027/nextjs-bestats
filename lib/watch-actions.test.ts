@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from 'vitest';
 
-import { MARKING_FIELD, PLANNED, watchedAt } from '@/lib/watch';
+import { MARKING_FIELD, PLANNED, STOPPED, watchedAt } from '@/lib/watch';
 import { mark, scoreEpisode, unscoreEpisode } from '@/lib/watch-actions';
 
 /**
@@ -31,6 +31,7 @@ const queries = vi.hoisted(() => ({
   writeEpisodeRecord: vi.fn(),
   clearEpisodeRecord: vi.fn(),
   writePlannedShow: vi.fn(),
+  writeStoppedShow: vi.fn(),
 }));
 
 vi.mock('@/lib/watch-queries', () => queries);
@@ -173,6 +174,61 @@ test('Planned on a Show not under way is written, and says Planned', async () =>
 
   expect(await mark(press())).toEqual({ marking: PLANNED });
   expect(queries.writeWatchRecord).not.toHaveBeenCalled();
+});
+
+/** What a Show's page posts when Stop watching or Stopped is pressed. */
+const stop = (kind = 'tv'): FormData => {
+  const formData = press();
+
+  formData.set('kind', kind);
+  formData.set(MARKING_FIELD, 'stopped');
+
+  return formData;
+};
+
+test('Stopped pressed for a Movie is a throw, and nothing is counted', async () => {
+  // the database would refuse the row as well, but a Movie's page draws no
+  // way to stop one
+  await expect(mark(stop('movie'))).rejects.toThrow(
+    'A Movie is never Stopped: stopped',
+  );
+  expect(queries.tallyMarking).not.toHaveBeenCalled();
+});
+
+test('Stopped is refused on a Show the Viewer has not started, and nothing is written', async () => {
+  queries.tallyMarking.mockResolvedValue(1);
+  queries.watchLookup.mockResolvedValue(new Map());
+  // refused in the statement that would have written it, as Planned is
+  queries.writeStoppedShow.mockResolvedValue(false);
+
+  expect(await mark(stop())).toEqual({
+    error: 'You have not started this show yet.',
+  });
+  expect(queries.writeStoppedShow).toHaveBeenCalledWith('a-viewer', 236235);
+  expect(queries.writeWatchRecord).not.toHaveBeenCalled();
+});
+
+test('Stopped on a Show under way is written, and says Stopped', async () => {
+  queries.tallyMarking.mockResolvedValue(1);
+  queries.watchLookup.mockResolvedValue(new Map());
+  queries.writeStoppedShow.mockResolvedValue(true);
+
+  expect(await mark(stop())).toEqual({ marking: STOPPED });
+  expect(queries.writeWatchRecord).not.toHaveBeenCalled();
+});
+
+test('Stopped pressed on a Stopped Show deletes the record, started or not', async () => {
+  queries.tallyMarking.mockResolvedValue(1);
+  queries.watchLookup.mockResolvedValue(new Map([['tv/236235', STOPPED]]));
+
+  // no Episodes are asked about: unscoring them all leaves a Stopped record,
+  // and the Viewer can still take it back
+  expect(await mark(stop())).toEqual({ marking: null });
+  expect(queries.clearWatchRecord).toHaveBeenCalledWith('a-viewer', {
+    kind: 'tv',
+    id: 236235,
+  });
+  expect(queries.writeStoppedShow).not.toHaveBeenCalled();
 });
 
 /*

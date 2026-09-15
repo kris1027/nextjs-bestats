@@ -10,6 +10,7 @@ import {
   markingOf,
   PAGE_SIZE,
   PLANNED,
+  STOPPED,
   TRACKED_CEILING,
   watchedAt,
 } from '@/lib/watch';
@@ -27,6 +28,7 @@ import {
   watchLookup,
   writeEpisodeRecord,
   writePlannedShow,
+  writeStoppedShow,
   writeWatchRecord,
 } from '@/lib/watch-queries';
 
@@ -341,6 +343,20 @@ test('a Show is written Planned only while none of its Episodes is scored', asyn
   // refused in the statement that would have written it, so nothing is left
   expect(await writePlannedShow(viewerId, show.id)).toBe(false);
   expect((await watchLookup(viewerId, [show])).size).toBe(0);
+});
+
+test('a Show is written Stopped only once one of its Episodes is scored', async () => {
+  const viewerId = await viewer();
+  const show = { kind: 'tv', id: HALF_LOOP.showId } as const;
+
+  // refused in the statement that would have written it, as Planned is
+  expect(await writeStoppedShow(viewerId, show.id)).toBe(false);
+  expect((await watchLookup(viewerId, [show])).size).toBe(0);
+
+  await writeEpisodeRecord(viewerId, HALF_LOOP, watchedAt(8));
+
+  expect(await writeStoppedShow(viewerId, show.id)).toBe(true);
+  expect(markingOf(await watchLookup(viewerId, [show]), show)).toEqual(STOPPED);
 });
 
 test("another Show's scored Episodes do not refuse Planned on this one", async () => {

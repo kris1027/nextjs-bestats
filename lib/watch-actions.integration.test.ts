@@ -9,6 +9,7 @@ import {
   MARKING_FIELD,
   MARKS_PER_MINUTE,
   PLANNED,
+  STOPPED,
   watchedAt,
 } from '@/lib/watch';
 import { mark, scoreEpisode, unscoreEpisode } from '@/lib/watch-actions';
@@ -280,6 +281,36 @@ test('Planned is refused on a Show under way, until its last Episode is unscored
   expect(await mark(press('tv', '95396', 'planned'))).toEqual({
     marking: PLANNED,
   });
+});
+
+test('a Show is Stopped only once an Episode is scored, and pressing Stopped again deletes it', async () => {
+  currentViewer.id = await viewer();
+
+  expect(await mark(press('tv', '95396', 'stopped'))).toEqual({
+    error: 'You have not started this show yet.',
+  });
+  expect(await rowsOf(currentViewer.id)).toHaveLength(0);
+
+  await scoreEpisode(scoring('8'));
+
+  expect(await mark(press('tv', '95396', 'stopped'))).toEqual({
+    marking: STOPPED,
+  });
+  expect(await episodesOf(currentViewer.id)).toHaveLength(1);
+
+  expect(await mark(press('tv', '95396', 'stopped'))).toEqual({
+    marking: null,
+  });
+  expect(await rowsOf(currentViewer.id)).toHaveLength(0);
+});
+
+test('a Stopped Movie is a throw, and nothing is written', async () => {
+  currentViewer.id = await viewer();
+
+  await expect(mark(press('movie', '949', 'stopped'))).rejects.toThrow(
+    'A Movie is never Stopped',
+  );
+  expect(await rowsOf(currentViewer.id)).toHaveLength(0);
 });
 
 /** What a Show's page posts to unscore a Gone Episode. */

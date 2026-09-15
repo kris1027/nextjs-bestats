@@ -36,6 +36,7 @@ import {
   watchLookup,
   writeEpisodeRecord,
   writePlannedShow,
+  writeStoppedShow,
   writeWatchRecord,
 } from '@/lib/watch-queries';
 
@@ -142,6 +143,10 @@ export const mark = async (formData: FormData): Promise<MarkResult> => {
   if (pressed.state === 'watched' && !takesScore(kind)) {
     throw new Error(`A Show is never Watched: ${field}`);
   }
+  // and a Movie is watched once, so its page draws no way to stop one
+  if (pressed.state === 'stopped' && kind !== 'tv') {
+    throw new Error(`A Movie is never Stopped: ${field}`);
+  }
 
   const ref: MediaRef = { kind, id: Number(id) };
 
@@ -159,6 +164,12 @@ export const mark = async (formData: FormData): Promise<MarkResult> => {
     if (marking?.state === 'planned' && ref.kind === 'tv') {
       if (!(await writePlannedShow(currentViewer.id, ref.id))) {
         return { error: 'You are already watching this show.' };
+      }
+    } else if (marking?.state === 'stopped') {
+      // and a page drawn before the last Episode was unscored cannot stop a
+      // Show the Viewer has not started
+      if (!(await writeStoppedShow(currentViewer.id, ref.id))) {
+        return { error: 'You have not started this show yet.' };
       }
     } else if (marking) {
       await writeWatchRecord(currentViewer.id, ref, marking);
