@@ -104,21 +104,22 @@ Viewer tracks on the Watchlist, Upcoming or Watched.
 A `ViewerLookup` is what a page hands its cards: that answer, and the key of
 the Viewer whose markings are in it. An Episode page has no cards and hands
 its control a `ViewerEpisodeLookup` instead, the same pair keyed by Episode id,
-which `answeredEpisodeLookup` answers the same way. One value, because a
-control given the markings without the key stays lit for a Viewer who has
-signed out — its state outlives a re-render at the same position — and a
-missing `key` is not a type error. So whatever holds that state is keyed on
-the `viewerKey` of the lookup it came from: `absent-card.tsx` keys its
-`MarkableCard`, the Media page its `MarkingControl` and the Episode page its
-`EpisodeScoreControl`, and each reads the two halves off one value.
-`media-card.tsx` takes the same lookup and reads only the markings, because a
-card that draws no control holds no state to unmount. `lib/viewer-key` makes
-that key, and is pure for the reason `lib/watch.ts` is: `lib/auth.ts` boots
-Neon Auth and reads `next/headers` at import, so a query that reached it for a
-string could not be loaded outside Next at all. Three callers —
-`answeredWatchLookup` and `answeredEpisodeLookup` from the answer each was
-handed, `watch-record-list.tsx` from the Viewer `viewer()` gave it — and a
-fourth is worth looking twice at.
+which `answeredEpisodeLookup` and `answeredShowEpisodeLookup` answer the same
+way. One value, because a control given the markings without the key stays
+lit for a Viewer who has signed out — its state outlives a re-render at the
+same position — and a missing `key` is not a type error. So whatever holds
+that state is keyed on the `viewerKey` of the lookup it came from:
+`absent-card.tsx` keys its `MarkableCard`, the Media page its `MarkingControl`
+and each `GoneEpisodeRow`, and the Episode page its `EpisodeScoreControl`, and
+each reads the two halves off one value. `media-card.tsx` takes the same
+lookup and reads only the markings, because a card that draws no control holds
+no state to unmount. `lib/viewer-key` makes that key, and is pure for the
+reason `lib/watch.ts` is: `lib/auth.ts` boots Neon Auth and reads
+`next/headers` at import, so a query that reached it for a string could not be
+loaded outside Next at all. Four callers —
+`answeredWatchLookup`, `answeredEpisodeLookup` and `answeredShowEpisodeLookup`
+from the answer each was handed, `watch-record-list.tsx` from the Viewer
+`viewer()` gave it — and a fifth is worth looking twice at.
 
 `watch-record-list.tsx` is `components/watch/`'s exception: the body of all
 three list routes, it reads `viewer()`, the queries and `lib/media` the way any
