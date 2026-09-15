@@ -280,7 +280,8 @@ export const watchedMoviesPage = async (
 
 /**
  * Every Movie and Show a Viewer is tracking: each Planned record, and each
- * Show with an Episode scored, whether or not it has a record of its own.
+ * Show with an Episode scored, whether or not it has a record of its own —
+ * unless that record is Stopped, since a Stopped Show is on no list.
  * `markedAt` is the latest marking on the Movie, the Show or any of its
  * Episodes, which is what the Watchlist orders by, and a Show brings the ids
  * of its scored Episodes for `upNext`.
@@ -299,6 +300,7 @@ export const trackedMedia = async (
         tmdbId: watchRecords.tmdbId,
         markedAt: watchRecords.updatedAt,
         planned: sql<boolean>`${watchRecords.state} = 'planned'`.as('planned'),
+        stopped: sql<boolean>`${watchRecords.state} = 'stopped'`.as('stopped'),
         episodeId: sql<number | null>`null::integer`.as('episode_id'),
       })
       .from(watchRecords)
@@ -314,6 +316,7 @@ export const trackedMedia = async (
         tmdbId: episodeRecords.showId,
         markedAt: episodeRecords.updatedAt,
         planned: sql<boolean>`false`.as('planned'),
+        stopped: sql<boolean>`false`.as('stopped'),
         episodeId: episodeRecords.episodeId,
       })
       .from(episodeRecords)
@@ -336,8 +339,11 @@ export const trackedMedia = async (
     })
     .from(markings)
     .groupBy(markings.kind, markings.tmdbId)
+    // a Stopped Show keeps its Episodes' Scores and leaves every list
+    // — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
     .having(
-      sql`bool_or(${markings.planned}) or count(${markings.episodeId}) > 0`,
+      sql`not bool_or(${markings.stopped})
+        and (bool_or(${markings.planned}) or count(${markings.episodeId}) > 0)`,
     )
     // the ceiling here too, so what is read is bounded and not only what is
     // placed; one past it, so `withinCeiling` can tell a list cut short from

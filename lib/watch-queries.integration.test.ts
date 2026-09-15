@@ -507,6 +507,22 @@ test('a Show under way is tracked with when each Episode was scored, at the late
   expect(show?.markedAt).toEqual(new Date('2026-09-10T12:00:00Z'));
 });
 
+test('a Stopped Show is not tracked, however many of its Episodes are scored', async () => {
+  const viewerId = await viewer();
+
+  await writeEpisodeRecord(
+    viewerId,
+    { episodeId: 62085, showId: 1396 },
+    watchedAt(8),
+  );
+  await writeWatchRecord(viewerId, BREAKING_BAD, STOPPED);
+  await writeWatchRecord(viewerId, GOT, STOPPED);
+  await writeWatchRecord(viewerId, HEAT, PLANNED);
+
+  // the Show with no Episodes scored is left out too, Stopped all the same
+  expect(await trackedOf(viewerId)).toEqual([{ ref: HEAT, scored: [] }]);
+});
+
 test('tracked Media comes latest marked first, and stops one past the ceiling', async () => {
   const viewerId = await viewer();
 
