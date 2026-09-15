@@ -41,7 +41,7 @@ const GoneEpisodeRow = ({
       <MarkingForm handle={handle}>
         <div className='flex min-h-9 flex-wrap items-center justify-between gap-x-4 gap-y-2'>
           <span className='font-extrabold'>
-            {scored ? 'An episode you scored' : 'Score removed'}
+            {scored ? 'An episode you scored' : 'No longer scored'}
           </span>
           {scored ? (
             <button
