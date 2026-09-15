@@ -31,6 +31,7 @@ import {
   type List,
   PAGE_SIZE,
   refOf,
+  TRACKED_CEILING,
   type TrackedMedia,
   takesScore,
   toLookup,
@@ -141,6 +142,8 @@ type ListTallies = {
 type ListContents = {
   list: PlacedList;
   placements: Placement[];
+  /** Whether the ceiling left tracked Media off, which the page says. */
+  cut: boolean;
   today: Date;
 };
 
@@ -198,12 +201,11 @@ const trackedAnswer = async (
 const placeTracked = async (
   viewerId: string,
   today: Date,
-): Promise<Placement[]> => {
-  const tracked = withinCeiling(await trackedMedia(viewerId));
-  const answers = await mediaItems(tracked.map((item) => item.ref));
-
-  return Promise.all(
-    tracked.map(async (item, index): Promise<Placement> => {
+): Promise<{ placements: Placement[]; cut: boolean }> => {
+  const { kept, cut } = withinCeiling(await trackedMedia(viewerId));
+  const answers = await mediaItems(kept.map((item) => item.ref));
+  const placements = await Promise.all(
+    kept.map(async (item, index): Promise<Placement> => {
       const answer = answerAt(answers, index);
 
       return {
@@ -212,6 +214,8 @@ const placeTracked = async (
       };
     }),
   );
+
+  return { placements, cut };
 };
 
 /**
@@ -273,7 +277,7 @@ const listContents = cache(
     // same day even when the request straddles midnight
     const today = new Date();
 
-    return { list, placements: await placeTracked(viewerId, today), today };
+    return { list, ...(await placeTracked(viewerId, today)), today };
   },
 );
 
@@ -377,6 +381,13 @@ type ListEntries = {
   markings: WatchLookup;
   total: number;
 };
+
+/**
+ * What a placed list says when the ceiling left tracked Media off it, which
+ * would otherwise be on no page and in no tally without a word.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
+ */
+const CEILING_NOTE = `Only the ${formatNumber(TRACKED_CEILING)} movies and shows you marked most recently are placed on your lists. Older ones are left off.`;
 
 /** What a card says where TMDB has given no day. */
 const NO_DATE = 'No date yet';
@@ -510,19 +521,25 @@ const ListPage = async ({
   // a page past the end has no cards, so it asks for no markings before it
   // 404s; page 1 of nothing is the empty state below, since a tab with nothing on
   // it still exists
-  const { entries, markings, total } = pagedByRecords(list, kind)
-    ? await watchedMovieEntries(viewerId, page)
-    : await placedEntries(viewerId, await listContents(list, searchParams), {
-        kind,
-        page,
-      });
+  const contents = pagedByRecords(list, kind)
+    ? null
+    : await listContents(list, searchParams);
+  const { entries, markings, total } = contents
+    ? await placedEntries(viewerId, contents, { kind, page })
+    : await watchedMovieEntries(viewerId, page);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   if (page > pages) notFound();
 
+  // said on an empty tab too, since what the ceiling left off may be all of it
+  const ceiling = contents?.cut ? (
+    <p className='text-sm opacity-60'>{CEILING_NOTE}</p>
+  ) : null;
+
   if (total === 0) {
     return (
       <>
+        {ceiling}
         <p className='opacity-60'>{EMPTY[list](kind)}</p>
         <Link href='/' className={cn(control, 'self-start')}>
           Browse trending
@@ -535,6 +552,7 @@ const ListPage = async ({
 
   return (
     <>
+      {ceiling}
       <MediaGrid>
         {entries.map(({ ref, answer, lead }) => {
           const key = watchKey(ref);

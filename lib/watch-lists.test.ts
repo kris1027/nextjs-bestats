@@ -305,10 +305,19 @@ test('the lists are placed from the 200 latest marked', () => {
     ),
   ];
 
-  const kept = withinCeiling(media);
+  const { kept, cut } = withinCeiling(media);
 
   expect(TRACKED_CEILING).toBe(200);
   expect(kept).toHaveLength(200);
   expect(kept.some((item) => item.ref.kind === 'movie')).toBe(false);
   expect(kept[0]?.ref.id).toBe(201);
+  expect(cut).toBe(true);
+});
+
+test('a list of exactly 200 tracked is not cut short', () => {
+  const media = Array.from({ length: 200 }, (_, index) =>
+    tracked('movie', index + 1, index + 1),
+  );
+
+  expect(withinCeiling(media).cut).toBe(false);
 });

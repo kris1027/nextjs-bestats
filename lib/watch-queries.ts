@@ -300,9 +300,10 @@ export const trackedMedia = async (
       sql`bool_or(${markings.planned}) or count(${markings.episodeId}) > 0`,
     )
     // the ceiling here too, so what is read is bounded and not only what is
-    // placed; `withinCeiling` keeps the same 200 of what it is handed
+    // placed; one past it, so `withinCeiling` can tell a list cut short from
+    // one that holds exactly 200, and keeps the same 200 of what it is handed
     .orderBy(sql`max(${markings.markedAt}) desc`)
-    .limit(TRACKED_CEILING);
+    .limit(TRACKED_CEILING + 1);
 
   return rows.map(({ kind, tmdbId, markedAt, scored }) => ({
     ref: { kind, id: tmdbId },

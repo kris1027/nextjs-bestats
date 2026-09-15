@@ -88,14 +88,23 @@ const latestMarkedFirst = (a: TrackedMedia, b: TrackedMedia): number =>
   b.markedAt.getTime() - a.markedAt.getTime();
 
 /**
+ * The tracked Movies and Shows a list is placed from, and whether the ceiling
+ * left any off — which the list says, since what it left off is on no page and
+ * in no tally, and a finished Show is never marked again to climb back.
+ */
+export type WithinCeiling = { kept: TrackedMedia[]; cut: boolean };
+
+/**
  * The tracked Movies and Shows a list is placed from: the latest marked, no
  * more than the ceiling. Cut before TMDB is asked, since the ceiling is what
  * bounds the asking.
  */
 export const withinCeiling = (
   tracked: readonly TrackedMedia[],
-): TrackedMedia[] =>
-  [...tracked].sort(latestMarkedFirst).slice(0, TRACKED_CEILING);
+): WithinCeiling => ({
+  kept: [...tracked].sort(latestMarkedFirst).slice(0, TRACKED_CEILING),
+  cut: tracked.length > TRACKED_CEILING,
+});
 
 /** A date TMDB spelled as the calendar day it names, or `null` for none. */
 const calendarDay = (date: string | null): CalendarDay | null =>

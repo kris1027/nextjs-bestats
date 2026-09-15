@@ -524,12 +524,12 @@ test('a Show under way is tracked with when each Episode was scored, at the late
   expect(show?.markedAt).toEqual(new Date('2026-09-10T12:00:00Z'));
 });
 
-test('tracked Media comes latest marked first, and stops at the ceiling', async () => {
+test('tracked Media comes latest marked first, and stops one past the ceiling', async () => {
   const viewerId = await viewer();
 
   // Movie n is marked n minutes into the day, so Movie 1 is the oldest
   await db.insert(watchRecords).values(
-    Array.from({ length: TRACKED_CEILING + 1 }, (_, index) => ({
+    Array.from({ length: TRACKED_CEILING + 2 }, (_, index) => ({
       viewerId,
       kind: 'movie' as const,
       tmdbId: index + 1,
@@ -540,8 +540,9 @@ test('tracked Media comes latest marked first, and stops at the ceiling', async 
 
   const tracked = await trackedMedia(viewerId);
 
-  expect(tracked).toHaveLength(200);
-  expect(tracked[0]?.ref).toEqual({ kind: 'movie', id: 201 });
+  // one past, so a list can say the ceiling cut it short
+  expect(tracked).toHaveLength(201);
+  expect(tracked[0]?.ref).toEqual({ kind: 'movie', id: 202 });
   expect(tracked.at(-1)?.ref).toEqual({ kind: 'movie', id: 2 });
 });
 
