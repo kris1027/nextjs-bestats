@@ -146,7 +146,7 @@ export type MediaDetails = Rating & {
 export type EpisodeRef = { showId: number; season: number; episode: number };
 
 /**
- * A regular season of a Show as TMDB lists it for finding a next Episode: its
+ * A season of a Show as TMDB lists it for finding a next Episode: its
  * number, and its Episodes in order, each with TMDB's id — what a record
  * holds — its number, what an address holds, and the calendar day TMDB says
  * it airs, as TMDB spells it, or `null` where it has none — what places the
@@ -159,7 +159,7 @@ export type SeasonEpisodes = {
 };
 
 /**
- * A Show's regular seasons with their Episodes, and whether TMDB says the Show
+ * A Show's seasons with their Episodes, and whether TMDB says the Show
  * has ended — which, with nothing left after the furthest a Viewer has
  * scored, is what makes the Show finished rather than waited for.
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
@@ -531,14 +531,17 @@ export const hasEnded = (status: string): boolean => ENDED_STATUSES.has(status);
 const APPENDS_PER_REQUEST = 20;
 
 /**
- * Every regular season of a Show with its Episodes' ids, in viewing order, and
- * whether it has ended, or `null` when TMDB has no such Show. Throws when TMDB
- * answers for the Show and not for every one of its seasons, since part of a
- * Show is Unanswered and not a shorter Show. Specials are left out, since they
- * never decide which Episode comes next. The Show's own request is the one its
- * card already made, and the seasons ride on as many more as TMDB's cap on
- * appends needs — one, for all but the longest Shows.
+ * Every season of a Show with its Episodes' ids, in viewing order with
+ * Specials last, and whether it has ended, or `null` when TMDB has no such
+ * Show. Throws when TMDB answers for the Show and not for every one of its
+ * seasons, since part of a Show is Unanswered and not a shorter Show.
+ * Specials are listed although they never decide which Episode comes next —
+ * `upNext` passes over them — because a Viewer can score one, and a scored
+ * Episode missing from this answer is Gone. The Show's own request is the one
+ * its card already made, and the seasons ride on as many more as TMDB's cap
+ * on appends needs — one, for all but the longest Shows.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
+ * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
  */
 export const showEpisodes = async (
   showId: number,
@@ -547,10 +550,10 @@ export const showEpisodes = async (
 
   if (!show) return null;
 
+  // specials are in no viewing order, so they follow the seasons that are
   const numbers = show.seasons
     .map((season) => season.season_number)
-    .filter((number) => number !== 0)
-    .sort((a, b) => a - b);
+    .sort((a, b) => (a === 0 ? 1 : 0) - (b === 0 ? 1 : 0) || a - b);
   const batches = Array.from(
     { length: Math.ceil(numbers.length / APPENDS_PER_REQUEST) },
     (_, index) =>

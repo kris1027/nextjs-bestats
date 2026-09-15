@@ -354,12 +354,16 @@ const withSeasons = (numbers: number[], status = 'Returning Series') => ({
   seasons: numbers.map((season_number) => summary({ season_number })),
 });
 
-test("showEpisodes lists each season's Episode ids in order, Specials left out", async () => {
+test("showEpisodes lists each season's Episode ids in order, Specials last", async () => {
   tmdb.findTMDB.mockImplementation(async (path: string) =>
     path === '/tv/95396'
       ? withSeasons([0, 2, 1])
       : {
           ...show,
+          'season/0': season({
+            season_number: 0,
+            episodes: [episode({ episode_number: 1, id: 9001 })],
+          }),
           'season/1': season({ season_number: 1 }),
           'season/2': season({
             season_number: 2,
@@ -379,10 +383,25 @@ test("showEpisodes lists each season's Episode ids in order, Specials left out",
         ],
       },
       { number: 2, episodes: [{ id: 2001, number: 1, airDate: '2022-02-17' }] },
+      { number: 0, episodes: [{ id: 9001, number: 1, airDate: '2022-02-17' }] },
     ],
   });
   expect(tmdb.findTMDB).toHaveBeenCalledWith(
-    '/tv/95396?append_to_response=season/1,season/2',
+    '/tv/95396?append_to_response=season/1,season/2,season/0',
+  );
+});
+
+test('showEpisodes throws when TMDB leaves out the Specials the Show lists', async () => {
+  tmdb.findTMDB.mockImplementation(async (path: string) =>
+    path === '/tv/95396'
+      ? withSeasons([1, 0])
+      : { ...show, 'season/1': season({ season_number: 1 }) },
+  );
+
+  // read as a Show with no Specials, every Special a Viewer scored would be
+  // listed as Gone when TMDB only did not answer for them
+  await expect(showEpisodes(95396)).rejects.toThrow(
+    'TMDB left season 0 of tv/95396 unanswered',
   );
 });
 
