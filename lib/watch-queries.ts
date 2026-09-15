@@ -22,7 +22,6 @@ import {
   type ViewerLookup,
   type WatchLookup,
   type WatchRecordsPage,
-  type WatchState,
   watchedAt,
 } from '@/lib/watch';
 
@@ -182,32 +181,27 @@ export const answeredEpisodeLookup = async (
 });
 
 /**
- * One page of one Kind of a Viewer's Watch Records in one state — the Movies
- * they have watched, the Shows they have Planned — newest marking first, with
- * the size of that whole list beside it so the page can count what it is
- * paging through. The Kind narrows here rather than in the page, because a
- * page that fetched both and threw one away would page through a list it was
- * not showing.
- *
- * The state, the Kind and the page arrive as one value, because none of the
- * three names a list without the other two — and because a `where` clause of
- * bare positional arguments is a `where` clause two of them can be swapped
- * in silently.
+ * One page of the Movies a Viewer has watched, newest marking first, with how
+ * many there are in all beside it so the page can count what it is paging
+ * through. The one list tab left that Postgres pages: only a Movie's record is
+ * Watched, and every other tab is placed from TMDB's answers, so the state and
+ * the Kind are this query's and not a caller's to pass.
+ * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  *
  * `page` counts from 1, and anything else is refused before Postgres sees it,
  * by `assertListPage`. The two queries are issued together because neither
  * needs the other.
  */
-export const watchRecordsPage = async (
+export const watchedMoviesPage = async (
   viewerId: string,
-  { state, kind, page }: { state: WatchState; kind: Kind; page: number },
+  page: number,
 ): Promise<WatchRecordsPage> => {
   assertListPage(page);
 
   const inList = and(
     eq(watchRecords.viewerId, viewerId),
-    eq(watchRecords.state, state),
-    eq(watchRecords.kind, kind),
+    eq(watchRecords.state, 'watched'),
+    eq(watchRecords.kind, 'movie'),
   );
 
   const [records, [tally]] = await Promise.all([

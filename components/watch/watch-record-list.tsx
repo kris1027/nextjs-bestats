@@ -50,8 +50,8 @@ import {
 import {
   trackedMedia,
   watchedMovieCount,
+  watchedMoviesPage,
   watchLookup,
-  watchRecordsPage,
 } from '@/lib/watch-queries';
 
 /**
@@ -480,11 +480,7 @@ const watchedMovieEntries = async (
   viewerId: string,
   page: number,
 ): Promise<ListEntries> => {
-  const { records, total } = await watchRecordsPage(viewerId, {
-    state: 'watched',
-    kind: 'movie',
-    page,
-  });
+  const { records, total } = await watchedMoviesPage(viewerId, page);
   const refs = records.map(refOf);
   const answers = await mediaItems(refs);
 
