@@ -90,7 +90,7 @@ export const watchedAt = (score: Score): WatchedMarking => ({
   score,
 });
 
-/** A marking's Score, or `null` for Planned or Stopped, which never carry one. */
+/** A marking's Score, or `null` for Planned or Stopped, which carry none. */
 export const scoreOf = (marking: Marking): Score | null =>
   marking.state === 'watched' ? marking.score : null;
 
@@ -125,8 +125,8 @@ export type MarkedMedia = Marking & { kind: Kind; tmdbId: number };
 
 /**
  * A marking as Postgres stores it: the enum, and a Score that is `null` on a
- * Planned or Stopped row. `toMarking` is the one place the two become one value, so
- * nothing above the queries ever holds a state and a Score apart.
+ * Planned or Stopped row. `toMarking` is the one place the two become one
+ * value, so nothing above the queries ever holds a state and a Score apart.
  */
 export type MarkingColumns = { state: WatchState; score: number | null };
 
@@ -184,8 +184,8 @@ export const markingsAgree = (
 /**
  * The name of the one form field a press travels in. One field because a
  * submit button posts one name and one value, and the buttons have to keep
- * working before hydration — `planned`, `stopped` and `1`…`10` are values of
- * the same field rather than a state and a Score the browser cannot post
+ * working before hydration — `planned`, `stopped` and `1`…`10` are values
+ * of the same field rather than a state and a Score the browser cannot post
  * together.
  */
 export const MARKING_FIELD = 'marking';
@@ -491,8 +491,8 @@ export type ShowProgress = 'unstarted' | 'underWay' | 'finished';
 
 /**
  * A Show's progress from the Episodes a Viewer has scored and what TMDB says
- * about it, or `null` — Unanswered — where that depends on an answer TMDB did
- * not give. A Viewer who has scored nothing has not started, whatever TMDB
+ * about it, or `null` — Unanswered — where that depends on an answer TMDB
+ * did not give. A Viewer who has scored nothing has not started, whatever TMDB
  * says, so only a Show under way needs the answer at all.
  */
 export const showProgress = (

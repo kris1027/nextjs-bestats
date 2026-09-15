@@ -406,7 +406,7 @@ test('a Gone Show has no Gone Episodes to list', () => {
  * already says, so that pressing it deletes the record.
  */
 
-/** The button a Show's control draws, and whether it is lit; `null` for none. */
+/** The button a Show's control draws and whether it is lit, or `null`. */
 const drawn = (
   shown: Parameters<typeof showPress>[0],
   progress: Parameters<typeof showPress>[1],

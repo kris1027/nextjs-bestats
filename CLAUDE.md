@@ -110,13 +110,13 @@ lit for a Viewer who has signed out — its state outlives a re-render at the
 same position — and a missing `key` is not a type error. So whatever holds
 that state is keyed on the `viewerKey` of the lookup it came from:
 `absent-card.tsx` keys its `MarkableCard`, the Media page its `MarkingControl`
-or `ShowControl` and each `GoneEpisodeRow`, and the Episode page its `EpisodeScoreControl`, and
-each reads the two halves off one value. `media-card.tsx` takes the same
-lookup and reads only the markings, because a card that draws no control holds
-no state to unmount. `lib/viewer-key` makes that key, and is pure for the
-reason `lib/watch.ts` is: `lib/auth.ts` boots Neon Auth and reads
-`next/headers` at import, so a query that reached it for a string could not be
-loaded outside Next at all. Four callers —
+or `ShowControl` and each `GoneEpisodeRow`, and the Episode page its
+`EpisodeScoreControl`, and each reads the two halves off one value.
+`media-card.tsx` takes the same lookup and reads only the markings, because a
+card that draws no control holds no state to unmount. `lib/viewer-key` makes
+that key, and is pure for the reason `lib/watch.ts` is: `lib/auth.ts` boots
+Neon Auth and reads `next/headers` at import, so a query that reached it for a
+string could not be loaded outside Next at all. Four callers —
 `answeredWatchLookup`, `answeredEpisodeLookup` and `answeredShowEpisodeLookup`
 from the answer each was handed, `watch-record-list.tsx` from the Viewer
 `viewer()` gave it — and a fifth is worth looking twice at.
@@ -166,15 +166,15 @@ page does, since resolving Watch Records against TMDB is a page's job and not
   which `showPress` decides — and the only stars on its page are the Scores of
   its Gone Episodes, which belong to them and not to the Show. Watched → Shows
   is placed from TMDB's answer like the other lists, and a Stopped Show is on
-  none of them unless it is Gone. Marking is the detail page's alone
-  — a card shows a Marking and cannot set one — and a card's one star is
-  TMDB's Rating until the Viewer scores a Movie, theirs after. `AbsentCard` is
-  the single exception, since Gone Media 404s on the detail page and its card
-  has no link to one: it draws the button that page would, Planned or Stop
-  watching, and that button is the only way such a record is ever removed or
-  such a Show stopped. So `trackedMedia` brings Stopped Shows flagged, and
-  `placed` keeps a Gone one on the lists: leaving them out in SQL, before TMDB
-  is asked, would stop a Gone Show for good.
+  none of them unless it is Gone. Marking is the detail page's alone — a card
+  shows a Marking and cannot set one — and a card's one star is TMDB's Rating
+  until the Viewer scores a Movie, theirs after. `AbsentCard` is the single
+  exception, since Gone Media 404s on the detail page and its card has no link
+  to one: it draws the button that page would, Planned or Stop watching, and
+  that button is the only way such a record is ever removed or such a Show
+  stopped. So `trackedMedia` brings Stopped Shows flagged, and `placed` keeps
+  a Gone one on the lists: leaving them out in SQL, before TMDB is asked,
+  would stop a Gone Show for good.
   — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
   — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
 - A Watch Record stores nothing from TMDB — no label, no poster path, no

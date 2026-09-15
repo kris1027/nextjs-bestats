@@ -192,8 +192,8 @@ _Avoid_: Coming soon, scheduled, calendar, future
 A Movie or Show a Viewer is following, which is what the lists are placed
 from: each one they have Planned, and each Show they have watched an Episode
 of, unless its record is Stopped. A Watched Movie is not tracked, a Stopped
-Show is not, and neither is anything the Viewer has said nothing about. Not a state: a
-Show under way is tracked with no Watch Record at all.
+Show is not, and neither is anything the Viewer has said nothing about. Not a
+state: a Show under way is tracked with no Watch Record at all.
 _Avoid_: Followed, active, in progress
 
 **Mark**:
