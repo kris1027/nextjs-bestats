@@ -348,6 +348,14 @@ export type UpNext =
   | { season: number | null };
 
 /**
+ * A Show's seasons without its Specials, which TMDB keeps as season 0 and
+ * which belong to no run: neither what comes next nor what finishes a Show.
+ */
+const regularSeasons = (
+  seasons: readonly SeasonEpisodes[],
+): readonly SeasonEpisodes[] => seasons.filter((season) => season.number !== 0);
+
+/**
  * What a Viewer watches next: the Episode after the furthest they have
  * scored, and the Show's first when they have scored none. Furthest, not the
  * earliest unscored, so a Viewer who joined at season three is not sent back
@@ -363,8 +371,7 @@ export const upNext = (
   seasons: readonly SeasonEpisodes[],
   scored: ScoredEpisodes,
 ): UpNext => {
-  // TMDB keeps Specials as season 0, which belongs to no run
-  const regular = seasons.filter((season) => season.number !== 0);
+  const regular = regularSeasons(seasons);
   const inOrder = regular.flatMap((season) =>
     season.episodes.map((episode) => ({
       id: episode.id,
@@ -412,8 +419,7 @@ export const finishedAt = (
   if ('episode' in next || next.season !== null) return null;
 
   // with nothing after the furthest scored, the final Episode is the furthest
-  const final = show.seasons
-    .filter((season) => season.number !== 0)
+  const final = regularSeasons(show.seasons)
     .flatMap((season) => season.episodes)
     .at(-1);
 
