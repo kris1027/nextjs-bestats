@@ -96,11 +96,13 @@ on the answer is left out rather than drawn as if the answer had been "none".
 _Avoid_: Failed, error, missing, empty
 
 **Gone**:
-Media TMDB once had and no longer has. Not the same as Unanswered, which may
-answer next time: Gone is TMDB's answer. A Watch Record for Gone Media still
-exists and still renders, since what survives is that the Viewer watched
-something. TMDB no longer says whether Gone Media is out, so it is drawn on
-both the Watchlist and Upcoming rather than placed on one.
+Media or an Episode TMDB once had and no longer has. Not the same as
+Unanswered, which may answer next time: Gone is TMDB's answer. A Watch Record
+for something Gone still exists and still renders, since what survives is that
+the Viewer watched something. TMDB no longer says whether Gone Media is out, so
+it is drawn on both the Watchlist and Upcoming rather than placed on one; a
+Gone Episode has no position, so it is listed on its Show's page with its Score
+and never counts towards the furthest Episode.
 _Avoid_: Deleted, removed, missing, 404
 
 **Rating**:
