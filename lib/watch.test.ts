@@ -146,6 +146,10 @@ const season = (number: number, episodes: number): SeasonEpisodes => ({
   })),
 });
 
+/** Episodes scored, by id; `upNext` never reads when. */
+const scored = (ids: number[]): Map<number, Date> =>
+  new Map(ids.map((id) => [id, new Date(0)]));
+
 /** The Episode `upNext` names, at the fixture's air date. */
 const episodeAt = (season: number, episode: number) => ({
   episode: { season, episode },
@@ -153,35 +157,35 @@ const episodeAt = (season: number, episode: number) => ({
 });
 
 test('the next Episode of a Show the Viewer has scored nothing of is its first', () => {
-  expect(upNext([season(1, 3), season(2, 3)], new Set())).toEqual(
+  expect(upNext([season(1, 3), season(2, 3)], scored([]))).toEqual(
     episodeAt(1, 1),
   );
 });
 
 test('the next Episode follows the furthest scored, not the earliest unscored', () => {
   // S1E2 was never scored, and S2E2 is still the Episode after S2E1
-  expect(
-    upNext([season(1, 3), season(2, 3)], new Set([101, 103, 201])),
-  ).toEqual(episodeAt(2, 2));
+  expect(upNext([season(1, 3), season(2, 3)], scored([101, 103, 201]))).toEqual(
+    episodeAt(2, 2),
+  );
 });
 
 test('the next Episode after the last of a season is the first of the next', () => {
-  expect(upNext([season(1, 3), season(2, 3)], new Set([103]))).toEqual(
+  expect(upNext([season(1, 3), season(2, 3)], scored([103]))).toEqual(
     episodeAt(2, 1),
   );
 });
 
 test('a scored Special never counts towards the furthest Episode', () => {
   expect(
-    upNext([season(1, 3), season(2, 3), season(0, 2)], new Set([201, 2])),
+    upNext([season(1, 3), season(2, 3), season(0, 2)], scored([201, 2])),
   ).toEqual(episodeAt(2, 2));
 });
 
 test('a Special is never the next Episode', () => {
-  expect(upNext([season(0, 2), season(1, 3)], new Set())).toEqual(
+  expect(upNext([season(0, 2), season(1, 3)], scored([]))).toEqual(
     episodeAt(1, 1),
   );
-  expect(upNext([season(1, 3), season(0, 2)], new Set([103]))).toEqual({
+  expect(upNext([season(1, 3), season(0, 2)], scored([103]))).toEqual({
     season: null,
   });
 });
@@ -192,7 +196,7 @@ test('the next Episode carries the day TMDB says it airs, or none', () => {
     episodes: [{ id: 201, number: 1, airDate: null }],
   };
 
-  expect(upNext([season(1, 1), undated], new Set([101]))).toEqual({
+  expect(upNext([season(1, 1), undated], scored([101]))).toEqual({
     episode: { season: 2, episode: 1 },
     airDate: null,
   });
@@ -200,28 +204,28 @@ test('the next Episode carries the day TMDB says it airs, or none', () => {
 
 test('a Viewer caught up with a Show waits on the season TMDB has announced', () => {
   expect(
-    upNext([season(1, 3), season(2, 3), season(3, 0)], new Set([203])),
+    upNext([season(1, 3), season(2, 3), season(3, 0)], scored([203])),
   ).toEqual({ season: 3 });
 });
 
 test('a Viewer caught up with a Show TMDB has announced nothing more of waits on no season', () => {
-  expect(upNext([season(1, 3), season(2, 3)], new Set([203]))).toEqual({
+  expect(upNext([season(1, 3), season(2, 3)], scored([203]))).toEqual({
     season: null,
   });
 });
 
 test('an announced season before the furthest scored is not waited on', () => {
   expect(
-    upNext([season(1, 3), season(2, 0), season(3, 3)], new Set([303])),
+    upNext([season(1, 3), season(2, 0), season(3, 3)], scored([303])),
   ).toEqual({ season: null });
 });
 
 test('a Show with nothing but an announced season waits on it', () => {
-  expect(upNext([season(1, 0)], new Set())).toEqual({ season: 1 });
+  expect(upNext([season(1, 0)], scored([]))).toEqual({ season: 1 });
 });
 
 test('a scored Episode TMDB no longer lists never counts towards the furthest', () => {
-  expect(upNext([season(1, 3), season(2, 3)], new Set([102, 999]))).toEqual(
+  expect(upNext([season(1, 3), season(2, 3)], scored([102, 999]))).toEqual(
     episodeAt(1, 3),
   );
 });

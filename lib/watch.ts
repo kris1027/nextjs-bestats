@@ -327,10 +327,10 @@ export type WatchRecordsPage = {
 };
 
 /**
- * Which Episodes a Viewer has scored, by TMDB's id: as much as `upNext` asks
- * of them, so a set of ids answers it as well as a tracked Show's map does.
+ * The Episodes a Viewer has scored in a Show, by TMDB's id, and when each was
+ * last scored: `upNext` reads which, and `finishedAt` reads when.
  */
-export type ScoredEpisodes = Pick<ReadonlySet<number>, 'has'>;
+export type ScoredEpisodes = ReadonlyMap<number, Date>;
 
 /** Where an Episode sits in its Show, without the Show. */
 export type EpisodePosition = { season: number; episode: number };
@@ -410,7 +410,7 @@ export const upNext = (
  */
 export const finishedAt = (
   show: ShowEpisodes,
-  scored: ReadonlyMap<number, Date>,
+  scored: ScoredEpisodes,
 ): Date | null => {
   if (!show.ended) return null;
 
@@ -438,7 +438,7 @@ export const finishedAt = (
 export type TrackedMedia = {
   ref: MediaRef;
   markedAt: Date;
-  scored: ReadonlyMap<number, Date>;
+  scored: ScoredEpisodes;
 };
 
 /**
