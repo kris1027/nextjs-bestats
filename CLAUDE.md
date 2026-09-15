@@ -196,6 +196,7 @@ page does, since resolving Watch Records against TMDB is a page's job and not
   pending migration in one transaction, and Postgres refuses a value used in
   the transaction that added it. So no check constraint names `stopped`;
   `0011` says what a Movie's row can be instead.
+  — `docs/adr/0021-a-migration-never-uses-the-enum-value-it-adds.md`
 - Environment variables come from Neon, not from typing: `neon checkout main`
   writes every one but `NEON_AUTH_COOKIE_SECRET`, which `.env.example` names.
   There is one branch, so `main` is the only thing to check out. That secret
