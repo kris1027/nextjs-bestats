@@ -296,6 +296,36 @@ test("a Score is written against TMDB's id for the Episode and its Show", async 
   );
 });
 
+test("scoring an Episode of a Stopped Show resumes it in the Score's own write", async () => {
+  queries.tallyMarking.mockResolvedValue(1);
+  queries.watchLookup.mockResolvedValue(new Map([['tv/95396', STOPPED]]));
+  queries.episodeLookup.mockResolvedValue(new Map());
+  media.episodeDetails.mockResolvedValue(halfLoop('2022-02-17'));
+
+  // the Show's record is never read or written apart from the Score:
+  // `writeEpisodeRecord` deletes it in the same batch, whichever it is
+  expect(await scoreEpisode(score('8'))).toEqual({ marking: watchedAt(8) });
+  expect(queries.writeEpisodeRecord).toHaveBeenCalledWith(
+    'a-viewer',
+    { episodeId: 3396429, showId: 95396 },
+    watchedAt(8),
+  );
+  expect(queries.watchLookup).not.toHaveBeenCalled();
+  expect(queries.clearWatchRecord).not.toHaveBeenCalled();
+  expect(queries.writeStoppedShow).not.toHaveBeenCalled();
+});
+
+test("unscoring an Episode of a Stopped Show leaves the Show's record alone", async () => {
+  queries.tallyMarking.mockResolvedValue(1);
+  queries.watchLookup.mockResolvedValue(new Map([['tv/95396', STOPPED]]));
+  queries.episodeLookup.mockResolvedValue(new Map([[3396429, watchedAt(8)]]));
+  media.episodeDetails.mockResolvedValue(halfLoop('2022-02-17'));
+
+  expect(await scoreEpisode(score('8'))).toEqual({ marking: null });
+  expect(queries.clearEpisodeRecord).toHaveBeenCalledWith('a-viewer', 3396429);
+  expect(queries.clearWatchRecord).not.toHaveBeenCalled();
+});
+
 test('pressing the Score an Episode already holds unscores it', async () => {
   queries.tallyMarking.mockResolvedValue(1);
   queries.episodeLookup.mockResolvedValue(new Map([[3396429, watchedAt(8)]]));
