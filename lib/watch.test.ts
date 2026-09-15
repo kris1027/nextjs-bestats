@@ -491,7 +491,7 @@ test('the progress of a Show under way is Unanswered without TMDB', () => {
   expect(showProgress({ answer: 'gone' }, scoredOne)).toBe(null);
 });
 
-test('hasFinished agrees with finishedAt', () => {
+test('hasFinished needs the final Episode scored, and an ended Show with some', () => {
   const show = { ended: true, seasons: [season(1, 2)] };
 
   expect(hasFinished(show, scoredOn({ 101: 1, 102: 2 }))).toBe(true);
