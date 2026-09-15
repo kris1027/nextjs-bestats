@@ -156,14 +156,20 @@ page does, since resolving Watch Records against TMDB is a page's job and not
   and number, which TMDB renumbers.
   — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
 - A Watched record always carries a Score of 1 to 10 and a Planned one never
-  does; the check constraint on `watch_records` is what says so, not the code
-  that writes it. Giving a Score is how a record becomes Watched, so a move
-  back to Planned destroys it. Marking is the detail page's alone — a card
-  shows a Marking and cannot set one — and a card's one star is TMDB's Rating
-  until the Viewer scores the Media, theirs after. `AbsentCard` is the single
-  exception, since Gone Media 404s on the detail page and its card has no link
-  to one, so its Planned button is the only way such a record is ever removed.
+  does, and only a Movie's record is Watched; the check constraints on
+  `watch_records` are what say so, not the code that writes it. Giving a Score
+  is how a Movie's record becomes Watched, so a move back to Planned destroys
+  it. A Show is never Watched: its page draws Planned and no stars, its card's
+  star is always TMDB's Rating, and Watched → Shows is the Shows a Viewer has
+  finished — ended, with no Episode listed after the furthest they scored —
+  placed from TMDB's answer like the other lists. Marking is the detail page's
+  alone — a card shows a Marking and cannot set one — and a Movie card's one
+  star is TMDB's Rating until the Viewer scores it, theirs after. `AbsentCard`
+  is the single exception, since Gone Media 404s on the detail page and its
+  card has no link to one, so its Planned button is the only way such a record
+  is ever removed.
   — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
+  — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
 - A Watch Record stores nothing from TMDB — no label, no poster path, no
   snapshot. Rendering a list means asking TMDB for each item on it.
   — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`

@@ -96,3 +96,15 @@ navigation can change what it says. On an `AbsentCard` the badge and the
 Planned button have to agree the instant a press lands, so they share one
 optimistic marking — which is what `MarkableCard` spans, and the one client
 boundary marking still puts around a card.
+
+## Reach
+
+This decision now covers Movies and Episodes, and not Shows —
+`docs/adr/0018-a-show-is-followed-through-its-episodes.md`. A Show is never
+Watched: a second check constraint refuses a Watched row whose Kind is `tv`,
+`drizzle/0009_watched_show_records.sql` deleted every one before it could, and
+the Watched list's Shows are the ones a Viewer has finished, placed from
+TMDB's answer rather than read off a record. Everything above about the Score
+still holds where a Score exists; a Show's page draws Planned and no stars,
+and a Show's card always shows TMDB's Rating, since no Score of the Viewer's
+belongs to the Show.
