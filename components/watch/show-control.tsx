@@ -32,12 +32,13 @@ const ShowControl = ({
   progress: ShowProgress | null;
 }): JSX.Element | null => {
   const handle = useMarking(marking, mediaTarget(show));
+  const pressed = showPress(handle.shown, progress);
 
-  if (!showPress(handle.shown, progress)) return null;
+  if (!pressed) return null;
 
   return (
     <MarkingForm handle={handle}>
-      <ShowButton handle={handle} progress={progress} />
+      <ShowButton handle={handle} pressed={pressed} />
     </MarkingForm>
   );
 };

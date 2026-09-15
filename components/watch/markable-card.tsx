@@ -9,7 +9,7 @@ import { PlannedButton } from '@/components/watch/planned-button';
 import { ShowButton } from '@/components/watch/show-button';
 import { useMarking } from '@/components/watch/use-marking';
 import type { MediaRef } from '@/lib/media';
-import { type Marking, scoreOf } from '@/lib/watch';
+import { type Marking, scoreOf, showPress } from '@/lib/watch';
 
 /**
  * The body of a card whose Media a Viewer can mark: the head, then the one
@@ -59,6 +59,12 @@ const MarkableCard = ({
 }): JSX.Element => {
   const handle = useMarking(marking, mediaTarget(media));
   const { shown } = handle;
+  // never `null` here: a card's Show is unstarted or under way, never
+  // finished or Unanswered, and either of those picks a button
+  const pressed =
+    media.kind === 'tv'
+      ? showPress(shown, underWay ? 'underWay' : 'unstarted')
+      : null;
 
   return (
     <>
@@ -66,11 +72,8 @@ const MarkableCard = ({
       {children}
       <div className='px-2.5 pt-2.5'>
         <MarkingForm handle={handle}>
-          {media.kind === 'tv' ? (
-            <ShowButton
-              handle={handle}
-              progress={underWay ? 'underWay' : 'unstarted'}
-            />
+          {pressed ? (
+            <ShowButton handle={handle} pressed={pressed} />
           ) : (
             <PlannedButton handle={handle} />
           )}
