@@ -132,7 +132,7 @@ const Found = async ({
     <MediaDetail
       media={media}
       control={
-        <Suspense fallback={<MarkingControlSkeleton />}>
+        <Suspense fallback={<MarkingControlSkeleton kind={ref.kind} />}>
           <Control media={ref} />
         </Suspense>
       }

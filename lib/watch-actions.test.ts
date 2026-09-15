@@ -137,6 +137,18 @@ test('a marking our own form could not have posted is a throw, not a message', a
   expect(queries.tallyMarking).not.toHaveBeenCalled();
 });
 
+test('a Score pressed for a Show is a throw, and nothing is counted', async () => {
+  const scored = press();
+
+  scored.set(MARKING_FIELD, '8');
+
+  // the database would refuse the row as well, but the Show's page draws no
+  // stars, so a Score for one is a form nobody in the app rendered
+  await expect(mark(scored)).rejects.toThrow('A Show is never Watched: 8');
+  expect(queries.tallyMarking).not.toHaveBeenCalled();
+  expect(queries.writeWatchRecord).not.toHaveBeenCalled();
+});
+
 test('Planned is refused on a Show the Viewer is under way with, and nothing is written', async () => {
   queries.tallyMarking.mockResolvedValue(1);
   queries.watchLookup.mockResolvedValue(new Map());

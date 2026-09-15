@@ -107,6 +107,11 @@ export const mark = async (formData: FormData): Promise<MarkResult> => {
   if (!isKind(kind)) throw new Error(`Unknown Kind: ${kind}`);
   if (!isMediaId(id)) throw new Error(`Not a TMDB id: ${id}`);
   if (!pressed) throw new Error(`Not a marking: ${field}`);
+  // a Show is followed through its Episodes, and its page draws no stars
+  // — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+  if (kind === 'tv' && pressed.state === 'watched') {
+    throw new Error(`A Show is never Watched: ${field}`);
+  }
 
   const ref: MediaRef = { kind, id: Number(id) };
 

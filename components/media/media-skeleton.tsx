@@ -151,13 +151,15 @@ const OverviewSkeleton = (): JSX.Element => (
  *
  * The same blindness picks its Facts: a Movie's two. A Show's three wrap onto
  * a third line on the narrowest phones, so there a Show's page moves by one
- * row of Facts; a guess of three would move every Movie's page instead.
+ * row of Facts; a guess of three would move every Movie's page instead. It
+ * picks the marking control too, a Movie's with its star row, so a Show's
+ * page gives that row's height back as its control lands.
  */
 const MediaDetailSkeleton = (): JSX.Element => (
   <DetailFrameSkeleton>
     <HeadingSkeleton facts={['Released: October 15, 1999', '2h 19m']} />
     <div className='max-w-xs'>
-      <MarkingControlSkeleton />
+      <MarkingControlSkeleton kind='movie' />
     </div>
     <OverviewSkeleton />
   </DetailFrameSkeleton>
