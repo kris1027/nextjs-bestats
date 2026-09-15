@@ -190,6 +190,13 @@ page does, since resolving Watch Records against TMDB is a page's job and not
   migration through `drizzle-kit generate --custom` — `0001`, `0003` and
   `0008` so far, and the same for any new one.
   — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
+- A migration that adds an enum value never uses it: drizzle-kit applies every
+  pending migration in one transaction, and Postgres refuses a value used in
+  the transaction that added it. So no check constraint names `stopped` —
+  `0011` says what a Movie's row can be instead — and a constraint on the next
+  value is spelled the same way. CI migrates a fresh branch from `0000`, so it
+  is where such a mistake would fail; `pnpm db:migrate` on production would
+  fail the same way.
 - Environment variables come from Neon, not from typing: `neon checkout main`
   writes every one but `NEON_AUTH_COOKIE_SECRET`, which `.env.example` names.
   There is one branch, so `main` is the only thing to check out. That secret
