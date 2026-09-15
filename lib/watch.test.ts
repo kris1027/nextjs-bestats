@@ -5,15 +5,21 @@ import {
   type EpisodeLookup,
   finishedAt,
   goneEpisodes,
+  hasFinished,
   isScore,
   marked,
   markingFrom,
   markingOf,
+  markingsAgree,
   markingValue,
   PLANNED,
+  recordHolds,
   refOf,
   SCORES,
   type Score,
+  STOPPED,
+  showPress,
+  showProgress,
   takesScore,
   toLookup,
   toMarkedMedia,
@@ -31,11 +37,13 @@ test('marking Media with no Watch Record creates one saying what was pressed', (
 test('marking the other state moves the Watch Record', () => {
   expect(marked(PLANNED, watchedAt(7))).toEqual(watchedAt(7));
   expect(marked(watchedAt(7), PLANNED)).toEqual(PLANNED);
+  expect(marked(PLANNED, STOPPED)).toEqual(STOPPED);
 });
 
 test('marking what a Watch Record already says unmarks it', () => {
   expect(marked(PLANNED, PLANNED)).toBe(null);
   expect(marked(watchedAt(7), watchedAt(7))).toBe(null);
+  expect(marked(STOPPED, STOPPED)).toBe(null);
 });
 
 test('a different Score rescores rather than unmarks', () => {
@@ -44,9 +52,9 @@ test('a different Score rescores rather than unmarks', () => {
 });
 
 test('every marking is reachable from every other in one press', () => {
-  const markings = [PLANNED, ...SCORES.map(watchedAt)];
+  const markings = [PLANNED, STOPPED, ...SCORES.map(watchedAt)];
 
-  // Media with no Watch Record agrees with nothing, so all eleven mark it
+  // Media with no Watch Record agrees with nothing, so all twelve mark it
   for (const pressed of markings)
     expect(marked(null, pressed)).toEqual(pressed);
 
@@ -72,6 +80,7 @@ test('isScore admits one to ten whole and nothing else', () => {
 
 test('markingFrom reads the field the buttons post and refuses the rest', () => {
   expect(markingFrom('planned')).toEqual(PLANNED);
+  expect(markingFrom('stopped')).toEqual(STOPPED);
   expect(markingFrom('1')).toEqual(watchedAt(1));
   expect(markingFrom('10')).toEqual(watchedAt(10));
 
@@ -81,10 +90,11 @@ test('markingFrom reads the field the buttons post and refuses the rest', () => 
   expect(markingFrom('7.5')).toBe(null);
   expect(markingFrom('')).toBe(null);
   expect(markingFrom('Planned')).toBe(null);
+  expect(markingFrom('dropped')).toBe(null);
 });
 
 test('every marking survives the round trip through a form field', () => {
-  for (const marking of [PLANNED, ...SCORES.map(watchedAt)]) {
+  for (const marking of [PLANNED, STOPPED, ...SCORES.map(watchedAt)]) {
     expect(markingFrom(markingValue(marking))).toEqual(marking);
   }
 });
@@ -92,6 +102,7 @@ test('every marking survives the round trip through a form field', () => {
 test('toMarking makes one value of the two columns a row holds', () => {
   expect(toMarking({ state: 'planned', score: null })).toEqual(PLANNED);
   expect(toMarking({ state: 'watched', score: 9 })).toEqual(watchedAt(9));
+  expect(toMarking({ state: 'stopped', score: null })).toEqual(STOPPED);
 });
 
 test('a Watched row with no Score is a row that cannot exist', () => {
@@ -103,6 +114,12 @@ test('a Watched row with no Score is a row that cannot exist', () => {
 test('watchKey spells a piece of Media the way its URL does', () => {
   expect(watchKey({ kind: 'tv', id: 1399 })).toBe('tv/1399');
   expect(watchKey({ kind: 'movie', id: 1399 })).toBe('movie/1399');
+});
+
+test('toLookup holds a Stopped Show as Stopped', () => {
+  const lookup = toLookup([{ kind: 'tv', tmdbId: 1399, ...STOPPED }]);
+
+  expect(markingOf(lookup, { kind: 'tv', id: 1399 })).toEqual(STOPPED);
 });
 
 test('toLookup keeps the same TMDB id in each Kind apart', () => {
@@ -139,6 +156,16 @@ test('toMarkedMedia makes a marking of a row and keeps the Media', () => {
 test("a Movie's record takes a Score, and a Show's never does", () => {
   expect(takesScore('movie')).toBe(true);
   expect(takesScore('tv')).toBe(false);
+});
+
+test("a Movie's record is never Stopped, and a Show's never Watched", () => {
+  expect(recordHolds('movie', PLANNED)).toBe(true);
+  expect(recordHolds('movie', watchedAt(7))).toBe(true);
+  expect(recordHolds('movie', STOPPED)).toBe(false);
+
+  expect(recordHolds('tv', PLANNED)).toBe(true);
+  expect(recordHolds('tv', STOPPED)).toBe(true);
+  expect(recordHolds('tv', watchedAt(7))).toBe(false);
 });
 
 test('refOf spells a Watch Record the way lib/media spells a ref', () => {
@@ -382,4 +409,103 @@ test('an Unanswered season is not reported as Gone', () => {
 
 test('a Gone Show has no Gone Episodes to list', () => {
   expect(goneEpisodes({ answer: 'gone' }, records([101, 8]))).toBe(null);
+});
+
+/*
+ * A Show's own control, one row of the table in #27 each: which button it
+ * draws, and whether that button is lit — whether it is what the record
+ * already says, so that pressing it deletes the record.
+ */
+
+/** The button a Show's control draws and whether it is lit, or `null`. */
+const drawn = (
+  shown: Parameters<typeof showPress>[0],
+  progress: Parameters<typeof showPress>[1],
+) => {
+  const press = showPress(shown, progress);
+
+  return press && { press, lit: markingsAgree(shown, press) };
+};
+
+test('a Show with no record the Viewer has not started draws Planned, off', () => {
+  expect(drawn(null, 'unstarted')).toEqual({ press: PLANNED, lit: false });
+  expect(marked(null, PLANNED)).toEqual(PLANNED);
+});
+
+test('a Planned Show with no Episodes scored draws Planned, on, which deletes it', () => {
+  expect(drawn(PLANNED, 'unstarted')).toEqual({ press: PLANNED, lit: true });
+  expect(marked(PLANNED, PLANNED)).toBe(null);
+});
+
+test('a Show under way with no record draws Stop watching, off, which Stops it', () => {
+  expect(drawn(null, 'underWay')).toEqual({ press: STOPPED, lit: false });
+  expect(marked(null, STOPPED)).toEqual(STOPPED);
+});
+
+test('a Stopped Show draws Stopped, on, which deletes it', () => {
+  expect(drawn(STOPPED, 'underWay')).toEqual({ press: STOPPED, lit: true });
+  expect(marked(STOPPED, STOPPED)).toBe(null);
+});
+
+test('a finished Show draws no control', () => {
+  expect(drawn(null, 'finished')).toBe(null);
+});
+
+test('a Show not yet started offers no way to Stop it', () => {
+  expect(drawn(null, 'unstarted')?.press).not.toEqual(STOPPED);
+});
+
+test('a Stopped Show stays Stopped, on, with every Episode unscored or once finished', () => {
+  // unscoring every Episode leaves the record, which can still be taken back
+  expect(drawn(STOPPED, 'unstarted')).toEqual({ press: STOPPED, lit: true });
+  expect(drawn(STOPPED, 'finished')).toEqual({ press: STOPPED, lit: true });
+});
+
+test('scoring an Episode of a Stopped Show draws Stop watching, off, again', () => {
+  // scoring deletes the Stopped record, so the next render has no record and
+  // a Show under way: resumed, and able to be Stopped again
+  expect(drawn(STOPPED, 'underWay')?.lit).toBe(true);
+  expect(drawn(null, 'underWay')).toEqual({ press: STOPPED, lit: false });
+});
+
+test('a Show whose progress went Unanswered draws only the record it holds', () => {
+  expect(drawn(null, null)).toBe(null);
+  expect(drawn(PLANNED, null)).toEqual({ press: PLANNED, lit: true });
+  expect(drawn(STOPPED, null)).toEqual({ press: STOPPED, lit: true });
+});
+
+test('a Show is unstarted with nothing scored, without TMDB', () => {
+  expect(showProgress({ answer: 'unanswered' }, new Map())).toBe('unstarted');
+});
+
+test('a Show with an Episode scored is under way, or finished once it has ended', () => {
+  const show = { ended: true, seasons: [season(1, 2)] };
+
+  expect(
+    showProgress({ answer: 'show', show }, new Map([[101, watchedAt(8)]])),
+  ).toBe('underWay');
+  expect(
+    showProgress(
+      { answer: 'show', show },
+      new Map([
+        [101, watchedAt(8)],
+        [102, watchedAt(9)],
+      ]),
+    ),
+  ).toBe('finished');
+});
+
+test('the progress of a Show under way is Unanswered without TMDB', () => {
+  const scoredOne = new Map([[101, watchedAt(8)]]);
+
+  expect(showProgress({ answer: 'unanswered' }, scoredOne)).toBe(null);
+  expect(showProgress({ answer: 'gone' }, scoredOne)).toBe(null);
+});
+
+test('hasFinished needs the final Episode scored, and an ended Show with some', () => {
+  const show = { ended: true, seasons: [season(1, 2)] };
+
+  expect(hasFinished(show, scoredOn({ 101: 1, 102: 2 }))).toBe(true);
+  expect(hasFinished(show, scoredOn({ 101: 1 }))).toBe(false);
+  expect(hasFinished({ ended: true, seasons: [] }, new Map())).toBe(false);
 });

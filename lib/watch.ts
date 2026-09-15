@@ -16,13 +16,15 @@ import type {
  */
 
 /**
- * The two states, in the order a Viewer moves through them. `WatchState` is
- * read off this list rather than declared beside it, and the Postgres enum in
- * `lib/schema.ts` satisfies it, so the domain and the database cannot drift.
+ * The three states. `WatchState` is read off this list rather than declared
+ * beside it, and the Postgres enum in `lib/schema.ts` satisfies it, so the
+ * domain and the database cannot drift. Watched is a Movie's alone and
+ * Stopped a Show's alone, which the check constraints on `watch_records` say.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
-export const WATCH_STATES = ['planned', 'watched'] as const;
+export const WATCH_STATES = ['planned', 'watched', 'stopped'] as const;
 
-/** Planned or Watched, and never a third thing. */
+/** Planned, Watched or Stopped, and never a fourth thing. */
 export type WatchState = (typeof WATCH_STATES)[number];
 
 /**
@@ -40,14 +42,17 @@ export const isScore = (value: number): value is Score =>
   SCORES.some((score) => score === value);
 
 /**
- * What a Watch Record says, and what a press of a control says: Planned, or
- * Watched at a Score. One value rather than a state and a Score passed
- * alongside each other, because the two are only ever right together — the
- * pairs this union cannot spell are exactly the pairs the check constraint on
- * `watch_records` refuses.
+ * What a Watch Record says, and what a press of a control says: Planned,
+ * Watched at a Score, or Stopped. One value rather than a state and a Score
+ * passed alongside each other, because the two are only ever right together —
+ * the pairs this union cannot spell are exactly the pairs the check constraint
+ * on `watch_records` refuses.
  * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
  */
-export type Marking = { state: 'planned' } | { state: 'watched'; score: Score };
+export type Marking =
+  | { state: 'planned' }
+  | { state: 'watched'; score: Score }
+  | { state: 'stopped' };
 
 /** The Watched half of `Marking`, which is the half that carries a Score. */
 export type WatchedMarking = Extract<Marking, { state: 'watched' }>;
@@ -63,11 +68,26 @@ export type EpisodeMarking = WatchedMarking;
 /**
  * Whether a Kind's own Watch Record can be Watched at a Score: a Movie's can,
  * and a Show's never is, since a Show is followed through its Episodes. The
- * star row, its skeleton, the action's refusal and the Watched list's paging
- * all ask this, and the check constraint on `watch_records` says it too.
+ * action's refusal and the Watched list's paging ask this, and the check
+ * constraint on `watch_records` says it too.
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const takesScore = (kind: Kind): boolean => kind === 'movie';
+
+/**
+ * Whether a Kind's own Watch Record can say what a marking says: Planned
+ * either Kind's, Watched only one that `takesScore`, and Stopped only one that
+ * does not, since only a Show is followed through Episodes it can give up on.
+ * The action refuses a press this fails, and the check constraints on
+ * `watch_records` refuse the row besides.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ */
+export const recordHolds = (kind: Kind, marking: Marking): boolean => {
+  if (marking.state === 'watched') return takesScore(kind);
+  if (marking.state === 'stopped') return !takesScore(kind);
+
+  return true;
+};
 
 /** Narrows a marking to one an Episode can hold. */
 export const isEpisodeMarking = (marking: Marking): marking is EpisodeMarking =>
@@ -76,13 +96,16 @@ export const isEpisodeMarking = (marking: Marking): marking is EpisodeMarking =>
 /** The Planned marking, which has nothing to vary. */
 export const PLANNED: Marking = { state: 'planned' };
 
+/** The Stopped marking, which a Show's record alone can hold. */
+export const STOPPED: Marking = { state: 'stopped' };
+
 /** The Watched marking at a Score, which is the only way to reach Watched. */
 export const watchedAt = (score: Score): WatchedMarking => ({
   state: 'watched',
   score,
 });
 
-/** A marking's Score, or `null` for Planned, which never carries one. */
+/** A marking's Score, or `null` for Planned or Stopped, which carry none. */
 export const scoreOf = (marking: Marking): Score | null =>
   marking.state === 'watched' ? marking.score : null;
 
@@ -94,6 +117,7 @@ export const scoreOf = (marking: Marking): Score | null =>
  */
 export const toMarking = ({ state, score }: MarkingColumns): Marking => {
   if (state === 'planned') return PLANNED;
+  if (state === 'stopped') return STOPPED;
   if (typeof score === 'number' && isScore(score)) return watchedAt(score);
 
   throw new Error(`A Watched row with no Score: ${score}`);
@@ -116,8 +140,8 @@ export type MarkedMedia = Marking & { kind: Kind; tmdbId: number };
 
 /**
  * A marking as Postgres stores it: the enum, and a Score that is `null` on a
- * Planned row. `toMarking` is the one place the two become one value, so
- * nothing above the queries ever holds a state and a Score apart.
+ * Planned or Stopped row. `toMarking` is the one place the two become one
+ * value, so nothing above the queries ever holds a state and a Score apart.
  */
 export type MarkingColumns = { state: WatchState; score: number | null };
 
@@ -175,14 +199,15 @@ export const markingsAgree = (
 /**
  * The name of the one form field a press travels in. One field because a
  * submit button posts one name and one value, and the buttons have to keep
- * working before hydration — `planned` and `1`…`10` are values of the same
- * field rather than a state and a Score the browser cannot post together.
+ * working before hydration — `planned`, `stopped` and `1`…`10` are values
+ * of the same field rather than a state and a Score the browser cannot post
+ * together.
  */
 export const MARKING_FIELD = 'marking';
 
 /** How a marking is spelled in that field. */
 export const markingValue = (marking: Marking): string =>
-  marking.state === 'planned' ? 'planned' : String(marking.score);
+  marking.state === 'watched' ? String(marking.score) : marking.state;
 
 /**
  * The marking a field holds, or `null` for anything else. The guard the
@@ -191,6 +216,7 @@ export const markingValue = (marking: Marking): string =>
  */
 export const markingFrom = (value: string): Marking | null => {
   if (value === 'planned') return PLANNED;
+  if (value === 'stopped') return STOPPED;
 
   const score = Number(value);
 
@@ -300,7 +326,7 @@ export const toLookup = (items: readonly MarkedMedia[]): WatchLookup =>
 
 /** The marking half of a `MarkedMedia`, without the Media it is about. */
 const markingIn = (item: MarkedMedia): Marking =>
-  item.state === 'planned' ? PLANNED : watchedAt(item.score);
+  item.state === 'watched' ? watchedAt(item.score) : { state: item.state };
 
 /**
  * A piece of Media's marking in a lookup, or `null` when the Viewer has said
@@ -379,6 +405,13 @@ const regularSeasons = (
 ): readonly SeasonEpisodes[] => seasons.filter((season) => season.number !== 0);
 
 /**
+ * The Episodes a Viewer has scored in a Show, by TMDB's id, whatever else each
+ * carries: a list's `ScoredEpisodes`, with when, or a page's `EpisodeLookup`,
+ * with the Score. Which is scored is all `upNext` and `hasFinished` read.
+ */
+export type ScoredIds = ReadonlyMap<number, unknown>;
+
+/**
  * What a Viewer watches next: the Episode after the furthest they have
  * scored, and the Show's first when they have scored none. Furthest, not the
  * earliest unscored, so a Viewer who joined at season three is not sent back
@@ -393,7 +426,7 @@ const regularSeasons = (
  */
 export const upNext = (
   seasons: readonly SeasonEpisodes[],
-  scored: ScoredEpisodes,
+  scored: ScoredIds,
 ): UpNext => {
   const regular = regularSeasons(seasons);
   const inOrder = regular.flatMap((season) =>
@@ -420,34 +453,95 @@ export const upNext = (
   return { season: announced?.number ?? null };
 };
 
+/** The last Episode of a Show's last regular season, or none. */
+const finalEpisode = (show: ShowEpisodes): { id: number } | undefined =>
+  regularSeasons(show.seasons)
+    .flatMap((season) => season.episodes)
+    .at(-1);
+
 /**
- * When a Viewer finished a Show: the moment they scored its final Episode, once
- * TMDB says the Show has ended and lists nothing after the furthest they have
- * scored. `null` is a Show not finished — one still running, one with an
- * Episode left, dated or not, or one with a season announced after it — and
- * an ended Show with no Episodes, which nobody can have watched.
+ * Whether a Viewer has finished a Show: TMDB says it has ended and lists
+ * nothing after the furthest they have scored. Not a Show still running, one
+ * with an Episode left, dated or not, or one with a season announced after
+ * it — and not an ended Show with no Episodes, which nobody can have watched.
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  *
  * An announced season counts against it even on an ended Show, where the two
  * contradict each other: wrongly calling a Show finished is a claim about the
  * Viewer, and wrongly holding it in Upcoming is only visible.
  */
+export const hasFinished = (show: ShowEpisodes, scored: ScoredIds): boolean => {
+  if (!show.ended) return false;
+
+  const next = upNext(show.seasons, scored);
+
+  if ('episode' in next || next.season !== null) return false;
+
+  // with nothing after the furthest scored, the final Episode is the furthest
+  const final = finalEpisode(show);
+
+  return final !== undefined && scored.has(final.id);
+};
+
+/**
+ * When a Viewer finished a Show: the moment they scored its final Episode, or
+ * `null` for a Show `hasFinished` says they have not.
+ */
 export const finishedAt = (
   show: ShowEpisodes,
   scored: ScoredEpisodes,
 ): Date | null => {
-  if (!show.ended) return null;
+  if (!hasFinished(show, scored)) return null;
 
-  const next = upNext(show.seasons, scored);
-
-  if ('episode' in next || next.season !== null) return null;
-
-  // with nothing after the furthest scored, the final Episode is the furthest
-  const final = regularSeasons(show.seasons)
-    .flatMap((season) => season.episodes)
-    .at(-1);
+  const final = finalEpisode(show);
 
   return (final && scored.get(final.id)) ?? null;
+};
+
+/**
+ * How far a Viewer has got with a Show, as much as its own control needs: no
+ * Episode scored, some scored, or finished.
+ */
+export type ShowProgress = 'unstarted' | 'underWay' | 'finished';
+
+/**
+ * A Show's progress from the Episodes a Viewer has scored and what TMDB says
+ * about it, or `null` — Unanswered — where that depends on an answer TMDB
+ * did not give. A Viewer who has scored nothing has not started, whatever TMDB
+ * says, so only a Show under way needs the answer at all.
+ */
+export const showProgress = (
+  answer: ShowEpisodesAnswer,
+  scored: ScoredIds,
+): ShowProgress | null => {
+  if (scored.size === 0) return 'unstarted';
+  if (answer.answer !== 'show') return null;
+
+  return hasFinished(answer.show, scored) ? 'finished' : 'underWay';
+};
+
+/**
+ * The marking a Show's own control presses, which is the one button it draws,
+ * or `null` for no control. A record draws its own button, lit, so a Viewer
+ * can always take back what they said; without one, a Show not started draws
+ * Planned and a Show under way draws Stop watching. A finished Show has
+ * nothing to plan or give up on, and a Show whose progress went Unanswered
+ * draws nothing rather than guess it is not finished.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ *
+ * Read off what the control shows, so a press that lands flips the button
+ * it pressed and never swaps it for another: pressing Stop watching lights
+ * Stopped, and pressing Stopped puts Stop watching back.
+ */
+export const showPress = (
+  shown: Marking | null,
+  progress: ShowProgress | null,
+): Marking | null => {
+  if (shown?.state === 'planned' || shown?.state === 'stopped') return shown;
+  if (progress === 'unstarted') return PLANNED;
+  if (progress === 'underWay') return STOPPED;
+
+  return null;
 };
 
 /**
@@ -500,6 +594,13 @@ export type TrackedMedia = {
   ref: MediaRef;
   markedAt: Date;
   scored: ScoredEpisodes;
+  /**
+   * Whether this is a Stopped Show, which is tracked by no list and comes
+   * along only because TMDB may call it Gone: then its card is the one place
+   * left to take the record back, so it is drawn as Gone Media is.
+   * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+   */
+  stopped: boolean;
 };
 
 /**

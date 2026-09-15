@@ -54,6 +54,9 @@ anyone touching it, which is correct: the lists are derived.
 The three lists are disjoint again. The Watchlist is what a Viewer can watch
 now, Upcoming what they are waiting for, and Watched → Shows the Shows they
 have finished; Stopped Shows appear on their own page and in none of them.
+A Gone Show is the exception, since its page is a 404: Stopped, it is drawn
+on the Watchlist and Upcoming as all Gone Media is, because its card is the
+only place left to take the Stopped record back.
 
 Every Watched Show record is deleted, in a migration of its own that runs
 before the new constraint exists, for 0016's reason: inventing a Score for

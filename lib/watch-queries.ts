@@ -285,6 +285,12 @@ export const watchedMoviesPage = async (
  * Episodes, which is what the Watchlist orders by, and a Show brings the ids
  * of its scored Episodes for `upNext`.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
+ *
+ * Each Stopped Show comes too, flagged, though it is tracked by no list:
+ * whether it is Gone is TMDB's to say, and a Gone one is drawn so its record
+ * can be taken back. `placed` leaves every other one off. It shares the
+ * ceiling with what is tracked, since it costs TMDB the same request.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const trackedMedia = async (
   viewerId: string,
@@ -299,6 +305,7 @@ export const trackedMedia = async (
         tmdbId: watchRecords.tmdbId,
         markedAt: watchRecords.updatedAt,
         planned: sql<boolean>`${watchRecords.state} = 'planned'`.as('planned'),
+        stopped: sql<boolean>`${watchRecords.state} = 'stopped'`.as('stopped'),
         episodeId: sql<number | null>`null::integer`.as('episode_id'),
       })
       .from(watchRecords)
@@ -314,6 +321,7 @@ export const trackedMedia = async (
         tmdbId: episodeRecords.showId,
         markedAt: episodeRecords.updatedAt,
         planned: sql<boolean>`false`.as('planned'),
+        stopped: sql<boolean>`false`.as('stopped'),
         episodeId: episodeRecords.episodeId,
       })
       .from(episodeRecords)
@@ -333,11 +341,15 @@ export const trackedMedia = async (
       scored: sql<
         Record<string, number>
       >`coalesce(json_object_agg(${markings.episodeId}, extract(epoch from ${markings.markedAt}) * 1000) filter (where ${markings.episodeId} is not null), '{}'::json)`,
+      stopped: sql<boolean>`bool_or(${markings.stopped})`,
     })
     .from(markings)
     .groupBy(markings.kind, markings.tmdbId)
+    // a Stopped Show whose Episodes are all unscored still comes, since its
+    // record is what a Gone one's card takes back
     .having(
-      sql`bool_or(${markings.planned}) or count(${markings.episodeId}) > 0`,
+      sql`bool_or(${markings.planned}) or bool_or(${markings.stopped})
+        or count(${markings.episodeId}) > 0`,
     )
     // the ceiling here too, so what is read is bounded and not only what is
     // placed; one past it, so `withinCeiling` can tell a list cut short from
@@ -345,7 +357,7 @@ export const trackedMedia = async (
     .orderBy(sql`max(${markings.markedAt}) desc`)
     .limit(TRACKED_CEILING + 1);
 
-  return rows.map(({ kind, tmdbId, markedAt, scored }) => ({
+  return rows.map(({ kind, tmdbId, markedAt, scored, stopped }) => ({
     ref: { kind, id: tmdbId },
     markedAt,
     scored: new Map(
@@ -354,6 +366,7 @@ export const trackedMedia = async (
         new Date(Number(at)),
       ]),
     ),
+    stopped,
   }));
 };
 
@@ -462,10 +475,11 @@ export const clearWatchRecord = async (
  * reason `writeWatchRecord` gives. The Show's id is written on the insert
  * only: an Episode does not change Shows.
  *
- * The Show's Planned record goes in the same batch, since Planned lasts only
- * until the first Episode. One batch because the HTTP driver has no
- * interactive transactions, and a Score written without the delete would
- * leave the Show Planned and under way at once.
+ * The Show's own record goes in the same batch, whichever it is: Planned
+ * lasts only until the first Episode, and watching another Episode of a
+ * Stopped Show is how a Viewer resumes it. One batch because the HTTP driver
+ * has no interactive transactions, and a Score written without the delete
+ * would leave the Show Planned and under way at once.
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const writeEpisodeRecord = async (
@@ -487,7 +501,6 @@ export const writeEpisodeRecord = async (
         and(
           eq(watchRecords.viewerId, viewerId),
           whereMedia({ kind: 'tv', id: episode.showId }),
-          eq(watchRecords.state, 'planned'),
         ),
       ),
   ]);
@@ -496,28 +509,51 @@ export const writeEpisodeRecord = async (
 /**
  * `writeWatchRecord` for a Planned Show, refused while the Viewer is under way
  * with it: `false`, and nothing written, once any of its Episodes is scored.
- * The check and the write are one statement, because the HTTP driver has no
- * interactive transactions and an Episode scored between a read and a write
- * would leave the Show Planned and under way at once.
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ */
+export const writePlannedShow = (
+  viewerId: string,
+  showId: number,
+): Promise<boolean> => writeShowRecord(viewerId, showId, 'planned');
+
+/**
+ * `writeWatchRecord` for a Stopped Show, refused before the Viewer has
+ * started it: `false`, and nothing written, while none of its Episodes is
+ * scored. A Show not yet started has nothing to give up on.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ */
+export const writeStoppedShow = (
+  viewerId: string,
+  showId: number,
+): Promise<boolean> => writeShowRecord(viewerId, showId, 'stopped');
+
+/**
+ * A Show's own record at `state`, written only where the Viewer's Episodes
+ * allow it: Planned while none is scored, Stopped once one is. The check and
+ * the write are one statement, because the HTTP driver has no interactive
+ * transactions and an Episode scored or unscored between a read and a write
+ * would leave the record saying what the Episodes no longer do.
  *
  * SQL rather than the builder, since an `insert … select` with no table to
  * select from is not something Drizzle can spell. The casts are there because
  * a parameter in a select list reaches Postgres as text.
  */
-export const writePlannedShow = async (
+const writeShowRecord = async (
   viewerId: string,
   showId: number,
+  state: 'planned' | 'stopped',
 ): Promise<boolean> => {
-  const { rows } = await db.execute(sql`
-    insert into ${watchRecords} (viewer_id, kind, tmdb_id, state, score)
-    select ${viewerId}::uuid, 'tv'::media_kind, ${showId}::integer,
-      'planned'::watch_state, null
-    where not exists (
+  const scored = sql`exists (
       select 1 from ${episodeRecords}
       where ${episodeRecords.viewerId} = ${viewerId}::uuid
         and ${episodeRecords.showId} = ${showId}::integer
-    )
+    )`;
+
+  const { rows } = await db.execute(sql`
+    insert into ${watchRecords} (viewer_id, kind, tmdb_id, state, score)
+    select ${viewerId}::uuid, 'tv'::media_kind, ${showId}::integer,
+      ${state}::watch_state, null
+    where ${state === 'stopped' ? scored : sql`not ${scored}`}
     on conflict (viewer_id, kind, tmdb_id)
     do update set state = excluded.state, score = excluded.score,
       updated_at = now()

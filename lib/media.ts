@@ -57,8 +57,10 @@ export type Artwork = 'poster' | 'backdrop';
  * How a caller names one piece of Media: its Kind and its TMDB id, together,
  * because a TMDB id is unique only within a Kind. A Media Item already is
  * one, which is why a card can hand itself to anything that takes a ref.
+ * Narrowed to one Kind — `MediaRef<'tv'>` — for what only a Show or only a
+ * Movie can be handed.
  */
-export type MediaRef = { kind: Kind; id: number };
+export type MediaRef<K extends Kind = Kind> = { kind: K; id: number };
 
 /**
  * TMDB's average score for a piece of Media and the votes behind it. One type

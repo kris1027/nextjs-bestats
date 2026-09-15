@@ -26,6 +26,10 @@ const LINES: Record<Absence, string> = {
  * deletes the row. Nothing else can reach it.
  * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
  *
+ * A Show the Viewer is under way with draws Stop watching in Planned's place,
+ * since its page is where a Show is stopped and a Gone Show has none.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ *
  * The card reads its own marking and its key out of `lookup`, the way a
  * `MediaCard` does: the pair is one value so this card cannot be given one
  * Viewer's markings under another's key. Only the lists render it, and a
@@ -36,10 +40,13 @@ const LINES: Record<Absence, string> = {
 const AbsentCard = ({
   media,
   answer,
+  underWay,
   lookup,
 }: {
   media: MediaRef;
   answer: Absence;
+  /** Whether the Viewer has scored an Episode of this Show; never a Movie. */
+  underWay: boolean;
   lookup: ViewerLookup;
 }): JSX.Element => {
   // "Show 1399": KIND_WORDS' one spelling of the word, raised in the text
@@ -59,6 +66,7 @@ const AbsentCard = ({
           key={lookup.viewerKey}
           media={media}
           marking={markingOf(lookup.markings, media)}
+          underWay={underWay}
           head={head}
         >
           {line}

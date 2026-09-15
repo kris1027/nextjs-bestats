@@ -25,12 +25,14 @@ export const mediaKind = pgEnum('media_kind', [
 ] as const satisfies readonly Kind[]);
 
 /**
- * Planned or Watched, and never a third thing. The same trick as `mediaKind`:
- * the list is `lib/watch`'s, and this enum has to keep satisfying it.
+ * Planned, Watched or Stopped, and never a fourth thing. The same trick as
+ * `mediaKind`: the list is `lib/watch`'s, and this enum has to keep
+ * satisfying it.
  */
 export const watchState = pgEnum('watch_state', [
   'planned',
   'watched',
+  'stopped',
 ] as const satisfies readonly WatchState[]);
 
 /**
@@ -43,11 +45,12 @@ export const watchState = pgEnum('watch_state', [
  * `movie/1399` are different Media.
  * — `docs/adr/0007-watchlist-and-watched-are-one-record.md`
  *
- * A Watched row carries a Score and a Planned row carries none, which the
- * check constraint below keeps rather than the code that writes it: giving a
- * Score is what makes a record Watched, so the two columns have two legal
- * pairs out of the four they can spell. Only a Movie's row is Watched, which
- * a second constraint keeps: a Show is never Watched, its Episodes are.
+ * A Watched row carries a Score and a Planned or Stopped row carries none,
+ * which the check constraint below keeps rather than the code that writes it:
+ * giving a Score is what makes a record Watched. Only a Movie's row is
+ * Watched, which a second constraint keeps: a Show is never Watched, its
+ * Episodes are. Only a Show's row is Stopped, which a third keeps: a Movie is
+ * watched once, so there is nothing partway through to give up on.
  * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  *
@@ -65,9 +68,9 @@ export const watchRecords = pgTable(
     kind: mediaKind('kind').notNull(),
     tmdbId: integer('tmdb_id').notNull(),
     state: watchState('state').notNull(),
-    // the Viewer's own one to ten, and `null` on a Planned row. A `smallint`
-    // because ten is the largest it will ever hold; the range is the check
-    // constraint's to enforce, since no integer type is 1..10.
+    // the Viewer's own one to ten, and `null` on a Planned or Stopped row. A
+    // `smallint` because ten is the largest it will ever hold; the range is
+    // the check constraint's to enforce, since no integer type is 1..10.
     score: smallint('score'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     // the moment of the last marking, which is what the lists order by — from
@@ -92,20 +95,24 @@ export const watchRecords = pgTable(
       table.state,
       table.updatedAt.desc(),
     ),
-    // the two pairs the domain has, out of the four these columns can spell.
-    // Written as SQL rather than as a rule the writers remember, so a Watched
-    // row without a Score is a rejected statement and never a row a reader
-    // has to interpret.
+    // a Score on a Watched row and on no other. Written as SQL rather than as
+    // a rule the writers remember, so a Watched row without a Score is a
+    // rejected statement and never a row a reader has to interpret.
     //
     // `is not null` before the range, and not for tidiness: a check constraint
     // passes on NULL as well as on true, and `null between 1 and 10` is NULL,
     // so without it the one row this constraint exists to forbid — Watched,
     // no Score — is the one row it would have let through.
+    //
+    // Neither this nor the Stopped constraint below names `stopped`. Postgres
+    // refuses an enum value added in the transaction that uses it, and
+    // drizzle-kit applies every pending migration in one transaction, so a
+    // constraint spelling the new value would fail the migration adding it.
     check(
       'watch_records_score_matches_state',
-      sql`(${table.state} = 'planned' and ${table.score} is null)
-       or (${table.state} = 'watched' and ${table.score} is not null
-           and ${table.score} between 1 and 10)`,
+      sql`(${table.state} = 'watched' and ${table.score} is not null
+           and ${table.score} between 1 and 10)
+       or (${table.state} <> 'watched' and ${table.score} is null)`,
     ),
     // a Show is followed through its Episodes and never Watched itself, so a
     // Watched row is a Movie's. Its own constraint rather than a clause in the
@@ -115,6 +122,14 @@ export const watchRecords = pgTable(
     check(
       'watch_records_watched_is_a_movie',
       sql`${table.state} <> 'watched' or ${table.kind} = 'movie'`,
+    ),
+    // and a Show is given up on partway through, which a Movie has no part of,
+    // so a Stopped row is a Show's. Spelled as what a Movie's row can be,
+    // for the reason the constraint above names no `stopped`.
+    // — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+    check(
+      'watch_records_stopped_is_a_show',
+      sql`${table.kind} = 'tv' or ${table.state} in ('planned', 'watched')`,
     ),
   ],
 );

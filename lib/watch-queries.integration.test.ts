@@ -10,6 +10,7 @@ import {
   markingOf,
   PAGE_SIZE,
   PLANNED,
+  STOPPED,
   TRACKED_CEILING,
   watchedAt,
 } from '@/lib/watch';
@@ -27,6 +28,7 @@ import {
   watchLookup,
   writeEpisodeRecord,
   writePlannedShow,
+  writeStoppedShow,
   writeWatchRecord,
 } from '@/lib/watch-queries';
 
@@ -297,6 +299,7 @@ test('a marking tally is one Viewer’s, and one row however many presses', asyn
 
 const HALF_LOOP = { episodeId: 3396429, showId: 95396 };
 const IN_PERPETUITY = { episodeId: 3396430, showId: 95396 };
+const SEVERANCE = { kind: 'tv', id: HALF_LOOP.showId } as const;
 
 test('an Episode lookup holds the Scores of the Episodes asked for, and only those', async () => {
   const viewerId = await viewer();
@@ -330,17 +333,42 @@ test('writing an Episode record again rescores it, and clearing it removes it', 
 
 test('a Show is written Planned only while none of its Episodes is scored', async () => {
   const viewerId = await viewer();
-  const show = { kind: 'tv', id: HALF_LOOP.showId } as const;
 
-  expect(await writePlannedShow(viewerId, show.id)).toBe(true);
-  expect(markingOf(await watchLookup(viewerId, [show]), show)).toEqual(PLANNED);
+  expect(await writePlannedShow(viewerId, SEVERANCE.id)).toBe(true);
+  expect(
+    markingOf(await watchLookup(viewerId, [SEVERANCE]), SEVERANCE),
+  ).toEqual(PLANNED);
 
-  await clearWatchRecord(viewerId, show);
+  await clearWatchRecord(viewerId, SEVERANCE);
   await writeEpisodeRecord(viewerId, HALF_LOOP, watchedAt(8));
 
   // refused in the statement that would have written it, so nothing is left
-  expect(await writePlannedShow(viewerId, show.id)).toBe(false);
-  expect((await watchLookup(viewerId, [show])).size).toBe(0);
+  expect(await writePlannedShow(viewerId, SEVERANCE.id)).toBe(false);
+  expect((await watchLookup(viewerId, [SEVERANCE])).size).toBe(0);
+});
+
+test('a Show is written Stopped only once one of its Episodes is scored', async () => {
+  const viewerId = await viewer();
+
+  // refused in the statement that would have written it, as Planned is
+  expect(await writeStoppedShow(viewerId, SEVERANCE.id)).toBe(false);
+  expect((await watchLookup(viewerId, [SEVERANCE])).size).toBe(0);
+
+  await writeEpisodeRecord(viewerId, HALF_LOOP, watchedAt(8));
+
+  expect(await writeStoppedShow(viewerId, SEVERANCE.id)).toBe(true);
+  expect(
+    markingOf(await watchLookup(viewerId, [SEVERANCE]), SEVERANCE),
+  ).toEqual(STOPPED);
+});
+
+test("scoring an Episode deletes its Show's record, Planned or Stopped", async () => {
+  const viewerId = await viewer();
+
+  await writeWatchRecord(viewerId, SEVERANCE, STOPPED);
+  await writeEpisodeRecord(viewerId, HALF_LOOP, watchedAt(8));
+
+  expect((await watchLookup(viewerId, [SEVERANCE])).size).toBe(0);
 });
 
 test("another Show's scored Episodes do not refuse Planned on this one", async () => {
@@ -479,6 +507,35 @@ test('a Show under way is tracked with when each Episode was scored, at the late
     ]),
   );
   expect(show?.markedAt).toEqual(new Date('2026-09-10T12:00:00Z'));
+});
+
+test('a Stopped Show comes flagged, however many of its Episodes are scored', async () => {
+  const viewerId = await viewer();
+
+  await writeEpisodeRecord(
+    viewerId,
+    { episodeId: 62085, showId: 1396 },
+    watchedAt(8),
+  );
+  await writeWatchRecord(viewerId, BREAKING_BAD, STOPPED);
+  await writeWatchRecord(viewerId, GOT, STOPPED);
+  await writeWatchRecord(viewerId, HEAT, PLANNED);
+
+  // flagged rather than left out, since only TMDB can say one is Gone; the
+  // Show with no Episodes scored comes too, Stopped all the same
+  const stopped = (await trackedMedia(viewerId)).map((item) => ({
+    ref: item.ref,
+    stopped: item.stopped,
+  }));
+
+  expect(stopped).toEqual(
+    expect.arrayContaining([
+      { ref: BREAKING_BAD, stopped: true },
+      { ref: GOT, stopped: true },
+      { ref: HEAT, stopped: false },
+    ]),
+  );
+  expect(stopped).toHaveLength(3);
 });
 
 test('tracked Media comes latest marked first, and stops one past the ceiling', async () => {

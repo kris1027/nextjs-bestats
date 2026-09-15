@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation';
 
 import { answeredViewer } from '@/lib/auth';
+import { capitalize } from '@/lib/format';
 import {
   type EpisodeRef,
   episodeDetails,
@@ -11,6 +12,7 @@ import {
   isKind,
   isMediaId,
   isSeasonNumber,
+  KIND_WORDS,
   type MediaRef,
 } from '@/lib/media';
 import { nextPath, signInAddress } from '@/lib/next-path';
@@ -24,7 +26,7 @@ import {
   marked,
   markingFrom,
   markingOf,
-  takesScore,
+  recordHolds,
   watchKey,
 } from '@/lib/watch';
 import {
@@ -36,6 +38,7 @@ import {
   watchLookup,
   writeEpisodeRecord,
   writePlannedShow,
+  writeStoppedShow,
   writeWatchRecord,
 } from '@/lib/watch-queries';
 
@@ -137,10 +140,15 @@ export const mark = async (formData: FormData): Promise<MarkResult> => {
   if (!isKind(kind)) throw new Error(`Unknown Kind: ${kind}`);
   if (!isMediaId(id)) throw new Error(`Not a TMDB id: ${id}`);
   if (!pressed) throw new Error(`Not a marking: ${field}`);
-  // a Show is followed through its Episodes, and its page draws no stars
+  // a Show's page draws no stars and a Movie's no way to stop it, so neither
+  // form can post what the other Kind's record holds
   // — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
-  if (pressed.state === 'watched' && !takesScore(kind)) {
-    throw new Error(`A Show is never Watched: ${field}`);
+  if (!recordHolds(kind, pressed)) {
+    const noun = capitalize(KIND_WORDS[kind].one);
+
+    throw new Error(
+      `A ${noun} is never ${capitalize(pressed.state)}: ${field}`,
+    );
   }
 
   const ref: MediaRef = { kind, id: Number(id) };
@@ -159,6 +167,12 @@ export const mark = async (formData: FormData): Promise<MarkResult> => {
     if (marking?.state === 'planned' && ref.kind === 'tv') {
       if (!(await writePlannedShow(currentViewer.id, ref.id))) {
         return { error: 'You are already watching this show.' };
+      }
+    } else if (marking?.state === 'stopped') {
+      // and a page drawn before the last Episode was unscored cannot stop a
+      // Show the Viewer has not started
+      if (!(await writeStoppedShow(currentViewer.id, ref.id))) {
+        return { error: 'You have not started this show yet.' };
       }
     } else if (marking) {
       await writeWatchRecord(currentViewer.id, ref, marking);

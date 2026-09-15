@@ -27,6 +27,7 @@ const tracked = (
   scored: new Map(
     scored.map((episodeId) => [episodeId, new Date(Date.UTC(2026, 8, day))]),
   ),
+  stopped: false,
 });
 
 // Episode ids are season * 100 + number, so a failure names the Episode
@@ -191,6 +192,7 @@ test('Watched puts the latest finished Show first, whatever was marked since', (
       [101, new Date(Date.UTC(2026, 8, 9))],
       [102, new Date(Date.UTC(2026, 8, 3))],
     ]),
+    stopped: false,
   };
   const media = [
     placed(rescored, ended(season(1, ['2026-01-01', '2026-01-08'])), TODAY),
@@ -212,6 +214,28 @@ test('Media TMDB did not answer for, or that is Gone, is on both lists', () => {
     expect(listsOf(found)).toEqual(['upcoming', 'watchlist']);
     expect(found.day).toBe(null);
   }
+});
+
+test('a Stopped Show is on no list, whatever TMDB answered for it', () => {
+  const stopped = { ...tracked('tv', 1, 1, [101]), stopped: true };
+
+  for (const answer of [
+    show(season(1, ['2026-01-01', '2026-01-08'])),
+    show(season(1, ['2026-01-01', '2026-10-01'])),
+    ended(season(1, ['2026-01-01'])),
+    { answer: 'unanswered' } as const,
+  ]) {
+    expect(listsOf(placed(stopped, answer, TODAY))).toEqual([]);
+  }
+});
+
+test('a Stopped Show that is Gone is on both lists, so its card can take it back', () => {
+  const stopped = { ...tracked('tv', 1, 1, [101]), stopped: true };
+
+  expect(listsOf(placed(stopped, { answer: 'gone' }, TODAY))).toEqual([
+    'upcoming',
+    'watchlist',
+  ]);
 });
 
 test('Upcoming puts the soonest first and the undated last, latest marked among them', () => {

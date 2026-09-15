@@ -110,13 +110,13 @@ lit for a Viewer who has signed out — its state outlives a re-render at the
 same position — and a missing `key` is not a type error. So whatever holds
 that state is keyed on the `viewerKey` of the lookup it came from:
 `absent-card.tsx` keys its `MarkableCard`, the Media page its `MarkingControl`
-and each `GoneEpisodeRow`, and the Episode page its `EpisodeScoreControl`, and
-each reads the two halves off one value. `media-card.tsx` takes the same
-lookup and reads only the markings, because a card that draws no control holds
-no state to unmount. `lib/viewer-key` makes that key, and is pure for the
-reason `lib/watch.ts` is: `lib/auth.ts` boots Neon Auth and reads
-`next/headers` at import, so a query that reached it for a string could not be
-loaded outside Next at all. Four callers —
+or `ShowControl` and each `GoneEpisodeRow`, and the Episode page its
+`EpisodeScoreControl`, and each reads the two halves off one value.
+`media-card.tsx` takes the same lookup and reads only the markings, because a
+card that draws no control holds no state to unmount. `lib/viewer-key` makes
+that key, and is pure for the reason `lib/watch.ts` is: `lib/auth.ts` boots
+Neon Auth and reads `next/headers` at import, so a query that reached it for a
+string could not be loaded outside Next at all. Four callers —
 `answeredWatchLookup`, `answeredEpisodeLookup` and `answeredShowEpisodeLookup`
 from the answer each was handed, `watch-record-list.tsx` from the Viewer
 `viewer()` gave it — and a fifth is worth looking twice at.
@@ -148,7 +148,7 @@ page does, since resolving Watch Records against TMDB is a page's job and not
   the client. There is no All tab, and `isKind` stays the guard that reads the
   address.
   — `docs/adr/0015-the-lists-tabs-are-the-kind.md`
-- A Watch Record is Planned or Watched, never both and never neither. One row
+- A Watch Record is in exactly one state, never two and never none. One row
   per Viewer per piece of Media, keyed `(viewerId, kind, tmdbId)` — composite
   because a TMDB id is unique only within a Kind. Unmarking deletes the row.
   — `docs/adr/0007-watchlist-and-watched-are-one-record.md`
@@ -156,19 +156,25 @@ page does, since resolving Watch Records against TMDB is a page's job and not
   `(viewerId, episodeId)` on TMDB's id for the Episode and never its season
   and number, which TMDB renumbers.
   — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
-- A Watched record always carries a Score of 1 to 10 and a Planned one never
-  does, and only a Movie's record is Watched; the check constraints on
-  `watch_records` are what say so, not the code that writes it. Giving a Score
-  is how a Movie's record becomes Watched, so a move back to Planned destroys
-  it. A Show's own control draws Planned and no stars — the only stars on its
-  page are the Scores of its Gone Episodes, which belong to them and not to
-  the Show — and Watched → Shows is placed from TMDB's answer like the other
-  lists. Marking is the detail page's alone
-  — a card shows a Marking and cannot set one — and a card's one star is
-  TMDB's Rating until the Viewer scores a Movie, theirs after. `AbsentCard` is
-  the single exception, since Gone Media 404s on the detail page and its card
-  has no link to one, so its Planned button is the only way such a record is
-  ever removed.
+- A Watched record always carries a Score of 1 to 10 and a Planned or Stopped
+  one never does, only a Movie's record is Watched, and only a Show's is
+  Stopped; the check constraints on `watch_records` are what say so, not the
+  code that writes it. Giving a Score is how a Movie's record becomes Watched,
+  so a move back to Planned destroys it. A Show's own control draws one button
+  and no stars — Planned before its first Episode is scored, Stop watching
+  after, nothing once finished, and a record's own button whenever it has one,
+  which `showPress` decides — and the only stars on its page are the Scores of
+  its Gone Episodes, which belong to them and not to the Show. Watched → Shows
+  is placed from TMDB's answer like the other lists, and a Stopped Show is on
+  none of them unless it is Gone. Marking is the detail page's alone — a card
+  shows a Marking and cannot set one — and a card's one star is TMDB's Rating
+  until the Viewer scores a Movie, theirs after. `AbsentCard` is the single
+  exception, since Gone Media 404s on the detail page and its card has no link
+  to one: it draws the button that page would, Planned or Stop watching, and
+  that button is the only way such a record is ever removed or such a Show
+  stopped. So `trackedMedia` brings Stopped Shows flagged, and `placed` keeps
+  a Gone one on the lists: leaving them out in SQL, before TMDB is asked,
+  would stop a Gone Show for good.
   — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
   — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
 - A Watch Record stores nothing from TMDB — no label, no poster path, no
@@ -186,6 +192,11 @@ page does, since resolving Watch Records against TMDB is a page's job and not
   migration through `drizzle-kit generate --custom` — `0001`, `0003` and
   `0008` so far, and the same for any new one.
   — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
+- A migration that adds an enum value never uses it: drizzle-kit applies every
+  pending migration in one transaction, and Postgres refuses a value used in
+  the transaction that added it. So no check constraint names `stopped`;
+  `0011` says what a Movie's row can be instead.
+  — `docs/adr/0021-a-migration-never-uses-the-enum-value-it-adds.md`
 - Environment variables come from Neon, not from typing: `neon checkout main`
   writes every one but `NEON_AUTH_COOKIE_SECRET`, which `.env.example` names.
   There is one branch, so `main` is the only thing to check out. That secret
