@@ -49,6 +49,14 @@ const movie = (releaseDate: string | null): TrackedAnswer => ({
 
 const show = (...seasons: SeasonEpisodes[]): TrackedAnswer => ({
   answer: 'show',
+  ended: false,
+  seasons,
+});
+
+/** A Show TMDB says has ended, `Ended` or `Canceled`. */
+const ended = (...seasons: SeasonEpisodes[]): TrackedAnswer => ({
+  answer: 'show',
+  ended: true,
   seasons,
 });
 
@@ -137,10 +145,70 @@ test('a Show the Viewer is caught up with is Upcoming, undated, at the season an
   expect(found.upNext).toEqual({ season: 2 });
 });
 
+test('a Show the Viewer has finished is on Watched alone, at when they finished it', () => {
+  const found = placed(
+    tracked('tv', 1, 5, [101, 102]),
+    ended(season(1, ['2026-01-01', '2026-01-08'])),
+    TODAY,
+  );
+
+  expect(listsOf(found)).toEqual(['watched']);
+  expect(found.finishedAt).toEqual(new Date(Date.UTC(2026, 8, 5)));
+});
+
+test('an ended Show with a dated final Episode still to air stays Upcoming', () => {
+  const found = placed(
+    tracked('tv', 1, 1, [101]),
+    ended(season(1, ['2026-01-01', '2026-10-01'])),
+    TODAY,
+  );
+
+  expect(listsOf(found)).toEqual(['upcoming']);
+  expect(found.day).toBe('2026-10-01');
+  expect(found.finishedAt).toBe(null);
+});
+
+test('a Show whose status is not an ended one waits, with nothing left to watch', () => {
+  // `Returning Series`, or a status TMDB has not used before: `hasEnded` reads
+  // it, and anything but Ended or Canceled arrives here as not ended
+  const found = placed(
+    tracked('tv', 1, 1, [101]),
+    show(season(1, ['2026-01-01'])),
+    TODAY,
+  );
+
+  expect(listsOf(found)).toEqual(['upcoming']);
+  expect(found.finishedAt).toBe(null);
+});
+
+test('Watched puts the latest finished Show first, whatever was marked since', () => {
+  // Show 1 was finished on day 3 and its first Episode rescored on day 9;
+  // Show 2 was finished on day 6
+  const rescored: TrackedMedia = {
+    ref: { kind: 'tv', id: 1 },
+    markedAt: new Date(Date.UTC(2026, 8, 9)),
+    scored: new Map([
+      [101, new Date(Date.UTC(2026, 8, 9))],
+      [102, new Date(Date.UTC(2026, 8, 3))],
+    ]),
+  };
+  const media = [
+    placed(rescored, ended(season(1, ['2026-01-01', '2026-01-08'])), TODAY),
+    placed(tracked('tv', 2, 6, [101]), ended(season(1, ['2026-01-01'])), TODAY),
+  ];
+
+  const { items } = placedPage(media, 'watched', { kind: 'tv', page: 1 });
+
+  expect(items.map((item) => item.tracked.ref.id)).toEqual([2, 1]);
+  expect(placedTallies(media, 'watched')).toEqual({ tv: 2, movie: 0 });
+  expect(placedTallies(media, 'upcoming')).toEqual({ tv: 0, movie: 0 });
+});
+
 test('Media TMDB did not answer for, or that is Gone, is on both lists', () => {
   for (const answer of ['gone', 'unanswered'] as const) {
     const found = placed(tracked('tv', 1, 1), { answer }, TODAY);
 
+    // and never on Watched, since whether a Show is finished is TMDB's to say
     expect(listsOf(found)).toEqual(['upcoming', 'watchlist']);
     expect(found.day).toBe(null);
   }

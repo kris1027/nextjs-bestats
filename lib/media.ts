@@ -164,7 +164,10 @@ export type SeasonEpisodes = {
  * scored, is what makes the Show finished rather than waited for.
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
-export type ShowEpisodes = { ended: boolean; seasons: SeasonEpisodes[] };
+export type ShowEpisodes = {
+  ended: boolean;
+  seasons: readonly SeasonEpisodes[];
+};
 
 /** A Show as a season or an Episode page names it: enough to link back. */
 export type ShowName = { id: number; label: string };

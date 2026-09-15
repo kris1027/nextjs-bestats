@@ -1,4 +1,4 @@
-import type { Kind, MediaRef, SeasonEpisodes } from '@/lib/media';
+import type { Kind, MediaRef, SeasonEpisodes, ShowEpisodes } from '@/lib/media';
 
 /**
  * The rules that move a Watch Record between states, and nothing that touches
@@ -387,6 +387,37 @@ export const upNext = (
   );
 
   return { season: announced?.number ?? null };
+};
+
+/**
+ * When a Viewer finished a Show: the moment they scored its final Episode, once
+ * TMDB says the Show has ended and lists nothing after the furthest they have
+ * scored. `null` is a Show not finished — one still running, one with an
+ * Episode left, dated or not, or one with a season announced after it — and
+ * an ended Show with no Episodes, which nobody can have watched.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ *
+ * An announced season counts against it even on an ended Show, where the two
+ * contradict each other: wrongly calling a Show finished is a claim about the
+ * Viewer, and wrongly holding it in Upcoming is only visible.
+ */
+export const finishedAt = (
+  show: ShowEpisodes,
+  scored: ReadonlyMap<number, Date>,
+): Date | null => {
+  if (!show.ended) return null;
+
+  const next = upNext(show.seasons, scored);
+
+  if ('episode' in next || next.season !== null) return null;
+
+  // with nothing after the furthest scored, the final Episode is the furthest
+  const final = show.seasons
+    .filter((season) => season.number !== 0)
+    .flatMap((season) => season.episodes)
+    .at(-1);
+
+  return (final && scored.get(final.id)) ?? null;
 };
 
 /**

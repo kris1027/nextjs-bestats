@@ -164,9 +164,7 @@ const trackedAnswer = async (
 
     const show = await showEpisodes(item.ref.id);
 
-    return show
-      ? { answer: 'show', seasons: show.seasons }
-      : { answer: 'gone' };
+    return show ? { answer: 'show', ...show } : { answer: 'gone' };
   } catch (cause) {
     console.error(`TMDB ${watchKey(item.ref)} placing went Unanswered:`, cause);
 

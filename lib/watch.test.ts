@@ -2,6 +2,7 @@ import { expect, test } from 'vitest';
 
 import type { SeasonEpisodes } from '@/lib/media';
 import {
+  finishedAt,
   isScore,
   marked,
   markingFrom,
@@ -223,4 +224,79 @@ test('a scored Episode TMDB no longer lists never counts towards the furthest', 
   expect(upNext([season(1, 3), season(2, 3)], new Set([102, 999]))).toEqual(
     episodeAt(1, 3),
   );
+});
+
+/** When Episodes were scored, as days of September 2026. */
+const scoredOn = (days: Record<number, number>): Map<number, Date> =>
+  new Map(
+    Object.entries(days).map(([id, day]) => [
+      Number(id),
+      new Date(Date.UTC(2026, 8, day)),
+    ]),
+  );
+
+test('a Viewer finished an ended Show when they scored its final Episode', () => {
+  expect(
+    finishedAt(
+      { ended: true, seasons: [season(1, 2), season(2, 2)] },
+      scoredOn({ 101: 1, 102: 2, 201: 3, 202: 4 }),
+    ),
+  ).toEqual(new Date(Date.UTC(2026, 8, 4)));
+});
+
+test('a Show is finished at its final Episode, not at the latest Episode rescored', () => {
+  expect(
+    finishedAt(
+      { ended: true, seasons: [season(1, 2)] },
+      scoredOn({ 101: 20, 102: 4 }),
+    ),
+  ).toEqual(new Date(Date.UTC(2026, 8, 4)));
+});
+
+test('a Show that has not ended is not finished, with nothing left to watch', () => {
+  expect(
+    finishedAt(
+      { ended: false, seasons: [season(1, 2)] },
+      scoredOn({ 101: 1, 102: 2 }),
+    ),
+  ).toBe(null);
+});
+
+test('an ended Show with a dated Episode left is not finished', () => {
+  const final = {
+    number: 2,
+    episodes: [{ id: 201, number: 1, airDate: '2027-03-12' }],
+  };
+
+  expect(
+    finishedAt(
+      { ended: true, seasons: [season(1, 2), final] },
+      scoredOn({ 101: 1, 102: 2 }),
+    ),
+  ).toBe(null);
+});
+
+test('an ended Show with a season announced after the furthest is not finished', () => {
+  expect(
+    finishedAt(
+      { ended: true, seasons: [season(1, 2), season(2, 0)] },
+      scoredOn({ 101: 1, 102: 2 }),
+    ),
+  ).toBe(null);
+});
+
+test('an ended Show with no Episodes, or none scored, is not finished', () => {
+  expect(finishedAt({ ended: true, seasons: [] }, new Map())).toBe(null);
+  expect(finishedAt({ ended: true, seasons: [season(1, 2)] }, new Map())).toBe(
+    null,
+  );
+});
+
+test('an unscored Special does not keep an ended Show from being finished', () => {
+  expect(
+    finishedAt(
+      { ended: true, seasons: [season(1, 2), season(0, 3)] },
+      scoredOn({ 102: 5 }),
+    ),
+  ).toEqual(new Date(Date.UTC(2026, 8, 5)));
 });
