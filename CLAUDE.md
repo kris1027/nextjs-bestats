@@ -160,8 +160,10 @@ page does, since resolving Watch Records against TMDB is a page's job and not
   does, and only a Movie's record is Watched; the check constraints on
   `watch_records` are what say so, not the code that writes it. Giving a Score
   is how a Movie's record becomes Watched, so a move back to Planned destroys
-  it. A Show's page draws Planned and no stars, and Watched → Shows is placed
-  from TMDB's answer like the other lists. Marking is the detail page's alone
+  it. A Show's own control draws Planned and no stars — the only stars on its
+  page are the Scores of its Gone Episodes, which belong to them and not to
+  the Show — and Watched → Shows is placed from TMDB's answer like the other
+  lists. Marking is the detail page's alone
   — a card shows a Marking and cannot set one — and a card's one star is
   TMDB's Rating until the Viewer scores a Movie, theirs after. `AbsentCard` is
   the single exception, since Gone Media 404s on the detail page and its card
