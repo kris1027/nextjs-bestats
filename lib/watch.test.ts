@@ -10,12 +10,15 @@ import {
   marked,
   markingFrom,
   markingOf,
+  markingsAgree,
   markingValue,
   PLANNED,
   refOf,
   SCORES,
   type Score,
   STOPPED,
+  showPress,
+  showProgress,
   takesScore,
   toLookup,
   toMarkedMedia,
@@ -395,6 +398,97 @@ test('an Unanswered season is not reported as Gone', () => {
 
 test('a Gone Show has no Gone Episodes to list', () => {
   expect(goneEpisodes({ answer: 'gone' }, records([101, 8]))).toBe(null);
+});
+
+/*
+ * A Show's own control, one row of the table in #27 each: which button it
+ * draws, and whether that button is lit — whether it is what the record
+ * already says, so that pressing it deletes the record.
+ */
+
+/** The button a Show's control draws, and whether it is lit; `null` for none. */
+const drawn = (
+  shown: Parameters<typeof showPress>[0],
+  progress: Parameters<typeof showPress>[1],
+) => {
+  const press = showPress(shown, progress);
+
+  return press && { press, lit: markingsAgree(shown, press) };
+};
+
+test('a Show with no record the Viewer has not started draws Planned, off', () => {
+  expect(drawn(null, 'unstarted')).toEqual({ press: PLANNED, lit: false });
+  expect(marked(null, PLANNED)).toEqual(PLANNED);
+});
+
+test('a Planned Show with no Episodes scored draws Planned, on, which deletes it', () => {
+  expect(drawn(PLANNED, 'unstarted')).toEqual({ press: PLANNED, lit: true });
+  expect(marked(PLANNED, PLANNED)).toBe(null);
+});
+
+test('a Show under way with no record draws Stop watching, off, which Stops it', () => {
+  expect(drawn(null, 'underWay')).toEqual({ press: STOPPED, lit: false });
+  expect(marked(null, STOPPED)).toEqual(STOPPED);
+});
+
+test('a Stopped Show draws Stopped, on, which deletes it', () => {
+  expect(drawn(STOPPED, 'underWay')).toEqual({ press: STOPPED, lit: true });
+  expect(marked(STOPPED, STOPPED)).toBe(null);
+});
+
+test('a finished Show draws no control', () => {
+  expect(drawn(null, 'finished')).toBe(null);
+});
+
+test('a Show not yet started offers no way to Stop it', () => {
+  expect(drawn(null, 'unstarted')?.press).not.toEqual(STOPPED);
+});
+
+test('a Stopped Show stays Stopped, on, with every Episode unscored or once finished', () => {
+  // unscoring every Episode leaves the record, which can still be taken back
+  expect(drawn(STOPPED, 'unstarted')).toEqual({ press: STOPPED, lit: true });
+  expect(drawn(STOPPED, 'finished')).toEqual({ press: STOPPED, lit: true });
+});
+
+test('scoring an Episode of a Stopped Show draws Stop watching, off, again', () => {
+  // scoring deletes the Stopped record, so the next render has no record and
+  // a Show under way: resumed, and able to be Stopped again
+  expect(drawn(STOPPED, 'underWay')?.lit).toBe(true);
+  expect(drawn(null, 'underWay')).toEqual({ press: STOPPED, lit: false });
+});
+
+test('a Show whose progress went Unanswered draws only the record it holds', () => {
+  expect(drawn(null, null)).toBe(null);
+  expect(drawn(PLANNED, null)).toEqual({ press: PLANNED, lit: true });
+  expect(drawn(STOPPED, null)).toEqual({ press: STOPPED, lit: true });
+});
+
+test('a Show is unstarted with nothing scored, without TMDB', () => {
+  expect(showProgress({ answer: 'unanswered' }, new Map())).toBe('unstarted');
+});
+
+test('a Show with an Episode scored is under way, or finished once it has ended', () => {
+  const show = { ended: true, seasons: [season(1, 2)] };
+
+  expect(
+    showProgress({ answer: 'show', show }, new Map([[101, watchedAt(8)]])),
+  ).toBe('underWay');
+  expect(
+    showProgress(
+      { answer: 'show', show },
+      new Map([
+        [101, watchedAt(8)],
+        [102, watchedAt(9)],
+      ]),
+    ),
+  ).toBe('finished');
+});
+
+test('the progress of a Show under way is Unanswered without TMDB', () => {
+  const scoredOne = new Map([[101, watchedAt(8)]]);
+
+  expect(showProgress({ answer: 'unanswered' }, scoredOne)).toBe(null);
+  expect(showProgress({ answer: 'gone' }, scoredOne)).toBe(null);
 });
 
 test('hasFinished agrees with finishedAt', () => {

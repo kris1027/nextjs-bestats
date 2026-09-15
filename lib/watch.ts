@@ -484,6 +484,52 @@ export const finishedAt = (
 };
 
 /**
+ * How far a Viewer has got with a Show, as much as its own control needs: no
+ * Episode scored, some scored, or finished.
+ */
+export type ShowProgress = 'unstarted' | 'underWay' | 'finished';
+
+/**
+ * A Show's progress from the Episodes a Viewer has scored and what TMDB says
+ * about it, or `null` — Unanswered — where that depends on an answer TMDB did
+ * not give. A Viewer who has scored nothing has not started, whatever TMDB
+ * says, so only a Show under way needs the answer at all.
+ */
+export const showProgress = (
+  answer: ShowEpisodesAnswer,
+  scored: ScoredIds,
+): ShowProgress | null => {
+  if (scored.size === 0) return 'unstarted';
+  if (answer.answer !== 'show') return null;
+
+  return hasFinished(answer.show, scored) ? 'finished' : 'underWay';
+};
+
+/**
+ * The marking a Show's own control presses, which is the one button it draws,
+ * or `null` for no control. A record draws its own button, lit, so a Viewer
+ * can always take back what they said; without one, a Show not started draws
+ * Planned and a Show under way draws Stop watching. A finished Show has
+ * nothing to plan or give up on, and a Show whose progress went Unanswered
+ * draws nothing rather than guess it is not finished.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ *
+ * Read off what the control shows, so a press that lands flips the button
+ * it pressed and never swaps it for another: pressing Stop watching lights
+ * Stopped, and pressing Stopped puts Stop watching back.
+ */
+export const showPress = (
+  shown: Marking | null,
+  progress: ShowProgress | null,
+): Marking | null => {
+  if (shown?.state === 'planned' || shown?.state === 'stopped') return shown;
+  if (progress === 'unstarted') return PLANNED;
+  if (progress === 'underWay') return STOPPED;
+
+  return null;
+};
+
+/**
  * A Viewer's record for an Episode TMDB no longer lists: the id it is keyed
  * on and the Score it holds, which is all that is left to draw, since a
  * record stores nothing from TMDB.
