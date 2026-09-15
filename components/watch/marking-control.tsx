@@ -18,7 +18,7 @@ import type { Marking } from '@/lib/watch';
  *
  * A Show draws Planned alone. It is never Watched: a Viewer scores its
  * Episodes, each on its own page, and the Show is finished once it has ended
- * and they have scored every one.
+ * and TMDB lists no Episode after the furthest they have scored.
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  *
  * The detail page is its only caller, which is what makes the star row
