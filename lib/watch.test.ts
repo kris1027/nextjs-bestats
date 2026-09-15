@@ -239,6 +239,14 @@ test('a scored Episode TMDB no longer lists never counts towards the furthest', 
   );
 });
 
+test('a Gone Episode never counts towards the furthest among Specials either', () => {
+  // the seasons as a Show's page asks for them, Specials last: a Gone id
+  // and a scored Special beside it still leave S1E3 next
+  expect(
+    upNext([season(1, 3), season(2, 3), season(0, 2)], scored([102, 2, 999])),
+  ).toEqual(episodeAt(1, 3));
+});
+
 /** When Episodes were scored, as days of September 2026. */
 const scoredOn = (days: Record<number, number>): Map<number, Date> =>
   new Map(
@@ -312,6 +320,15 @@ test('an unscored Special does not keep an ended Show from being finished', () =
       scoredOn({ 102: 5 }),
     ),
   ).toEqual(new Date(Date.UTC(2026, 8, 5)));
+});
+
+test('a Gone Episode scored last is not when an ended Show was finished', () => {
+  expect(
+    finishedAt(
+      { ended: true, seasons: [season(1, 2), season(0, 1)] },
+      scoredOn({ 101: 1, 102: 2, 999: 9 }),
+    ),
+  ).toEqual(new Date(Date.UTC(2026, 8, 2)));
 });
 
 /**
