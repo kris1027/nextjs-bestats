@@ -527,6 +527,13 @@ const ENDED_STATUSES: ReadonlySet<string> = new Set(['Ended', 'Canceled']);
 /** Whether TMDB's `status` says a Show will air nothing more. */
 export const hasEnded = (status: string): boolean => ENDED_STATUSES.has(status);
 
+/**
+ * Season numbers in viewing order: the numbered runs in order, then Specials,
+ * which TMDB keeps as season 0 and which belong to no run.
+ */
+const specialsLast = (a: number, b: number): number =>
+  Number(a === 0) - Number(b === 0) || a - b;
+
 /** The most sub-requests TMDB folds into one `append_to_response`. */
 const APPENDS_PER_REQUEST = 20;
 
@@ -550,10 +557,9 @@ export const showEpisodes = async (
 
   if (!show) return null;
 
-  // specials are in no viewing order, so they follow the seasons that are
   const numbers = show.seasons
     .map((season) => season.season_number)
-    .sort((a, b) => (a === 0 ? 1 : 0) - (b === 0 ? 1 : 0) || a - b);
+    .sort(specialsLast);
   const batches = Array.from(
     { length: Math.ceil(numbers.length / APPENDS_PER_REQUEST) },
     (_, index) =>
