@@ -157,8 +157,8 @@ export const markFromForm = async (formData: FormData): Promise<void> => {
 };
 
 /**
- * What `scoreEpisode` hands back: `MarkResult` narrowed to what an Episode's
- * record can say, which is a Score or nothing.
+ * What `scoreEpisode` and `unscoreEpisode` hand back: `MarkResult` narrowed
+ * to what an Episode's record can say, which is a Score or nothing.
  */
 export type ScoreResult =
   | { marking: EpisodeMarking | null }
