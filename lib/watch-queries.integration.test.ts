@@ -33,6 +33,7 @@ const viewer = disposableViewers();
 const GOT = { kind: 'tv', id: 1399 } as const;
 const BREAKING_BAD = { kind: 'tv', id: 1396 } as const;
 const HEAT = { kind: 'movie', id: 949 } as const;
+const ALIEN = { kind: 'movie', id: 348 } as const;
 
 test('writing a Watch Record creates it', async () => {
   const viewerId = await viewer();
@@ -47,8 +48,8 @@ test('writing a Watch Record creates it', async () => {
 test('writing the other state moves the Watch Record rather than adding one', async () => {
   const viewerId = await viewer();
 
-  await writeWatchRecord(viewerId, GOT, PLANNED);
-  await writeWatchRecord(viewerId, GOT, watchedAt(9));
+  await writeWatchRecord(viewerId, HEAT, PLANNED);
+  await writeWatchRecord(viewerId, HEAT, watchedAt(9));
 
   const rows = await db
     .select()
@@ -63,19 +64,19 @@ test('writing the other state moves the Watch Record rather than adding one', as
 test('rescoring a Watch Record replaces the Score it held', async () => {
   const viewerId = await viewer();
 
-  await writeWatchRecord(viewerId, GOT, watchedAt(3));
-  await writeWatchRecord(viewerId, GOT, watchedAt(10));
+  await writeWatchRecord(viewerId, HEAT, watchedAt(3));
+  await writeWatchRecord(viewerId, HEAT, watchedAt(10));
 
-  const lookup = await watchLookup(viewerId, [GOT]);
+  const lookup = await watchLookup(viewerId, [HEAT]);
 
-  expect(markingOf(lookup, GOT)).toEqual(watchedAt(10));
+  expect(markingOf(lookup, HEAT)).toEqual(watchedAt(10));
 });
 
 test('moving a Watch Record back to Planned takes the Score with it', async () => {
   const viewerId = await viewer();
 
-  await writeWatchRecord(viewerId, GOT, watchedAt(9));
-  await writeWatchRecord(viewerId, GOT, PLANNED);
+  await writeWatchRecord(viewerId, HEAT, watchedAt(9));
+  await writeWatchRecord(viewerId, HEAT, PLANNED);
 
   const rows = await db
     .select()
@@ -91,32 +92,29 @@ test('moving a Watch Record back to Planned takes the Score with it', async () =
 test('moving a Watch Record makes it the newest marking', async () => {
   const viewerId = await viewer();
 
-  await writeWatchRecord(viewerId, GOT, watchedAt(9));
-  await writeWatchRecord(viewerId, BREAKING_BAD, watchedAt(9));
-  await writeWatchRecord(viewerId, GOT, PLANNED);
-  await writeWatchRecord(viewerId, GOT, watchedAt(9));
+  await writeWatchRecord(viewerId, HEAT, watchedAt(9));
+  await writeWatchRecord(viewerId, ALIEN, watchedAt(9));
+  await writeWatchRecord(viewerId, HEAT, PLANNED);
+  await writeWatchRecord(viewerId, HEAT, watchedAt(9));
 
   const { records } = await watchRecordsPage(viewerId, {
     state: 'watched',
-    kind: 'tv',
+    kind: 'movie',
     page: 1,
   });
 
-  expect(records.map((record) => record.tmdbId)).toEqual([
-    GOT.id,
-    BREAKING_BAD.id,
-  ]);
+  expect(records.map((record) => record.tmdbId)).toEqual([HEAT.id, ALIEN.id]);
 });
 
 test('clearing a Watch Record deletes it', async () => {
   const viewerId = await viewer();
 
-  await writeWatchRecord(viewerId, GOT, watchedAt(9));
-  await clearWatchRecord(viewerId, GOT);
+  await writeWatchRecord(viewerId, HEAT, watchedAt(9));
+  await clearWatchRecord(viewerId, HEAT);
 
-  const lookup = await watchLookup(viewerId, [GOT]);
+  const lookup = await watchLookup(viewerId, [HEAT]);
 
-  expect(markingOf(lookup, GOT)).toBe(null);
+  expect(markingOf(lookup, HEAT)).toBe(null);
 });
 
 test('clearing Media with no Watch Record is not an error', async () => {
@@ -129,7 +127,7 @@ test('the lookup answers for the Media it was asked about and no other', async (
   const viewerId = await viewer();
 
   await writeWatchRecord(viewerId, GOT, PLANNED);
-  await writeWatchRecord(viewerId, BREAKING_BAD, watchedAt(9));
+  await writeWatchRecord(viewerId, BREAKING_BAD, PLANNED);
   await writeWatchRecord(viewerId, HEAT, watchedAt(9));
 
   const lookup = await watchLookup(viewerId, [GOT, HEAT, { ...HEAT, id: 1 }]);
@@ -158,9 +156,9 @@ test('the lookup keeps the same TMDB id in each Kind apart', async () => {
 test('the lookup is one Viewer’s and nobody else’s', async () => {
   const [one, other] = await Promise.all([viewer(), viewer()]);
 
-  await writeWatchRecord(one, GOT, watchedAt(9));
+  await writeWatchRecord(one, HEAT, watchedAt(9));
 
-  const lookup = await watchLookup(other, [GOT]);
+  const lookup = await watchLookup(other, [HEAT]);
 
   expect(lookup.size).toBe(0);
 });
@@ -177,12 +175,12 @@ test('a list holds one state and one Kind, and counts the whole of that', async 
   const viewerId = await viewer();
 
   await writeWatchRecord(viewerId, GOT, PLANNED);
-  await writeWatchRecord(viewerId, BREAKING_BAD, watchedAt(9));
+  await writeWatchRecord(viewerId, ALIEN, PLANNED);
   await writeWatchRecord(viewerId, HEAT, watchedAt(9));
 
-  const watchedShows = await watchRecordsPage(viewerId, {
-    state: 'watched',
-    kind: 'tv',
+  const plannedMovies = await watchRecordsPage(viewerId, {
+    state: 'planned',
+    kind: 'movie',
     page: 1,
   });
   const watchedMovies = await watchRecordsPage(viewerId, {
@@ -196,11 +194,11 @@ test('a list holds one state and one Kind, and counts the whole of that', async 
     page: 1,
   });
 
-  // the Movie this Viewer has watched is behind the other tab, and is neither
-  // in this tab's records nor in the total it pages through
-  expect(watchedShows.total).toBe(1);
-  expect(watchedShows.records.map((record) => record.tmdbId)).toEqual([
-    BREAKING_BAD.id,
+  // the Movie this Viewer has watched is in the other state, and is neither
+  // in this list's records nor in the total it pages through
+  expect(plannedMovies.total).toBe(1);
+  expect(plannedMovies.records.map((record) => record.tmdbId)).toEqual([
+    ALIEN.id,
   ]);
   expect(watchedMovies.total).toBe(1);
   expect(watchedMovies.records.map((record) => record.tmdbId)).toEqual([
@@ -269,11 +267,11 @@ test('a list pages at PAGE_SIZE, newest marking first', async () => {
 test('a list carries each record’s Score, which is what its card shows', async () => {
   const viewerId = await viewer();
 
-  await writeWatchRecord(viewerId, GOT, watchedAt(4));
+  await writeWatchRecord(viewerId, HEAT, watchedAt(4));
 
   const { records } = await watchRecordsPage(viewerId, {
     state: 'watched',
-    kind: 'tv',
+    kind: 'movie',
     page: 1,
   });
 
@@ -338,7 +336,7 @@ test('the Watched tallies split by Kind, count 0 for an empty one, and leave Pla
 test('the Watched tallies are one Viewer’s and nobody else’s', async () => {
   const [mine, theirs] = await Promise.all([viewer(), viewer()]);
 
-  await writeWatchRecord(theirs, GOT, watchedAt(9));
+  await writeWatchRecord(theirs, HEAT, watchedAt(9));
 
   expect(await watchedTallies(mine)).toEqual({ tv: 0, movie: 0 });
 });
@@ -540,16 +538,6 @@ test('tracked Media comes latest marked first, and stops at the ceiling', async 
   expect(tracked).toHaveLength(200);
   expect(tracked[0]?.ref).toEqual({ kind: 'movie', id: 201 });
   expect(tracked.at(-1)?.ref).toEqual({ kind: 'movie', id: 2 });
-});
-
-test('a Watched Show with no Episode scored is not tracked', async () => {
-  const viewerId = await viewer();
-
-  // the Watched list's until #26: the union reads a Show's record whatever it
-  // says, and only a Planned one or an Episode makes the Show tracked
-  await writeWatchRecord(viewerId, GOT, watchedAt(9));
-
-  expect(await trackedMedia(viewerId)).toEqual([]);
 });
 
 test('tracked Media is one Viewer’s and nobody else’s', async () => {

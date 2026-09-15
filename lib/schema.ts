@@ -46,8 +46,10 @@ export const watchState = pgEnum('watch_state', [
  * A Watched row carries a Score and a Planned row carries none, which the
  * check constraint below keeps rather than the code that writes it: giving a
  * Score is what makes a record Watched, so the two columns have two legal
- * pairs out of the four they can spell.
+ * pairs out of the four they can spell. Only a Movie's row is Watched, which
+ * a second constraint keeps: a Show is never Watched, its Episodes are.
  * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  *
  * Nothing from TMDB is stored: no label, no poster path, no snapshot.
  * — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
@@ -104,6 +106,15 @@ export const watchRecords = pgTable(
       sql`(${table.state} = 'planned' and ${table.score} is null)
        or (${table.state} = 'watched' and ${table.score} is not null
            and ${table.score} between 1 and 10)`,
+    ),
+    // a Show is followed through its Episodes and never Watched itself, so a
+    // Watched row is a Movie's. Its own constraint rather than a clause in the
+    // one above, which says what a state carries and not what it is about.
+    // Neither column is nullable, so this one has no NULL to fall through.
+    // — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+    check(
+      'watch_records_watched_is_a_movie',
+      sql`${table.state} <> 'watched' or ${table.kind} = 'movie'`,
     ),
   ],
 );

@@ -64,6 +64,20 @@
       "when": 1789394982101,
       "tag": "0008_episode_records_viewer_foreign_key",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789480992472,
+      "tag": "0009_watched_show_records",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789481008713,
+      "tag": "0010_a_watched_record_is_a_movie",
+      "breakpoints": true
     }
   ]
 }
