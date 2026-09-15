@@ -10,14 +10,13 @@ import { GoneEpisodeRow } from '@/components/watch/gone-episode-row';
 import { MarkingControl } from '@/components/watch/marking-control';
 import { answeredViewer } from '@/lib/auth';
 import {
+  answeredShowEpisodes,
   isKind,
   isMediaId,
   type MediaDetails,
   type MediaRef,
   mediaDetails,
-  type ShowEpisodes,
   seasonAddress,
-  showEpisodes,
   showSeasons,
 } from '@/lib/media';
 import { goneEpisodes, markingOf } from '@/lib/watch';
@@ -140,22 +139,12 @@ const GoneEpisodes = async ({
   // TMDB is asked only once there is a record it could have stopped listing
   if (!lookup.markings || lookup.markings.size === 0) return null;
 
-  let show: ShowEpisodes | null;
+  const gone = goneEpisodes(
+    await answeredShowEpisodes(id, { specials: true }),
+    lookup.markings,
+  );
 
-  try {
-    show = await showEpisodes(id, { specials: true });
-  } catch (cause) {
-    console.error(`TMDB tv/${id} Gone Episodes went Unanswered:`, cause);
-
-    return null;
-  }
-
-  // the Show itself is Gone, and the page around this is a 404
-  if (!show) return null;
-
-  const gone = goneEpisodes(show.seasons, lookup.markings);
-
-  if (gone.length === 0) return null;
+  if (!gone || gone.length === 0) return null;
 
   return (
     <section className='flex flex-col gap-3 pt-4'>

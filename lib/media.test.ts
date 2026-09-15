@@ -1,6 +1,7 @@
 import { afterEach, expect, test, vi } from 'vitest';
 
 import {
+  answeredShowEpisodes,
   episodeAddress,
   episodeCode,
   episodeDetails,
@@ -507,6 +508,23 @@ test('showEpisodes throws when TMDB leaves out a season the Show lists', async (
   await expect(showEpisodes(95396)).rejects.toThrow(
     'TMDB left season 1 of tv/95396 unanswered',
   );
+});
+
+test('answeredShowEpisodes is Unanswered where showEpisodes throws, never a shorter Show', async () => {
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  tmdb.findTMDB.mockImplementation(async (path: string) =>
+    path === '/tv/95396'
+      ? withSeasons([1, 2])
+      : { ...show, 'season/2': season({ season_number: 2 }) },
+  );
+
+  expect(await answeredShowEpisodes(95396)).toEqual({ answer: 'unanswered' });
+});
+
+test('answeredShowEpisodes is Gone for a Show TMDB does not have', async () => {
+  tmdb.findTMDB.mockResolvedValue(null);
+
+  expect(await answeredShowEpisodes(95396)).toEqual({ answer: 'gone' });
 });
 
 test("releaseDate is the Movie's release day as TMDB spells it", async () => {

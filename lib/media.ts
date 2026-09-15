@@ -610,6 +610,35 @@ export const showEpisodes = async (
 };
 
 /**
+ * What TMDB said about a Show's Episodes: its seasons, or why there are none
+ * to read — Gone, or Unanswered where TMDB left the Show or any season asked
+ * for without an answer, which is never a Show with fewer Episodes.
+ */
+export type ShowEpisodesAnswer =
+  | { answer: 'show'; show: ShowEpisodes }
+  | { answer: Absence };
+
+/**
+ * `showEpisodes` settled into an answer, the way `mediaItems` settles a ref:
+ * the throw becomes Unanswered, with its cause in the log, so a caller cannot
+ * catch it into an empty Show.
+ */
+export const answeredShowEpisodes = async (
+  showId: number,
+  options: { specials?: boolean } = {},
+): Promise<ShowEpisodesAnswer> => {
+  try {
+    const show = await showEpisodes(showId, options);
+
+    return show ? { answer: 'show', show } : { answer: 'gone' };
+  } catch (cause) {
+    logUnanswered(`tv/${showId} episodes`, cause);
+
+    return { answer: 'unanswered' };
+  }
+};
+
+/**
  * A Show and one of its seasons as TMDB sent them, before either page maps
  * the season: the Show's name, the season's wire shape, and the poster the
  * season wears, which is the Show's where the season has none.

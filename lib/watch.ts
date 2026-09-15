@@ -1,4 +1,10 @@
-import type { Kind, MediaRef, SeasonEpisodes, ShowEpisodes } from '@/lib/media';
+import type {
+  Kind,
+  MediaRef,
+  SeasonEpisodes,
+  ShowEpisodes,
+  ShowEpisodesAnswer,
+} from '@/lib/media';
 
 /**
  * The rules that move a Watch Record between states, and nothing that touches
@@ -454,21 +460,26 @@ export type GoneEpisode = { episodeId: number; marking: EpisodeMarking };
 
 /**
  * The records among a Show's that are for Episodes TMDB no longer lists, in
- * the order the lookup holds them. Specials count as listed, since a Viewer
- * can score one.
+ * the order the lookup holds them, or `null` when TMDB's answer cannot say
+ * which those are. Specials count as listed, since a Viewer can score one.
  *
- * Only as true as the seasons it is handed: an Unanswered season read as an
- * empty one would make every record in it Gone, so it takes TMDB's whole
- * answer, Specials included, which `showEpisodes` throws rather than cut
- * short. It only reads, and nothing it finds is deleted — one wrong answer
- * from TMDB would otherwise destroy a Score.
+ * Only as true as the answer it is handed. An Unanswered one is `null` and
+ * never every record: a season TMDB did not answer for is not a season
+ * without Episodes, which is why `showEpisodes` throws rather than cut one
+ * short and asking for Specials matters. A Gone Show is `null` too, since its
+ * page is a 404 with nothing to list on. It only reads, and nothing it finds
+ * is deleted — one wrong answer from TMDB would otherwise destroy a Score.
  */
 export const goneEpisodes = (
-  seasons: readonly SeasonEpisodes[],
+  answer: ShowEpisodesAnswer,
   records: EpisodeLookup,
-): GoneEpisode[] => {
+): GoneEpisode[] | null => {
+  if (answer.answer !== 'show') return null;
+
   const listed = new Set(
-    seasons.flatMap((season) => season.episodes.map((episode) => episode.id)),
+    answer.show.seasons.flatMap((season) =>
+      season.episodes.map((episode) => episode.id),
+    ),
   );
 
   return [...records]

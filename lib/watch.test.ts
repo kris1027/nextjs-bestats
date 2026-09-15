@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 
-import type { SeasonEpisodes } from '@/lib/media';
+import type { SeasonEpisodes, ShowEpisodesAnswer } from '@/lib/media';
 import {
   type EpisodeLookup,
   finishedAt,
@@ -338,21 +338,30 @@ test('a Gone Episode scored last is not when an ended Show was finished', () => 
 const records = (...scores: [number, Score][]): EpisodeLookup =>
   new Map(scores.map(([id, score]) => [id, watchedAt(score)]));
 
+/** TMDB's answer listing these seasons, for a Show that has not ended. */
+const listing = (...seasons: SeasonEpisodes[]): ShowEpisodesAnswer => ({
+  answer: 'show',
+  show: { ended: false, seasons },
+});
+
 test('a record for an Episode TMDB no longer lists is Gone, with its Score', () => {
   expect(
-    goneEpisodes([season(1, 3)], records([101, 8], [999, 6], [102, 7])),
+    goneEpisodes(listing(season(1, 3)), records([101, 8], [999, 6], [102, 7])),
   ).toEqual([{ episodeId: 999, marking: watchedAt(6) }]);
 });
 
 test('a scored Special TMDB still lists is not Gone', () => {
   expect(
-    goneEpisodes([season(1, 2), season(0, 2)], records([1, 9], [101, 4])),
+    goneEpisodes(
+      listing(season(1, 2), season(0, 2)),
+      records([1, 9], [101, 4]),
+    ),
   ).toEqual([]);
 });
 
 test('Gone Episodes keep the order the records came in', () => {
   expect(
-    goneEpisodes([season(1, 1)], records([998, 3], [101, 5], [997, 10])),
+    goneEpisodes(listing(season(1, 1)), records([998, 3], [101, 5], [997, 10])),
   ).toEqual([
     { episodeId: 998, marking: watchedAt(3) },
     { episodeId: 997, marking: watchedAt(10) },
@@ -360,5 +369,17 @@ test('Gone Episodes keep the order the records came in', () => {
 });
 
 test('a Show with no records has no Gone Episodes', () => {
-  expect(goneEpisodes([season(1, 3)], records())).toEqual([]);
+  expect(goneEpisodes(listing(season(1, 3)), records())).toEqual([]);
+});
+
+test('an Unanswered season is not reported as Gone', () => {
+  // TMDB leaving out any season the Show lists makes the whole answer
+  // Unanswered, so no record in the season it did not answer for is Gone
+  expect(
+    goneEpisodes({ answer: 'unanswered' }, records([101, 8], [201, 6])),
+  ).toBe(null);
+});
+
+test('a Gone Show has no Gone Episodes to list', () => {
+  expect(goneEpisodes({ answer: 'gone' }, records([101, 8]))).toBe(null);
 });
