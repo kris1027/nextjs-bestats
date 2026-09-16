@@ -229,7 +229,7 @@ See [`docs/adr/0003`](docs/adr/0003-tmdb-client-separate-from-domain.md) and
 
 ## Language
 
-The project keeps a glossary in [`CONTEXT.md`](CONTEXT.md), and it binds code
+The project keeps a glossary in [`AGENTS.md`](AGENTS.md), and it binds code
 as much as prose — types, functions, route segments and filenames all use its
 words. **Media**, **Show**, **Movie**, **Kind**, **Fact**, **Rating**,
 **Matches**, **Visitor**, **Viewer**, **Watch Record**, **Planned**,
@@ -245,7 +245,7 @@ code, in URLs and on the wire, because that is TMDB's word; a Viewer is a row
 in `neon_auth.user` because that is what Neon Auth calls it. "Show" and
 "Viewer" are the words the reader sees.
 
-Read `CONTEXT.md` before naming anything.
+Read the glossary in `AGENTS.md` before naming anything.
 
 ## Testing
 
@@ -286,16 +286,16 @@ Formatting, quote style, import order and strictness are enforced by
 - A form that navigates uses `next/form`, not `<form>` — a native GET form
   reloads the document.
 
-[`CLAUDE.md`](CLAUDE.md) carries the full set, including the standing rules
+[`AGENTS.md`](AGENTS.md) carries the full set, including the standing rules
 that must not be broken.
 
 ## Documentation
 
-| File                            | What it is                                        |
-| ------------------------------- | ------------------------------------------------- |
-| [`CONTEXT.md`](CONTEXT.md)      | The glossary. Read before naming anything.        |
-| [`CLAUDE.md`](CLAUDE.md)        | Commands, boundaries, conventions, standing rules |
-| [`docs/adr/`](docs/adr)         | Decisions that were hard to reverse, and why      |
+| File                     | What it is                                            |
+| ------------------------ | ----------------------------------------------------- |
+| [`AGENTS.md`](AGENTS.md) | The glossary, commands, boundaries and standing rules |
+| `CLAUDE.md`              | A symlink to `AGENTS.md`, for the agents that read it |
+| [`docs/adr/`](docs/adr)  | Decisions that were hard to reverse, and why          |
 
 The ADRs are short and worth reading in order — they explain why one route
 serves both Kinds, why placeholder values are not facts, why the TMDB client
