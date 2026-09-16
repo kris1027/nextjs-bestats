@@ -139,6 +139,32 @@ test('a Planned Show that has not started airing is Upcoming', () => {
   expect(listsOf(found)).toEqual(['upcoming']);
 });
 
+test('a Planned Show whose first Episode has aired is on the Watchlist', () => {
+  const found = placed(
+    tracked('tv', 1, 1),
+    show(season(1, ['2026-01-01', '2026-01-08'])),
+    TODAY,
+  );
+
+  // watching none of it is not being caught up with it, however long ago TMDB
+  // aired the first Episode: it is placed on that day like any other Show
+  expect(listsOf(found)).toEqual(['watchlist']);
+  expect(found.upNext).toEqual({
+    episode: { season: 1, episode: 1 },
+    airDate: '2026-01-01',
+  });
+});
+
+test('a Planned Show TMDB has dated nothing of is Upcoming, undated', () => {
+  const found = placed(tracked('tv', 1, 1), show(season(1, [null])), TODAY);
+
+  // the one Show an undated Episode leaves waiting: with nothing scored it
+  // cannot be caught up, so it waits here rather than arriving on Watched
+  expect(listsOf(found)).toEqual(['upcoming']);
+  expect(found.day).toBeNull();
+  expect(found.caughtUpAt).toBeNull();
+});
+
 test('a Show with a season announced and no Episodes yet is on Watched', () => {
   const found = placed(
     tracked('tv', 1, 1, [101]),
