@@ -2,8 +2,8 @@ import { expect, test } from 'vitest';
 
 import type { SeasonEpisodes, ShowEpisodesAnswer } from '@/lib/media';
 import {
+  caughtUpAt,
   type EpisodeLookup,
-  finishedAt,
   goneEpisodes,
   hasFinished,
   isScore,
@@ -283,75 +283,75 @@ const scoredOn = (days: Record<number, number>): Map<number, Date> =>
     ]),
   );
 
-test('a Viewer finished an ended Show when they scored its final Episode', () => {
+test('a Viewer caught up when they scored the last Episode TMDB lists', () => {
   expect(
-    finishedAt(
+    caughtUpAt(
       { ended: true, seasons: [season(1, 2), season(2, 2)] },
       scoredOn({ 101: 1, 102: 2, 201: 3, 202: 4 }),
     ),
   ).toEqual(new Date(Date.UTC(2026, 8, 4)));
 });
 
-test('a Show is finished at its final Episode, not at the latest Episode rescored', () => {
+test('a Viewer caught up at the last Episode, not at the latest rescored', () => {
   expect(
-    finishedAt(
+    caughtUpAt(
       { ended: true, seasons: [season(1, 2)] },
       scoredOn({ 101: 20, 102: 4 }),
     ),
   ).toEqual(new Date(Date.UTC(2026, 8, 4)));
 });
 
-test('a Show that has not ended is not finished, with nothing left to watch', () => {
-  expect(
-    finishedAt(
-      { ended: false, seasons: [season(1, 2)] },
-      scoredOn({ 101: 1, 102: 2 }),
-    ),
-  ).toBe(null);
+test('a running Show with nothing left is caught up, and still not finished', () => {
+  const show = { ended: false, seasons: [season(1, 2)] };
+  const scored = scoredOn({ 101: 1, 102: 2 });
+
+  expect(caughtUpAt(show, scored)).toEqual(new Date(Date.UTC(2026, 8, 2)));
+  // not finished, so its page keeps drawing Stop watching
+  expect(hasFinished(show, scored)).toBe(false);
 });
 
-test('an ended Show with a dated Episode left is not finished', () => {
+test('a dated Episode left leaves the Viewer not caught up', () => {
   const final = {
     number: 2,
     episodes: [{ id: 201, number: 1, airDate: '2027-03-12' }],
   };
 
   expect(
-    finishedAt(
+    caughtUpAt(
       { ended: true, seasons: [season(1, 2), final] },
       scoredOn({ 101: 1, 102: 2 }),
     ),
   ).toBe(null);
 });
 
-test('an ended Show with a season announced after the furthest is not finished', () => {
+test('a season announced after the furthest leaves the Viewer not caught up', () => {
   expect(
-    finishedAt(
+    caughtUpAt(
       { ended: true, seasons: [season(1, 2), season(2, 0)] },
       scoredOn({ 101: 1, 102: 2 }),
     ),
   ).toBe(null);
 });
 
-test('an ended Show with no Episodes, or none scored, is not finished', () => {
-  expect(finishedAt({ ended: true, seasons: [] }, new Map())).toBe(null);
-  expect(finishedAt({ ended: true, seasons: [season(1, 2)] }, new Map())).toBe(
+test('a Show with no Episodes, or none scored, is never caught up with', () => {
+  expect(caughtUpAt({ ended: true, seasons: [] }, new Map())).toBe(null);
+  expect(caughtUpAt({ ended: true, seasons: [season(1, 2)] }, new Map())).toBe(
     null,
   );
 });
 
-test('an unscored Special does not keep an ended Show from being finished', () => {
+test('an unscored Special does not keep the Viewer from being caught up', () => {
   expect(
-    finishedAt(
+    caughtUpAt(
       { ended: true, seasons: [season(1, 2), season(0, 3)] },
       scoredOn({ 102: 5 }),
     ),
   ).toEqual(new Date(Date.UTC(2026, 8, 5)));
 });
 
-test('a Gone Episode scored last is not when an ended Show was finished', () => {
+test('a Gone Episode scored last is not when the Viewer caught up', () => {
   expect(
-    finishedAt(
+    caughtUpAt(
       { ended: true, seasons: [season(1, 2), season(0, 1)] },
       scoredOn({ 101: 1, 102: 2, 999: 9 }),
     ),
@@ -493,6 +493,22 @@ test('a Show with an Episode scored is under way, or finished once it has ended'
       ]),
     ),
   ).toBe('finished');
+});
+
+test('a Show still running is under way however little is left of it', () => {
+  // being caught up with it puts it on Watched, and its page goes on drawing
+  // Stop watching — which is why `hasFinished` keeps the `ended` check
+  const show = { ended: false, seasons: [season(1, 2)] };
+
+  expect(
+    showProgress(
+      { answer: 'show', show },
+      new Map([
+        [101, watchedAt(8)],
+        [102, watchedAt(9)],
+      ]),
+    ),
+  ).toBe('underWay');
 });
 
 test('the progress of a Show under way is Unanswered without TMDB', () => {

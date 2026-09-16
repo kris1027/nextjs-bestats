@@ -407,7 +407,7 @@ const regularSeasons = (
 /**
  * The Episodes a Viewer has scored in a Show, by TMDB's id, whatever else each
  * carries: a list's `ScoredEpisodes`, with when, or a page's `EpisodeLookup`,
- * with the Score. Which is scored is all `upNext` and `hasFinished` read.
+ * with the Score. Which is scored is all `upNext` and `caughtUp` read.
  */
 export type ScoredIds = ReadonlyMap<number, unknown>;
 
@@ -492,14 +492,16 @@ export const hasFinished = (show: ShowEpisodes, scored: ScoredIds): boolean =>
   show.ended && caughtUp(show, scored);
 
 /**
- * When a Viewer finished a Show: the moment they scored its final Episode, or
- * `null` for a Show `hasFinished` says they have not.
+ * When a Viewer caught up with a Show: the moment they scored the last
+ * Episode TMDB lists, or `null` for a Show `caughtUp` says they have not.
+ * What the Watched list places its Shows by, and orders them by.
+ * — `docs/adr/0022-the-watched-list-holds-a-show-you-are-caught-up-with.md`
  */
-export const finishedAt = (
+export const caughtUpAt = (
   show: ShowEpisodes,
   scored: ScoredEpisodes,
 ): Date | null => {
-  if (!hasFinished(show, scored)) return null;
+  if (!caughtUp(show, scored)) return null;
 
   const final = finalEpisode(show);
 

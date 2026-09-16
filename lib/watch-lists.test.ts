@@ -134,7 +134,7 @@ test('a Planned Show that has not started airing is Upcoming', () => {
   expect(listsOf(found)).toEqual(['upcoming']);
 });
 
-test('a Show the Viewer is caught up with is Upcoming, undated, at the season announced', () => {
+test('a Show with a season announced and no Episodes yet is Upcoming, undated', () => {
   const found = placed(
     tracked('tv', 1, 1, [101]),
     show(season(1, ['2026-01-01']), season(2, [])),
@@ -146,7 +146,7 @@ test('a Show the Viewer is caught up with is Upcoming, undated, at the season an
   expect(found.upNext).toEqual({ season: 2 });
 });
 
-test('a Show the Viewer has finished is on Watched alone, at when they finished it', () => {
+test('a Show the Viewer is caught up with is on Watched alone, at that moment', () => {
   const found = placed(
     tracked('tv', 1, 5, [101, 102]),
     ended(season(1, ['2026-01-01', '2026-01-08'])),
@@ -154,7 +154,7 @@ test('a Show the Viewer has finished is on Watched alone, at when they finished 
   );
 
   expect(listsOf(found)).toEqual(['watched']);
-  expect(found.finishedAt).toEqual(new Date(Date.UTC(2026, 8, 5)));
+  expect(found.caughtUpAt).toEqual(new Date(Date.UTC(2026, 8, 5)));
 });
 
 test('an ended Show with a dated final Episode still to air stays Upcoming', () => {
@@ -166,10 +166,10 @@ test('an ended Show with a dated final Episode still to air stays Upcoming', () 
 
   expect(listsOf(found)).toEqual(['upcoming']);
   expect(found.day).toBe('2026-10-01');
-  expect(found.finishedAt).toBe(null);
+  expect(found.caughtUpAt).toBe(null);
 });
 
-test('a Show whose status is not an ended one waits, with nothing left to watch', () => {
+test('a Show still running with nothing left is on Watched, not waited for', () => {
   // `Returning Series`, or a status TMDB has not used before: `hasEnded` reads
   // it, and anything but Ended or Canceled arrives here as not ended
   const found = placed(
@@ -178,13 +178,13 @@ test('a Show whose status is not an ended one waits, with nothing left to watch'
     TODAY,
   );
 
-  expect(listsOf(found)).toEqual(['upcoming']);
-  expect(found.finishedAt).toBe(null);
+  expect(listsOf(found)).toEqual(['watched']);
+  expect(found.caughtUpAt).toEqual(new Date(Date.UTC(2026, 8, 1)));
 });
 
-test('Watched puts the latest finished Show first, whatever was marked since', () => {
-  // Show 1 was finished on day 3 and its first Episode rescored on day 9;
-  // Show 2 was finished on day 6
+test('Watched puts the latest caught up with first, whatever was marked since', () => {
+  // Show 1 was caught up with on day 3 and its first Episode rescored on day
+  // 9; Show 2 was caught up with on day 6
   const rescored: TrackedMedia = {
     ref: { kind: 'tv', id: 1 },
     markedAt: new Date(Date.UTC(2026, 8, 9)),
@@ -210,7 +210,7 @@ test('Media TMDB did not answer for, or that is Gone, is on both lists', () => {
   for (const answer of ['gone', 'unanswered'] as const) {
     const found = placed(tracked('tv', 1, 1), { answer }, TODAY);
 
-    // and never on Watched, since whether a Show is finished is TMDB's to say
+    // and never on Watched, since what is left of a Show is TMDB's to say
     expect(listsOf(found)).toEqual(['upcoming', 'watchlist']);
     expect(found.day).toBe(null);
   }
