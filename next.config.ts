@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // `next dev` would otherwise append its own block to CLAUDE.md on every
+  // `next dev` would otherwise append its own block to AGENTS.md on every
   // start; that file is written by hand
   agentRules: false,
   // every route prerenders a shell and streams the rest; the build refuses
