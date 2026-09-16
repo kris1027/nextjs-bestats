@@ -460,20 +460,40 @@ const finalEpisode = (show: ShowEpisodes): { id: number } | undefined =>
     .at(-1);
 
 /**
- * TMDB's id for the furthest Episode of a Show's numbered runs the Viewer has
- * scored, or `null` where they have scored none. Read off TMDB's Episodes
- * rather than counted off the records, so a scored Special does not start a
- * Show and neither does an id TMDB no longer lists. Furthest and not last
- * scored, for `upNext`'s reason: a Viewer who joined at season three is not
- * sent back to season one.
+ * A Show's Episodes in viewing order, Specials aside, which belong to no run.
+ * The same order `upNext` reads them in and from the same place, so what is
+ * left of a Show and what comes next of it cannot disagree.
  */
-const furthestScored = (show: ShowEpisodes, scored: ScoredIds): number | null =>
-  regularSeasons(show.seasons)
-    .flatMap((season) => season.episodes)
-    .reduce<number | null>(
-      (found, episode) => (scored.has(episode.id) ? episode.id : found),
-      null,
-    );
+const listedEpisodes = (
+  show: ShowEpisodes,
+): readonly { id: number; airDate: string | null }[] =>
+  regularSeasons(show.seasons).flatMap((season) => season.episodes);
+
+/**
+ * Where the furthest Episode the Viewer has scored sits among those, or `-1`
+ * where they have scored none. Read off TMDB's Episodes rather than counted
+ * off the records, so a scored Special does not start a Show and neither does
+ * an id TMDB no longer lists. Furthest and not last scored, for `upNext`'s
+ * reason: a Viewer who joined at season three is not sent back to season one.
+ */
+const furthestIndex = (
+  episodes: readonly { id: number }[],
+  scored: ScoredIds,
+): number =>
+  episodes.reduce(
+    (found, episode, index) => (scored.has(episode.id) ? index : found),
+    -1,
+  );
+
+/** TMDB's id for that Episode, or `null` where they have scored none. */
+const furthestScored = (
+  show: ShowEpisodes,
+  scored: ScoredIds,
+): number | null => {
+  const episodes = listedEpisodes(show);
+
+  return episodes[furthestIndex(episodes, scored)]?.id ?? null;
+};
 
 /**
  * Whether a Viewer is caught up with a Show: they have watched an Episode of
@@ -490,12 +510,18 @@ const furthestScored = (show: ShowEpisodes, scored: ScoredIds): number | null =>
  * — `docs/adr/0022-the-watched-list-holds-a-show-you-are-caught-up-with.md`
  */
 export const caughtUp = (show: ShowEpisodes, scored: ScoredIds): boolean => {
+  const episodes = listedEpisodes(show);
+  const furthest = furthestIndex(episodes, scored);
+
   // nothing watched is nothing to be caught up with, however little TMDB dated
-  if (furthestScored(show, scored) === null) return false;
+  if (furthest === -1) return false;
 
-  const next = upNext(show.seasons, scored);
-
-  return !('episode' in next) || next.airDate === null;
+  // every Episode left and not only the next: TMDB lists them in order but
+  // dates them as it learns them, so an undated one standing in front of a
+  // dated one would hide it and put a Show airing next week on Watched
+  return episodes
+    .slice(furthest + 1)
+    .every((episode) => episode.airDate === null);
 };
 
 /**

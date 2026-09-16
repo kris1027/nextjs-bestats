@@ -152,6 +152,32 @@ test('a Show with a season announced and no Episodes yet is on Watched', () => {
   expect(found.upNext).toEqual({ season: 2 });
 });
 
+test('a Show whose later Episode has a day is Upcoming, not on Watched', () => {
+  // S2E1 is undated and S2E2 airs next month: the Show is airing, so reading
+  // the next Episode alone would hide it on Watched
+  const season2: SeasonEpisodes = {
+    number: 2,
+    episodes: [
+      { id: 201, number: 1, airDate: null },
+      { id: 202, number: 2, airDate: '2026-10-01' },
+    ],
+  };
+  const found = placed(
+    tracked('tv', 1, 1, [101]),
+    {
+      answer: 'show',
+      ended: false,
+      seasons: [season(1, ['2026-01-01']), season2],
+    },
+    TODAY,
+  );
+
+  expect(listsOf(found)).toEqual(['upcoming']);
+  expect(found.caughtUpAt).toBe(null);
+  // undated, since the Episode the Viewer is actually waiting on has no day
+  expect(found.day).toBe(null);
+});
+
 test('nothing undated is left on Upcoming for a Show the Viewer has started', () => {
   // the one rule the lists read: a day ahead is Upcoming, no day is Watched
   const started = tracked('tv', 1, 1, [101]);

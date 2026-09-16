@@ -362,6 +362,25 @@ test('a Viewer caught up is at the furthest they scored, not the last listed', (
   ).toEqual(new Date(Date.UTC(2026, 8, 7)));
 });
 
+test('a dated Episode behind an undated one still keeps the Viewer waiting', () => {
+  // TMDB lists Episodes in order and dates them as it learns them, so S2E1 can
+  // stand undated in front of an S2E2 that airs next month
+  const season2 = {
+    number: 2,
+    episodes: [
+      { id: 201, number: 1, airDate: null },
+      { id: 202, number: 2, airDate: '2026-10-01' },
+    ],
+  };
+
+  expect(
+    caughtUpAt(
+      { ended: false, seasons: [season(1, 2), season2] },
+      scoredOn({ 101: 1, 102: 2 }),
+    ),
+  ).toBe(null);
+});
+
 test('a Show nothing is scored of is never caught up, however little TMDB dated', () => {
   const undated = {
     number: 1,
