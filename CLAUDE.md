@@ -177,15 +177,15 @@ page does, since resolving Watch Records against TMDB is a page's job and not
   would stop a Gone Show for good.
   — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
   — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
-- A Show is on Watched once the Viewer is caught up with it — TMDB lists no
-  Episode after the furthest they scored and announces no season after it —
-  and not only once it has ended, so a Show between seasons sits there rather
-  than undated at the foot of Upcoming, and leaves again when TMDB names the
-  next Episode. A season TMDB lists with no Episodes in it is still something
-  to wait for and holds the Show on Upcoming, where its card says so.
-  `caughtUp` and `caughtUpAt` are the lists'; `hasFinished` keeps the `ended`
-  check for `showProgress` alone, since a Show still running is under way
-  however little is left of it and its page must go on offering Stop watching.
+- The lists ask one thing about a Show: whether a day lies ahead of the
+  Viewer. A dated next Episode is Upcoming, or the Watchlist once that day has
+  passed; no day ahead is Watched, and an Episode TMDB lists undated and a
+  season it announces empty are both no day. `caughtUp` says so, and
+  `caughtUpAt` reads the furthest Episode scored and never the last TMDB
+  lists — the two are one Episode only when nothing is left at all.
+  `hasFinished` keeps the narrower rule and the `ended` check for
+  `showProgress` alone: an undated Episode is still an Episode left, so such a
+  Show is under way on its own page and must go on drawing Stop watching.
   — `docs/adr/0022-the-watched-list-holds-a-show-you-are-caught-up-with.md`
 - A Watch Record stores nothing from TMDB — no label, no poster path, no
   snapshot. Rendering a list means asking TMDB for each item on it.
