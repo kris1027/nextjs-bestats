@@ -87,12 +87,16 @@ const EMPTY: Record<List, (kind: Kind) => string> = {
     `No ${KIND_WORDS[kind].other} to watch now. A Planned ${KIND_WORDS[kind].one} that is out will appear here.`,
   upcoming: (kind) =>
     `No ${KIND_WORDS[kind].other} to wait for. A Planned ${KIND_WORDS[kind].one} that is not out yet will appear here.`,
-  // a Show is never marked Watched, so its tab says what finishing one takes
-  // — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+  // a Show is never marked Watched, so its tab says what lands one here. Not
+  // "finished", and not every Episode either: being caught up is read off the
+  // furthest Episode scored, so the ones before it need not be. An undated
+  // Episode cannot be scored, so the furthest always has a day and the
+  // sentence can name the latest that has one
+  // — `docs/adr/0022-the-watched-list-holds-a-show-you-are-caught-up-with.md`
   watched: (kind) =>
     takesScore(kind)
       ? `No ${KIND_WORDS[kind].other} watched yet. Score a ${KIND_WORDS[kind].one} and it will appear here.`
-      : `No ${KIND_WORDS[kind].other} finished yet. A ${KIND_WORDS[kind].one} that has ended will appear here once you have scored its last episode.`,
+      : `No ${KIND_WORDS[kind].other} here yet. A ${KIND_WORDS[kind].one} will appear here once you have scored the latest episode that has a date.`,
 };
 
 /**
@@ -136,7 +140,8 @@ type ListTallies = {
  * tracking, placed and paged in memory, and the day it was placed against,
  * which its cards' dates are read against too. The Watched list's Movies are
  * the exception, since a Watched Movie is a Watch Record and Postgres pages
- * those; its Shows are finished, which only TMDB can say.
+ * those; its Shows are the ones nothing dated is left of, which only TMDB
+ * can say.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 type ListContents = {
@@ -401,18 +406,24 @@ const NO_DATE = 'No date yet';
  * The line a card on a placed list draws under its title bar. On the
  * Watchlist a Show names its next Episode and a Movie draws nothing, since
  * everything there is out; on Upcoming every card says what it waits for and
- * when — **S3E1 · Mar 12**, **S3 · No date yet**, **Mar 12** for a Movie. A
- * card TMDB gave no answer to place by draws nothing, since its day is not
- * "no date" but unknown, and neither does a finished Show on Watched, which
- * has nothing next.
+ * when — **S3E1 · Mar 12**, **S3 · No date yet**, **Mar 12** for a Movie.
+ *
+ * On Watched a Show says what TMDB has announced and not dated — **S4E1 · No
+ * date yet**, **S5 · No date yet** — and a Show with nothing ahead of the
+ * Viewer at all says nothing, which is what tells the two apart: a Show that
+ * is over draws no line, and one between seasons draws the announcement that
+ * would otherwise be nowhere on the lists. A Movie there draws nothing
+ * either, since the tab it is on is paged from records and asks for no lead.
+ * — `docs/adr/0022-the-watched-list-holds-a-show-you-are-caught-up-with.md`
+ *
+ * A card TMDB gave no answer to place by draws nothing, since its day is not
+ * "no date" but unknown.
  */
 const leadOf = (
   list: PlacedList,
   { tracked, placedBy, upNext, day }: PlacedMedia,
   today: Date,
 ): CardLead | null => {
-  if (list === 'watched') return null;
-
   // unbroken, so a line too long for a 136px card at the 320px floor —
   // "S12E10 · Sep 17, 2027" — wraps at the dot rather than inside the date
   const date = ((day && formatShortDate(day, today)) ?? NO_DATE).replaceAll(
@@ -434,20 +445,27 @@ const leadOf = (
 
     return {
       label: 'Next episode',
-      text: list === 'upcoming' ? `${code} · ${date}` : code,
+      // the Watchlist's Episode is out, so its day is the one thing left off
+      text: list === 'watchlist' ? code : `${code} · ${date}`,
       // TMDB lists this Episode, so its page is there to lead to
       episode,
     };
   }
 
-  // caught up: nothing is listed to lead to, so the card leads to the Show
-  return upNext.season === null
-    ? { label: 'Next episode', text: NO_DATE, episode: null }
-    : {
-        label: 'Next season',
-        text: `S${upNext.season} · ${NO_DATE}`,
-        episode: null,
-      };
+  // nothing is listed to lead to, so what is left leads to the Show itself
+  if (upNext.season !== null) {
+    return {
+      label: 'Next season',
+      text: `S${upNext.season} · ${NO_DATE}`,
+      episode: null,
+    };
+  }
+
+  // and nothing at all is announced: on Watched that is a Show that is over,
+  // which says nothing, and elsewhere a Show TMDB lists no Episodes for yet
+  return list === 'watched'
+    ? null
+    : { label: 'Next episode', text: NO_DATE, episode: null };
 };
 
 /**
@@ -624,7 +642,7 @@ const ListPage = async ({
  * other lists. The tallies stream into the tabs and the cards into the grid,
  * each behind a boundary of its own. Both wait on TMDB, which is asked about
  * everything tracked, and each Show's seasons, before either can be counted —
- * on the Watched list too, whose Shows are the finished ones. Its Movies are
+ * on the Watched list too, whose Shows are the caught up ones. Its Movies are
  * the one tab the database counts and pages, with TMDB asked for their cards
  * a request apiece, so an address naming that tab draws its grid without
  * waiting for the Shows to be placed.

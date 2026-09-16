@@ -16,7 +16,8 @@ import { PAGE_SIZE } from '@/lib/watch';
  *
  * `lead` holds the line a list card draws under its title bar. Every card on
  * Upcoming draws one, so its grid asks for it; on the Watchlist only a Show
- * does, and this stands short for it there. The fallback is drawn before the
+ * does, and on Watched only a Show with something announced ahead of the
+ * Viewer, so this stands short on both. The fallback is drawn before the
  * address is read, so it cannot know whether the Shows tab is open, and
  * reserving the line on the Movies tab would move every card there instead.
  * A list page's grid can also hold an `AbsentCard`, which still draws a

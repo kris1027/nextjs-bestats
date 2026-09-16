@@ -6,7 +6,7 @@ import {
 } from '@/lib/media';
 import {
   assertListPage,
-  finishedAt,
+  caughtUpAt,
   PAGE_SIZE,
   TRACKED_CEILING,
   type TrackedMedia,
@@ -65,15 +65,15 @@ export type PlacedMedia = {
    */
   day: CalendarDay | null;
   /**
-   * When the Viewer finished a Show, which is what Watched orders its Shows
-   * by; `null` for anything not finished.
+   * When the Viewer caught up with a Show, which is what Watched orders its
+   * Shows by; `null` for anything they are not caught up with.
    */
-  finishedAt: Date | null;
+  caughtUpAt: Date | null;
   /**
    * The lists it is on: one, or the Watchlist and Upcoming both where TMDB
    * gave nothing to place it by, since Unanswered is never an absence from
-   * either. Never Watched then: whether a Show is finished is TMDB's to say,
-   * and calling one finished without its answer is a claim about the Viewer.
+   * either. Never Watched then: what is left of a Show is TMDB's to say, and
+   * calling the Viewer caught up without its answer is a claim about them.
    */
   lists: ReadonlySet<PlacedList>;
 };
@@ -117,9 +117,10 @@ const calendarDay = (date: string | null): CalendarDay | null =>
  * Places one tracked Movie or Show. What can be watched by `today` — a
  * released Movie, a Show whose next Episode has aired — is on the Watchlist;
  * what is waited for — an unreleased or undated Movie, a Show whose next
- * Episode has not aired or has no date, a Show the Viewer is caught up with
- * that has not ended — is Upcoming; a Show the Viewer has finished is on
- * Watched and nowhere else.
+ * Episode has not aired or has no date, a Show with a later season announced
+ * and no Episodes in it yet — is Upcoming; a Show the Viewer is caught up
+ * with is on Watched and nowhere else, ended or still running.
+ * — `docs/adr/0022-the-watched-list-holds-a-show-you-are-caught-up-with.md`
  *
  * A Stopped Show is on no list, unless TMDB says it is Gone: its page is a
  * 404, so the card Gone Media gets on both lists is the one place left to
@@ -150,7 +151,7 @@ const placedByAnswer = (
       placedBy: 'movie',
       upNext: null,
       day: calendarDay(answer.releaseDate),
-      finishedAt: null,
+      caughtUpAt: null,
       lists: hasAired(answer.releaseDate, today) ? WATCHLIST : UPCOMING,
     };
   }
@@ -158,19 +159,15 @@ const placedByAnswer = (
   if (answer.answer === 'show') {
     const next = upNext(answer.seasons, tracked.scored);
     const airDate = 'episode' in next ? next.airDate : null;
-    const finished = finishedAt(answer, tracked.scored);
+    const caught = caughtUpAt(answer, tracked.scored);
 
     return {
       tracked,
       placedBy: 'show',
       upNext: next,
       day: calendarDay(airDate),
-      finishedAt: finished,
-      lists: finished
-        ? WATCHED
-        : hasAired(airDate, today)
-          ? WATCHLIST
-          : UPCOMING,
+      caughtUpAt: caught,
+      lists: caught ? WATCHED : hasAired(airDate, today) ? WATCHLIST : UPCOMING,
     };
   }
 
@@ -179,7 +176,7 @@ const placedByAnswer = (
     placedBy: answer.answer,
     upNext: null,
     day: null,
-    finishedAt: null,
+    caughtUpAt: null,
     lists: BOTH,
   };
 };
@@ -200,17 +197,17 @@ const bySoonest = (a: PlacedMedia, b: PlacedMedia): number => {
 };
 
 /**
- * The latest finished first, which is Watched's order for its Shows, and the
- * latest marked among those finished at one moment.
+ * The latest caught up with first, which is Watched's order for its Shows,
+ * and the latest marked among those caught up with at one moment.
  */
-const byLatestFinished = (a: PlacedMedia, b: PlacedMedia): number =>
-  (b.finishedAt?.getTime() ?? 0) - (a.finishedAt?.getTime() ?? 0) ||
+const byLatestCaughtUp = (a: PlacedMedia, b: PlacedMedia): number =>
+  (b.caughtUpAt?.getTime() ?? 0) - (a.caughtUpAt?.getTime() ?? 0) ||
   byLatestMarked(a, b);
 
 const ORDERS: Record<PlacedList, (a: PlacedMedia, b: PlacedMedia) => number> = {
   watchlist: byLatestMarked,
   upcoming: bySoonest,
-  watched: byLatestFinished,
+  watched: byLatestCaughtUp,
 };
 
 /** One Kind of one list, in that list's order. */
