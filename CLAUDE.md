@@ -182,9 +182,10 @@ page does, since resolving Watch Records against TMDB is a page's job and not
   once that day has passed; no day ahead is Watched, and an Episode TMDB lists
   undated and a season it announces empty are both no day — every Episode left
   is read and not only the next, since an undated one can stand in front of a
-  dated one. A Show they have watched no Episode of waits on Upcoming whatever
-  TMDB has dated, since a Planned Show on no list is reachable from nowhere.
-  `caughtUp` says all of that, and
+  dated one. A Show they have watched no Episode of is never caught up and so
+  never leaves the lists: it is on the Watchlist once its first Episode has
+  aired and Upcoming before that, undated included, since a Planned Show on no
+  list is reachable from nowhere. `caughtUp` says all of that, and
   `caughtUpAt` reads the furthest Episode scored and never the last TMDB
   lists — the two are one Episode only when nothing is left at all.
   `hasFinished` keeps the narrower rule and the `ended` check for
