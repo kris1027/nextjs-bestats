@@ -157,7 +157,7 @@ to watch what you have watched, and the Score does not survive the move back.
 A Show is never Watched, and the Watched list holds the Shows a Viewer is
 Caught up with rather than any record of theirs. A Show is finished when it
 has ended and TMDB lists no Episode after the furthest the Viewer has watched,
-which its own control reads and the lists no longer do.
+which its own control reads; the lists ask instead whether they are Caught up.
 _Avoid_: Seen, done, finished
 
 **Stopped**:
@@ -184,22 +184,26 @@ none. What is Upcoming, Stopped or Caught up with is not on it.
 _Avoid_: Queue, saved, list, favourites
 
 **Upcoming**:
-What a Viewer is waiting for: Planned Movies not yet released, Shows whose
-next Episode has not aired — at its air date, or with none announced — and
-Shows with a Season announced that TMDB lists no Episodes in yet, which is
-TMDB saying more is coming without saying when. A Show a Viewer is Caught up
-with is waiting for nothing and is not Upcoming, ended or still running.
+What a Viewer is waiting for: Planned Movies not yet released, and Shows whose
+next Episode has a date that has not come. A Show a Viewer is Caught up with
+is waiting for nothing and is not Upcoming, ended or still running — and
+neither an Episode TMDB lists without a date nor a Season it announces with no
+Episodes in it yet is a date, so neither holds a Show here. A Movie TMDB has
+no release date for is Upcoming all the same: waiting is the whole of what a
+Viewer can do with a Movie they have not watched, where a Show they are part
+way through has somewhere else to be.
 _Avoid_: Coming soon, scheduled, calendar, future
 
 **Caught up**:
-Where a Viewer stands with a Show once they have watched every Episode of it
-there is: TMDB lists none after the furthest they have watched and announces
-no Season after it either. What puts a Show on the Watched list, whether or
-not it has ended — one that has ended is over, and one still running is
-between Seasons and leaves the list the moment TMDB names another Episode.
+Where a Viewer stands with a Show once they have watched an Episode of it and
+TMDB names no date for anything after the furthest they watched — nothing left
+with a date on it, whether or not TMDB lists an undated Episode or announces a
+Season with no Episodes in it yet. What puts a Show on the Watched list,
+whether or not it has ended: one that has ended is over, and one still running
+is between Seasons and leaves the list the moment TMDB dates another Episode.
 Not a state and never a Watch Record: like Tracked, it is read off the
 Episodes the Viewer has watched and what TMDB says.
-_Avoid_: Finished, complete, done, up to date, seen
+_Avoid_: Complete, done, up to date, seen
 
 **Tracked**:
 A Movie or Show a Viewer is following, which is what the lists are placed
