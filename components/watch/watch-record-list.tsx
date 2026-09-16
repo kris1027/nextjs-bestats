@@ -88,13 +88,13 @@ const EMPTY: Record<List, (kind: Kind) => string> = {
   upcoming: (kind) =>
     `No ${KIND_WORDS[kind].other} to wait for. A Planned ${KIND_WORDS[kind].one} that is not out yet will appear here.`,
   // a Show is never marked Watched, so its tab says what lands one here. Not
-  // "finished": a Show still running is here as soon as the Viewer has
-  // watched every Episode there is, and leaves again when TMDB lists another
+  // "finished", and not every Episode either: a Show is here as soon as
+  // nothing dated is left of it, and leaves when TMDB dates another
   // — `docs/adr/0022-the-watched-list-holds-a-show-you-are-caught-up-with.md`
   watched: (kind) =>
     takesScore(kind)
       ? `No ${KIND_WORDS[kind].other} watched yet. Score a ${KIND_WORDS[kind].one} and it will appear here.`
-      : `No ${KIND_WORDS[kind].other} here yet. A ${KIND_WORDS[kind].one} will appear here once you have scored every episode there is.`,
+      : `No ${KIND_WORDS[kind].other} here yet. A ${KIND_WORDS[kind].one} will appear here once you have scored every episode that has a date.`,
 };
 
 /**
@@ -138,7 +138,8 @@ type ListTallies = {
  * tracking, placed and paged in memory, and the day it was placed against,
  * which its cards' dates are read against too. The Watched list's Movies are
  * the exception, since a Watched Movie is a Watch Record and Postgres pages
- * those; its Shows are the ones nothing is left of, which only TMDB can say.
+ * those; its Shows are the ones nothing dated is left of, which only TMDB
+ * can say.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 type ListContents = {
