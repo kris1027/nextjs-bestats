@@ -87,12 +87,14 @@ const EMPTY: Record<List, (kind: Kind) => string> = {
     `No ${KIND_WORDS[kind].other} to watch now. A Planned ${KIND_WORDS[kind].one} that is out will appear here.`,
   upcoming: (kind) =>
     `No ${KIND_WORDS[kind].other} to wait for. A Planned ${KIND_WORDS[kind].one} that is not out yet will appear here.`,
-  // a Show is never marked Watched, so its tab says what finishing one takes
-  // — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+  // a Show is never marked Watched, so its tab says what lands one here. Not
+  // "finished": a Show still running is here as soon as the Viewer has
+  // watched every Episode there is, and leaves again when TMDB lists another
+  // — `docs/adr/0022-the-watched-list-holds-a-show-you-are-caught-up-with.md`
   watched: (kind) =>
     takesScore(kind)
       ? `No ${KIND_WORDS[kind].other} watched yet. Score a ${KIND_WORDS[kind].one} and it will appear here.`
-      : `No ${KIND_WORDS[kind].other} finished yet. A ${KIND_WORDS[kind].one} that has ended will appear here once you have scored its last episode.`,
+      : `No ${KIND_WORDS[kind].other} here yet. A ${KIND_WORDS[kind].one} will appear here once you have scored every episode there is.`,
 };
 
 /**
@@ -136,7 +138,7 @@ type ListTallies = {
  * tracking, placed and paged in memory, and the day it was placed against,
  * which its cards' dates are read against too. The Watched list's Movies are
  * the exception, since a Watched Movie is a Watch Record and Postgres pages
- * those; its Shows are finished, which only TMDB can say.
+ * those; its Shows are the ones nothing is left of, which only TMDB can say.
  * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 type ListContents = {
@@ -403,8 +405,8 @@ const NO_DATE = 'No date yet';
  * everything there is out; on Upcoming every card says what it waits for and
  * when — **S3E1 · Mar 12**, **S3 · No date yet**, **Mar 12** for a Movie. A
  * card TMDB gave no answer to place by draws nothing, since its day is not
- * "no date" but unknown, and neither does a finished Show on Watched, which
- * has nothing next.
+ * "no date" but unknown, and neither does a Show on Watched, which has
+ * nothing next to name.
  */
 const leadOf = (
   list: PlacedList,
@@ -624,7 +626,7 @@ const ListPage = async ({
  * other lists. The tallies stream into the tabs and the cards into the grid,
  * each behind a boundary of its own. Both wait on TMDB, which is asked about
  * everything tracked, and each Show's seasons, before either can be counted —
- * on the Watched list too, whose Shows are the finished ones. Its Movies are
+ * on the Watched list too, whose Shows are the caught up ones. Its Movies are
  * the one tab the database counts and pages, with TMDB asked for their cards
  * a request apiece, so an address naming that tab draws its grid without
  * waiting for the Shows to be placed.
