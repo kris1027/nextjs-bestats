@@ -88,13 +88,15 @@ const EMPTY: Record<List, (kind: Kind) => string> = {
   upcoming: (kind) =>
     `No ${KIND_WORDS[kind].other} to wait for. A Planned ${KIND_WORDS[kind].one} that is not out yet will appear here.`,
   // a Show is never marked Watched, so its tab says what lands one here. Not
-  // "finished", and not every Episode either: a Show is here as soon as
-  // nothing dated is left of it, and leaves when TMDB dates another
+  // "finished", and not every Episode either: being caught up is read off the
+  // furthest Episode scored, so the ones before it need not be. An undated
+  // Episode cannot be scored, so the furthest always has a day and the
+  // sentence can name the latest that has one
   // — `docs/adr/0022-the-watched-list-holds-a-show-you-are-caught-up-with.md`
   watched: (kind) =>
     takesScore(kind)
       ? `No ${KIND_WORDS[kind].other} watched yet. Score a ${KIND_WORDS[kind].one} and it will appear here.`
-      : `No ${KIND_WORDS[kind].other} here yet. A ${KIND_WORDS[kind].one} will appear here once you have scored every episode that has a date.`,
+      : `No ${KIND_WORDS[kind].other} here yet. A ${KIND_WORDS[kind].one} will appear here once you have scored the latest episode that has a date.`,
 };
 
 /**
