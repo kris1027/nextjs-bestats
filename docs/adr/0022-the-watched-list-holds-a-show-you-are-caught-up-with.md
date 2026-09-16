@@ -60,6 +60,14 @@ TMDB has dated. Otherwise a Planned Show whose first Episode TMDB has
 announced without a day would arrive on Watched having been watched by
 nobody. A scored Special is not a run and does not start a Show either.
 
+Such a Show waits on Upcoming rather than falling off the lists, which is the
+one place the rule above is not the whole of it. Waiting is all a Viewer can
+do with something they have not started, as it is with an undated Movie, and a
+Planned Show that appeared on no list at all would be reachable from nowhere
+they keep — the cost this decision refused to pay when it refused to leave a
+caught-up Show off every list. Only a Show a Viewer is under way with leaves
+Upcoming for want of a day.
+
 `hasFinished` keeps the narrower rule — ended, and nothing listed after the
 furthest scored — and goes on being what `showProgress` reads. An Episode
 TMDB lists without a day is still an Episode left, so a Show with one is under

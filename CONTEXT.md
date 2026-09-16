@@ -184,14 +184,15 @@ none. What is Upcoming, Stopped or Caught up with is not on it.
 _Avoid_: Queue, saved, list, favourites
 
 **Upcoming**:
-What a Viewer is waiting for: Planned Movies not yet released, and Shows whose
-next Episode has a date that has not come. A Show a Viewer is Caught up with
-is waiting for nothing and is not Upcoming, ended or still running — and
-neither an Episode TMDB lists without a date nor a Season it announces with no
-Episodes in it yet is a date, so neither holds a Show here. A Movie TMDB has
-no release date for is Upcoming all the same: waiting is the whole of what a
-Viewer can do with a Movie they have not watched, where a Show they are part
-way through has somewhere else to be.
+What a Viewer is waiting for: Planned Movies not yet released, Shows whose
+next Episode has a date that has not come, and Shows they have watched no
+Episode of, whatever TMDB has dated of them. A Show a Viewer is Caught up with
+is waiting for nothing and is not Upcoming, ended or still running: neither an
+Episode TMDB lists without a date nor a Season it announces with no Episodes
+in it yet is a date. Waiting is the whole of what a Viewer can do with
+something they have not started, which is why a Movie with no release date is
+Upcoming and so is a Show whose first Episode TMDB has not dated. Only a Show
+they are part way through leaves this list for want of a date.
 _Avoid_: Coming soon, scheduled, calendar, future
 
 **Caught up**:
