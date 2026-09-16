@@ -460,16 +460,59 @@ const finalEpisode = (show: ShowEpisodes): { id: number } | undefined =>
     .at(-1);
 
 /**
- * Whether a Viewer is caught up with a Show: TMDB lists no Episode after the
- * furthest they have scored, and announces no season after it either. Not a
- * Show with an Episode left, dated or not, and not one with no Episodes at
- * all, which nobody can have watched.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ * TMDB's id for the furthest Episode of a Show's numbered runs the Viewer has
+ * scored, or `null` where they have scored none. Read off TMDB's Episodes
+ * rather than counted off the records, so a scored Special does not start a
+ * Show and neither does an id TMDB no longer lists. Furthest and not last
+ * scored, for `upNext`'s reason: a Viewer who joined at season three is not
+ * sent back to season one.
+ */
+const furthestScored = (show: ShowEpisodes, scored: ScoredIds): number | null =>
+  regularSeasons(show.seasons)
+    .flatMap((season) => season.episodes)
+    .reduce<number | null>(
+      (found, episode) => (scored.has(episode.id) ? episode.id : found),
+      null,
+    );
+
+/**
+ * Whether a Viewer is caught up with a Show: they have watched an Episode of
+ * it, and TMDB names no day for anything after the furthest they watched.
+ * What the lists read, and the whole of what they read — a Show is on Watched
+ * when nothing dated lies ahead of the Viewer, and on Upcoming when something
+ * does.
  *
- * An announced season counts against it: a season TMDB lists with no Episodes
- * in it is TMDB saying more is coming, which the Viewer has not watched.
+ * An Episode TMDB lists without an air date does not count against it, and
+ * neither does a season TMDB announces with no Episodes in it yet. Both say
+ * more is coming without saying when, which is nothing to watch and no day to
+ * be told; a Viewer waiting on one of those is waiting on nothing, which is
+ * what left such a Show undated at the foot of Upcoming.
+ * — `docs/adr/0022-the-watched-list-holds-a-show-you-are-caught-up-with.md`
  */
 export const caughtUp = (show: ShowEpisodes, scored: ScoredIds): boolean => {
+  // nothing watched is nothing to be caught up with, however little TMDB dated
+  if (furthestScored(show, scored) === null) return false;
+
+  const next = upNext(show.seasons, scored);
+
+  return !('episode' in next) || next.airDate === null;
+};
+
+/**
+ * Whether a Viewer has finished a Show: TMDB says it has ended and lists
+ * nothing after the furthest they have scored. Narrower than being caught up,
+ * which is what the lists read: an Episode TMDB lists without a day is still
+ * an Episode left, so a Show with one is under way on its own page however
+ * the lists place it, and goes on drawing Stop watching.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ *
+ * An announced season counts against it even on an ended Show, where the two
+ * contradict each other: wrongly calling a Show finished is a claim about the
+ * Viewer, and wrongly leaving its button on the page is only visible.
+ */
+export const hasFinished = (show: ShowEpisodes, scored: ScoredIds): boolean => {
+  if (!show.ended) return false;
+
   const next = upNext(show.seasons, scored);
 
   if ('episode' in next || next.season !== null) return false;
@@ -481,20 +524,13 @@ export const caughtUp = (show: ShowEpisodes, scored: ScoredIds): boolean => {
 };
 
 /**
- * Whether a Viewer has finished a Show: TMDB says it has ended, and they are
- * caught up with it. A Show still running is not finished however little is
- * left of it, and neither is one whose status the app does not recognise,
- * since wrongly calling a Show finished is a claim about the Viewer while
- * wrongly leaving one to wait is only visible.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
- */
-export const hasFinished = (show: ShowEpisodes, scored: ScoredIds): boolean =>
-  show.ended && caughtUp(show, scored);
-
-/**
- * When a Viewer caught up with a Show: the moment they scored the last
- * Episode TMDB lists, or `null` for a Show `caughtUp` says they have not.
+ * When a Viewer caught up with a Show: the moment they scored the furthest
+ * Episode they have, or `null` for a Show `caughtUp` says they have not.
  * What the Watched list places its Shows by, and orders them by.
+ *
+ * The furthest they scored and not the last TMDB lists, which are the same
+ * Episode only when nothing is left: a Viewer is caught up with a Show whose
+ * next Episode TMDB has not dated, and that Episode is the last one listed.
  * — `docs/adr/0022-the-watched-list-holds-a-show-you-are-caught-up-with.md`
  */
 export const caughtUpAt = (
@@ -503,9 +539,9 @@ export const caughtUpAt = (
 ): Date | null => {
   if (!caughtUp(show, scored)) return null;
 
-  const final = finalEpisode(show);
+  const furthest = furthestScored(show, scored);
 
-  return (final && scored.get(final.id)) ?? null;
+  return furthest === null ? null : (scored.get(furthest) ?? null);
 };
 
 /**

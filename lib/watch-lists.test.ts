@@ -113,15 +113,20 @@ test('a Show whose next Episode has not aired is Upcoming at its air day', () =>
   expect(found.day).toBe('2027-03-12');
 });
 
-test('a Show whose next Episode has no air day is Upcoming, undated', () => {
+test('a Show whose next Episode has no air day is on Watched, not waited for', () => {
   const found = placed(
     tracked('tv', 1, 1, [101]),
     show(season(1, ['2026-01-01']), season(2, [null])),
     TODAY,
   );
 
-  expect(listsOf(found)).toEqual(['upcoming']);
-  expect(found.day).toBe(null);
+  expect(listsOf(found)).toEqual(['watched']);
+  expect(found.caughtUpAt).toEqual(new Date(Date.UTC(2026, 8, 1)));
+  // the Episode is still what the card names, now on Watched
+  expect(found.upNext).toEqual({
+    episode: { season: 2, episode: 1 },
+    airDate: null,
+  });
 });
 
 test('a Planned Show that has not started airing is Upcoming', () => {
@@ -134,16 +139,35 @@ test('a Planned Show that has not started airing is Upcoming', () => {
   expect(listsOf(found)).toEqual(['upcoming']);
 });
 
-test('a Show with a season announced and no Episodes yet is Upcoming, undated', () => {
+test('a Show with a season announced and no Episodes yet is on Watched', () => {
   const found = placed(
     tracked('tv', 1, 1, [101]),
     show(season(1, ['2026-01-01']), season(2, [])),
     TODAY,
   );
 
-  expect(listsOf(found)).toEqual(['upcoming']);
-  expect(found.day).toBe(null);
+  expect(listsOf(found)).toEqual(['watched']);
+  expect(found.caughtUpAt).toEqual(new Date(Date.UTC(2026, 8, 1)));
+  // the season is still what the card names, now on Watched
   expect(found.upNext).toEqual({ season: 2 });
+});
+
+test('nothing undated is left on Upcoming for a Show the Viewer has started', () => {
+  // the one rule the lists read: a day ahead is Upcoming, no day is Watched
+  const started = tracked('tv', 1, 1, [101]);
+
+  for (const answer of [
+    show(season(1, ['2026-01-01']), season(2, [null])),
+    show(season(1, ['2026-01-01']), season(2, [])),
+    show(season(1, ['2026-01-01'])),
+    ended(season(1, ['2026-01-01'])),
+  ]) {
+    expect(listsOf(placed(started, answer, TODAY))).toEqual(['watched']);
+  }
+
+  const dated = show(season(1, ['2026-01-01']), season(2, ['2027-03-12']));
+
+  expect(listsOf(placed(started, dated, TODAY))).toEqual(['upcoming']);
 });
 
 test('a Show the Viewer is caught up with is on Watched alone, at that moment', () => {

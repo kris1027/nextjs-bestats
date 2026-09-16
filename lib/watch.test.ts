@@ -310,7 +310,7 @@ test('a running Show with nothing left is caught up, and still not finished', ()
   expect(hasFinished(show, scored)).toBe(false);
 });
 
-test('a dated Episode left leaves the Viewer not caught up', () => {
+test('an Episode left with a day on it leaves the Viewer not caught up', () => {
   const final = {
     number: 2,
     episodes: [{ id: 201, number: 1, airDate: '2027-03-12' }],
@@ -324,11 +324,64 @@ test('a dated Episode left leaves the Viewer not caught up', () => {
   ).toBe(null);
 });
 
-test('a season announced after the furthest leaves the Viewer not caught up', () => {
+test('a season announced with no Episodes leaves the Viewer caught up', () => {
+  const show = { ended: true, seasons: [season(1, 2), season(2, 0)] };
+  const scored = scoredOn({ 101: 1, 102: 2 });
+
+  // TMDB naming a season says more is coming without saying when, which is
+  // nothing to watch and no day to wait for
+  expect(caughtUpAt(show, scored)).toEqual(new Date(Date.UTC(2026, 8, 2)));
+  // and not finished, so the Show's page goes on drawing Stop watching
+  expect(hasFinished(show, scored)).toBe(false);
+});
+
+test('an Episode TMDB lists without a day leaves the Viewer caught up', () => {
+  const undated = {
+    number: 2,
+    episodes: [{ id: 201, number: 1, airDate: null }],
+  };
+  const show = { ended: false, seasons: [season(1, 2), undated] };
+
+  expect(caughtUpAt(show, scoredOn({ 101: 1, 102: 2 }))).toEqual(
+    new Date(Date.UTC(2026, 8, 2)),
+  );
+});
+
+test('a Viewer caught up is at the furthest they scored, not the last listed', () => {
+  // S2E1 is listed and undated, so the furthest scored is S1E2 and not it
+  const undated = {
+    number: 2,
+    episodes: [{ id: 201, number: 1, airDate: null }],
+  };
+
   expect(
     caughtUpAt(
-      { ended: true, seasons: [season(1, 2), season(2, 0)] },
-      scoredOn({ 101: 1, 102: 2 }),
+      { ended: false, seasons: [season(1, 2), undated] },
+      scoredOn({ 101: 1, 102: 7 }),
+    ),
+  ).toEqual(new Date(Date.UTC(2026, 8, 7)));
+});
+
+test('a Show nothing is scored of is never caught up, however little TMDB dated', () => {
+  const undated = {
+    number: 1,
+    episodes: [{ id: 101, number: 1, airDate: null }],
+  };
+
+  expect(caughtUpAt({ ended: false, seasons: [undated] }, new Map())).toBe(
+    null,
+  );
+  expect(caughtUpAt({ ended: false, seasons: [season(1, 0)] }, new Map())).toBe(
+    null,
+  );
+});
+
+test('a scored Special alone does not make a Viewer caught up with a Show', () => {
+  // season 0 belongs to no run, so S1E1 is still ahead of them
+  expect(
+    caughtUpAt(
+      { ended: false, seasons: [season(1, 2), season(0, 2)] },
+      scoredOn({ 1: 4 }),
     ),
   ).toBe(null);
 });
