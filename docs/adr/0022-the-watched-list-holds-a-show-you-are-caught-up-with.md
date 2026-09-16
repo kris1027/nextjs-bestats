@@ -1,17 +1,20 @@
 # The Watched list holds a Show you are caught up with
 
-A Viewer is caught up with a Show when TMDB lists no Episode after the
-furthest one they have scored and announces no season after it either. That,
-and not whether TMDB says the Show has ended, is what puts a Show on the
+A Viewer is caught up with a Show when they have watched an Episode of it and
+TMDB names no day for anything after the furthest they watched. Being caught
+up, and not whether TMDB says the Show has ended, is what puts a Show on the
 Watched list.
+
+So the lists read one thing about a Show: a day ahead of the Viewer is
+Upcoming, or the Watchlist once that day has passed, and no day ahead is
+Watched. An Episode TMDB lists without an air date names no day, and neither
+does a season TMDB announces with no Episodes in it yet. Both say more is
+coming without saying when, which is nothing to watch and nothing to wait
+until.
 
 This narrows `docs/adr/0018-a-show-is-followed-through-its-episodes.md`, which
 put a Show on Watched only once TMDB called it `Ended` or `Canceled` and left
 everything else with nothing to watch on Upcoming.
-
-A season TMDB lists with no Episodes in it keeps a Show on Upcoming, and so
-does a next Episode TMDB lists without an air date. Both are something the
-Viewer has not watched; neither is a day they can be told.
 
 ## Considered
 
@@ -19,17 +22,21 @@ Leaving it as 0018 had it. 0018 reasoned that wrongly calling a Show finished
 is a claim about the Viewer while wrongly leaving one to wait is only visible,
 so anything the app was not sure had ended waited. The claim it refused is
 still one nobody may make, and it is not the one this makes: a Show on Watched
-says the Viewer has watched every Episode there is, which is what their
-Episode records say and nothing more. What 0018 undercounted is the cost of
-waiting. A Show between seasons has nothing to wait for and no day to wait
+says the Viewer has watched everything of it that has a date, which is what
+their Episode records say and nothing more. What 0018 undercounted is the cost
+of waiting. A Show between seasons has nothing to wait for and no day to wait
 until, so it sat undated at the foot of Upcoming — below every Movie with a
 real release day, for however long the gap ran — on a list whose whole word is
 what a Viewer is waiting for.
 
-Moving an announced season's Show to Watched too, which is the same rule read
-one step further. TMDB naming a season is TMDB saying more is coming, and the
-card already says so — `Next season · S5 · No date yet`. A card on Watched
-draws no lead, so the announcement would leave the lists altogether.
+Dropping only the `ended` check, and keeping a Show on Upcoming where TMDB had
+announced a season or listed an undated Episode. The argument was that an
+announcement is something to wait for, and that the card already said so.
+It was built that way first and was wrong in use: the two shapes are how TMDB
+usually spells a gap between seasons, so the Shows this decision is about went
+on landing undated at the foot of Upcoming, reached by a different route. A
+rule with three clauses also has room for a fourth shape nobody has met yet,
+where "is there a day ahead" has none.
 
 Leaving a caught-up Show off every list. It answers the complaint about
 Upcoming without touching what Watched means, and costs the Viewer the Show:
@@ -39,26 +46,33 @@ it would be reachable from nowhere they keep until TMDB aired something.
 
 A Show leaves Watched. Once TMDB dates the next Episode the Show moves to the
 Watchlist or to Upcoming with nobody touching it, which is what a derived list
-does and what 0018 already accepted for a cancelled Show picked up again. It
-is between-seasons Shows that move; a Show part-way through an airing season
-stays put, since TMDB lists the rest of its Episodes with days on them.
+does and what 0018 already accepted for a cancelled Show picked up again.
 
-`hasFinished` keeps the `ended` check and `caughtUp` is the half without it.
-The lists read `caughtUpAt`; `showProgress` goes on reading `hasFinished`, so
-a Show still running is under way however little is left of it and its page
-goes on offering Stop watching. Were it finished there, `showPress` would pick
-nothing, and a Viewer caught up with a running Show would have no way to give
-it up before the next season pulled it back onto the Watchlist.
+`caughtUpAt` is the moment the Viewer scored the furthest Episode they have,
+not the last Episode TMDB lists. The two are the same Episode only when
+nothing is left at all, which is no longer what being caught up means.
+Watched → Shows is ordered by it, where it was ordered by when they finished;
+for a Show that has ended the two are the same moment, so nothing already on
+the list moves.
 
-Watched → Shows is ordered by `caughtUpAt` — when the Viewer scored the last
-Episode TMDB lists — where it was ordered by when they finished. For a Show
-that has ended the two are the same moment, so nothing already on the list
-moves.
+Scoring no Episode of a Show is not being caught up with it, however little
+TMDB has dated. Otherwise a Planned Show whose first Episode TMDB has
+announced without a day would arrive on Watched having been watched by
+nobody. A scored Special is not a run and does not start a Show either.
 
-The tab now holds two things its cards cannot tell apart: a Show that is over,
-and a Show between seasons. Both are true readings of having watched every
-Episode there is, and the Show's own page still says which, since
-`showProgress` knows. A lead saying which on the card would need `PlacedMedia`
-to carry whether TMDB said the Show ended, and a fresh answer for the Watched
-skeleton's height at the 320px floor — worth paying when the tab is confusing,
-not before.
+`hasFinished` keeps the narrower rule — ended, and nothing listed after the
+furthest scored — and goes on being what `showProgress` reads. An Episode
+TMDB lists without a day is still an Episode left, so a Show with one is under
+way on its own page however the lists place it, and goes on drawing Stop
+watching. Were it finished there, `showPress` would pick nothing and a Viewer
+caught up with a running Show would have no way to give it up before the next
+season pulled it back onto the Watchlist.
+
+A card on Watched draws the line Upcoming drew — **S4E1 · No date yet**, **S5
+· No date yet** — so what TMDB has announced is still somewhere on the lists.
+A Show with nothing ahead of the Viewer at all draws no line, which is what
+tells the tab's two kinds of Show apart: one that is over, and one between
+seasons. The grid's skeleton stands short there all the same, as it does on
+the Watchlist and for the reason written beside it — the fallback is drawn
+before the address is read, only some of the tab's Shows draw a line, and none
+of its Movies do.

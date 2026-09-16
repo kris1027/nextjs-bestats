@@ -73,11 +73,12 @@ page 404s and its card is the only place left to act.
 ## Reach
 
 Watched → Shows no longer holds the Shows a Viewer has finished but the ones
-they are caught up with, which is the rule above without its `ended` check —
+they are caught up with: the ones TMDB names no day for after the furthest
+Episode they watched —
 `docs/adr/0022-the-watched-list-holds-a-show-you-are-caught-up-with.md`. A
 Show between seasons is on Watched rather than undated at the foot of
-Upcoming, and leaves again when TMDB names its next Episode. Everything above
-about finishing still holds where finishing is still read: `hasFinished` keeps
-the `ended` check, and a Show still running is under way on its own page
-however little is left of it, so that page goes on drawing Stop watching. What
-changed is which of the two the lists ask.
+Upcoming, and leaves again the moment TMDB dates its next Episode. Everything
+above about finishing still holds where finishing is still read: `hasFinished`
+keeps this rule and its `ended` check, and a Show still running is under way
+on its own page however little is left of it, so that page goes on drawing
+Stop watching. What changed is that the lists stopped asking it.
