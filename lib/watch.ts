@@ -460,19 +460,16 @@ const finalEpisode = (show: ShowEpisodes): { id: number } | undefined =>
     .at(-1);
 
 /**
- * Whether a Viewer has finished a Show: TMDB says it has ended and lists
- * nothing after the furthest they have scored. Not a Show still running, one
- * with an Episode left, dated or not, or one with a season announced after
- * it — and not an ended Show with no Episodes, which nobody can have watched.
+ * Whether a Viewer is caught up with a Show: TMDB lists no Episode after the
+ * furthest they have scored, and announces no season after it either. Not a
+ * Show with an Episode left, dated or not, and not one with no Episodes at
+ * all, which nobody can have watched.
  * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  *
- * An announced season counts against it even on an ended Show, where the two
- * contradict each other: wrongly calling a Show finished is a claim about the
- * Viewer, and wrongly holding it in Upcoming is only visible.
+ * An announced season counts against it: a season TMDB lists with no Episodes
+ * in it is TMDB saying more is coming, which the Viewer has not watched.
  */
-export const hasFinished = (show: ShowEpisodes, scored: ScoredIds): boolean => {
-  if (!show.ended) return false;
-
+export const caughtUp = (show: ShowEpisodes, scored: ScoredIds): boolean => {
   const next = upNext(show.seasons, scored);
 
   if ('episode' in next || next.season !== null) return false;
@@ -482,6 +479,17 @@ export const hasFinished = (show: ShowEpisodes, scored: ScoredIds): boolean => {
 
   return final !== undefined && scored.has(final.id);
 };
+
+/**
+ * Whether a Viewer has finished a Show: TMDB says it has ended, and they are
+ * caught up with it. A Show still running is not finished however little is
+ * left of it, and neither is one whose status the app does not recognise,
+ * since wrongly calling a Show finished is a claim about the Viewer while
+ * wrongly leaving one to wait is only visible.
+ * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
+ */
+export const hasFinished = (show: ShowEpisodes, scored: ScoredIds): boolean =>
+  show.ended && caughtUp(show, scored);
 
 /**
  * When a Viewer finished a Show: the moment they scored its final Episode, or
