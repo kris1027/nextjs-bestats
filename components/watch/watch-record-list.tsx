@@ -403,18 +403,24 @@ const NO_DATE = 'No date yet';
  * The line a card on a placed list draws under its title bar. On the
  * Watchlist a Show names its next Episode and a Movie draws nothing, since
  * everything there is out; on Upcoming every card says what it waits for and
- * when — **S3E1 · Mar 12**, **S3 · No date yet**, **Mar 12** for a Movie. A
- * card TMDB gave no answer to place by draws nothing, since its day is not
- * "no date" but unknown, and neither does a Show on Watched, which has
- * nothing next to name.
+ * when — **S3E1 · Mar 12**, **S3 · No date yet**, **Mar 12** for a Movie.
+ *
+ * On Watched a Show says what TMDB has announced and not dated — **S4E1 · No
+ * date yet**, **S5 · No date yet** — and a Show with nothing ahead of the
+ * Viewer at all says nothing, which is what tells the two apart: a Show that
+ * is over draws no line, and one between seasons draws the announcement that
+ * would otherwise be nowhere on the lists. A Movie there draws nothing
+ * either, since the tab it is on is paged from records and asks for no lead.
+ * — `docs/adr/0022-the-watched-list-holds-a-show-you-are-caught-up-with.md`
+ *
+ * A card TMDB gave no answer to place by draws nothing, since its day is not
+ * "no date" but unknown.
  */
 const leadOf = (
   list: PlacedList,
   { tracked, placedBy, upNext, day }: PlacedMedia,
   today: Date,
 ): CardLead | null => {
-  if (list === 'watched') return null;
-
   // unbroken, so a line too long for a 136px card at the 320px floor —
   // "S12E10 · Sep 17, 2027" — wraps at the dot rather than inside the date
   const date = ((day && formatShortDate(day, today)) ?? NO_DATE).replaceAll(
@@ -436,20 +442,27 @@ const leadOf = (
 
     return {
       label: 'Next episode',
-      text: list === 'upcoming' ? `${code} · ${date}` : code,
+      // the Watchlist's Episode is out, so its day is the one thing left off
+      text: list === 'watchlist' ? code : `${code} · ${date}`,
       // TMDB lists this Episode, so its page is there to lead to
       episode,
     };
   }
 
-  // caught up: nothing is listed to lead to, so the card leads to the Show
-  return upNext.season === null
-    ? { label: 'Next episode', text: NO_DATE, episode: null }
-    : {
-        label: 'Next season',
-        text: `S${upNext.season} · ${NO_DATE}`,
-        episode: null,
-      };
+  // nothing is listed to lead to, so what is left leads to the Show itself
+  if (upNext.season !== null) {
+    return {
+      label: 'Next season',
+      text: `S${upNext.season} · ${NO_DATE}`,
+      episode: null,
+    };
+  }
+
+  // and nothing at all is announced: on Watched that is a Show that is over,
+  // which says nothing, and elsewhere a Show TMDB lists no Episodes for yet
+  return list === 'watched'
+    ? null
+    : { label: 'Next episode', text: NO_DATE, episode: null };
 };
 
 /**
