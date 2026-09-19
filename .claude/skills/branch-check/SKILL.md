@@ -30,8 +30,6 @@ file the triggers below point at.
 - A test written in a new place or shape, or a test dependency added → Tests
 - A new module under `lib/`, or a new import path between layers → Module
   boundary
-- A new file in `docs/adr/` → its rule belongs in Standing rules, one line,
-  linked to the ADR
 - `biome.json` or `tsconfig.json` gaining a rule that AGENTS.md states in prose
   → delete the prose; the config now owns it
 - A hand-written convention the diff establishes that a reader would otherwise
@@ -57,8 +55,8 @@ touching the file. Do not edit it unattended.
 - Never restate what `biome.json` or `tsconfig.json` enforce.
 - Never add architecture overviews, route maps, directory layouts or dependency
   lists. They rot, and Claude can read the tree.
-- Do not draft ADRs. If a branch made a decision that looks worth recording,
-  say so in one sentence and leave the writing to the user.
+- Never propose ADRs or a `docs/` folder. A decision worth keeping is one
+  line in Standing rules.
 - Keep the rules under 350 lines; `## Language` does not count towards it. A
   new domain word is a new word and is never refused for length, but a rule
   added and never removed is how the rest grows. If a proposed addition pushes

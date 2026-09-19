@@ -349,6 +349,8 @@ page does, since resolving Watch Records against TMDB is a page's job and not
 
 ## Standing rules
 
+- There is no `docs/` folder and there are no ADRs. A decision worth keeping
+  is one bullet here, and its why is a comment beside the code it governs.
 - Every top-level route must be a static segment. `app/[slug]/page.tsx` would
   collide with `app/[kind]/`.
 - Never drop the `first_air_date` guard in `toShowDetails`, and never replace it
