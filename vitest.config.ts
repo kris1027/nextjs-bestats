@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { config } from 'dotenv';
 import { defineConfig } from 'vitest/config';
 
@@ -12,8 +13,16 @@ config({ path: '.env.local', quiet: true });
  * — `docs/adr/0008-vitest-replaces-the-node-test-runner.md`
  */
 export default defineConfig({
-  // `@/` resolves in tests the way it resolves everywhere else
-  resolve: { tsconfigPaths: true },
+  resolve: {
+    // `@/` resolves in tests the way it resolves everywhere else
+    tsconfigPaths: true,
+    // `server-only` throws outside `react-server`, and Vitest runs outside it
+    alias: {
+      'server-only': fileURLToPath(
+        new URL('./lib/test-server-only.ts', import.meta.url),
+      ),
+    },
+  },
   test: {
     projects: [
       {
