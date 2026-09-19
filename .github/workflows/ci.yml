@@ -33,7 +33,6 @@ jobs:
 
   # A Neon branch of its own, so the suite is free to insert rows and cascade
   # deletes, and so it never points at production.
-  # — docs/adr/0009-every-environment-is-a-neon-branch.md
   integration:
     name: Integration
     runs-on: ubuntu-latest

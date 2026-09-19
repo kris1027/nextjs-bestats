@@ -123,7 +123,6 @@ export type MarkResult = { marking: Marking | null } | { error: string };
  *
  * The Viewer's id comes from the session and from nowhere else. The form does
  * not carry one, and this action would not read it if it did.
- * — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
  */
 export const mark = async (formData: FormData): Promise<MarkResult> => {
   const asked = await pressingViewer(formData);
@@ -142,7 +141,6 @@ export const mark = async (formData: FormData): Promise<MarkResult> => {
   if (!pressed) throw new Error(`Not a marking: ${field}`);
   // a Show's page draws no stars and a Movie's no way to stop it, so neither
   // form can post what the other Kind's record holds
-  // — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
   if (!recordHolds(kind, pressed)) {
     const noun = capitalize(KIND_WORDS[kind].one);
 
@@ -163,7 +161,6 @@ export const mark = async (formData: FormData): Promise<MarkResult> => {
 
     // Planned lasts until the first Episode, so a page drawn before one was
     // scored cannot put it back
-    // — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
     if (marking?.state === 'planned' && ref.kind === 'tv') {
       if (!(await writePlannedShow(currentViewer.id, ref.id))) {
         return { error: 'You are already watching this show.' };
@@ -210,7 +207,6 @@ export type ScoreResult =
  * Scores an Episode for the Viewer this request belongs to, which is how they
  * record watching it — or unscores it, when the Score pressed is the one it
  * already holds.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  *
  * The form names the Episode by its position, the way its page's address
  * does, and not by the id its record is keyed on: TMDB is asked for the
@@ -298,7 +294,6 @@ export const scoreEpisodeFromForm = async (
  * Unscores an Episode TMDB no longer lists, which a Show's page draws among
  * its Gone Episodes. `scoreEpisode` cannot: it finds an Episode by its
  * position, and a Gone Episode has none left.
- * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
  *
  * So the form names the Episode by the id its record is keyed on, and the
  * Show it is under, and TMDB is not asked. It only ever unscores. A Score is

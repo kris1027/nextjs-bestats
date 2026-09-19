@@ -23,7 +23,6 @@ type CardLead = { label: string; text: string; episode: EpisodeRef | null };
  * way to say it: marking is the detail page's alone, and this card is the
  * link there. `AbsentCard` is the one exception, because Gone Media has no
  * detail page to send anyone to.
- * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
  *
  * `lookup` is the page's one query for every card on it, and the card reads
  * its own Score out of it. `markings` is `null` for Unanswered — the database
@@ -41,7 +40,6 @@ type CardLead = { label: string; text: string; episode: EpisodeRef | null };
  * Episode TMDB lists, the card links to that Episode's page rather than the
  * Show's, so watching a run is score, next, score. The badge is the Show's all
  * the same.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 const MediaCard = ({
   item,

@@ -14,7 +14,6 @@ import { mark, scoreEpisode, unscoreEpisode } from '@/lib/watch-actions';
  * that mattered: the Visitor gets a sentence rather than a stack trace, and
  * the cause reaches the server log, which is where the answer turned out to
  * be.
- * — `docs/adr/0009-every-environment-is-a-neon-branch.md`
  *
  * A unit test because mocking the queries is also what keeps `lib/db` — whose
  * import throws without `DATABASE_URL` — out of the module graph, so this

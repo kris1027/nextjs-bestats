@@ -5,7 +5,6 @@
  * from a real Neon branch. Pure here so the interesting half — which of four
  * disagreements a database is in — is a unit test rather than a fixture
  * database.
- * — `docs/adr/0009-every-environment-is-a-neon-branch.md`
  */
 
 /** One migration as the build ships it: `drizzle/meta/_journal.json` and the
@@ -144,6 +143,22 @@ export const hasDrift = (drift: MigrationDrift): boolean =>
   drift.missing.length > 0 ||
   drift.unreachable.length > 0 ||
   drift.edited.length > 0;
+
+/** Whether `db:migrate` is the whole fix: migrations are missing and nothing
+ * else is wrong. A database never migrated is left out, since that usually
+ * means `DATABASE_URL` names the wrong one, and so is one ahead of the build:
+ * this checkout has diverged from what ran there, and `db:migrate` would add
+ * to that database without reconciling it. */
+export const onlyMissing = (drift: MigrationDrift): boolean =>
+  drift.migrated &&
+  drift.missing.length > 0 &&
+  drift.unreachable.length === 0 &&
+  drift.edited.length === 0 &&
+  drift.ahead.length === 0;
+
+/** `db:check`'s exit code when `onlyMissing` holds, so `pnpm bootstrap` can
+ * tell "run db:migrate" apart from every other failure, which exits 1. */
+export const PENDING_EXIT_CODE = 3;
 
 const list = (migrations: readonly ShippedMigration[]): string =>
   migrations.map((migration) => `  ${migration.tag}`).join('\n');

@@ -62,7 +62,6 @@ const Tally = ({ tally }: { tally: number | null }): JSX.Element =>
  * `whitespace-nowrap` is one such difference, carried across late: without
  * it a tab whose word and count outgrow the row wrapped inside a fixed
  * `h-10` and was cut off rather than pushing anything.
- * — `docs/adr/0004-search-is-two-searches.md`
  *
  * The padding narrows below `sm:` because these two tabs wear counts, and a
  * count is as wide as the number in it. The widest row either caller draws is

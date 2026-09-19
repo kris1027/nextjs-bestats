@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 // `watched` is a static segment, so the standing rule about top-level
-// routes holds — docs/adr/0001-one-route-serves-both-kinds.md
+// routes holds.
 const WatchedPage = ({
   searchParams,
 }: {

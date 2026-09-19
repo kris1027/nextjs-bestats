@@ -110,7 +110,6 @@ const Control = async ({
  * A Show's control, which needs how far the Viewer has got as well as its
  * record: the one button it draws is Planned before they have scored an
  * Episode, Stop watching after, and nothing once they have finished it.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  *
  * TMDB is asked only for a Show under way, since only finishing needs it;
  * this path is the one the lists place the Show by, so it is their cache.
@@ -179,7 +178,6 @@ const Seasons = async ({ id }: { id: number }): Promise<JSX.Element | null> => {
  * nothing — and for an answer Unanswered on either side: a season TMDB did
  * not answer for is not a season without Episodes, and reading it as one
  * would list every record in it as Gone.
- * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
  */
 const GoneEpisodes = async ({
   id,

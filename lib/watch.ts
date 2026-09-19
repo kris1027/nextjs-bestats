@@ -20,7 +20,6 @@ import type {
  * beside it, and the Postgres enum in `lib/schema.ts` satisfies it, so the
  * domain and the database cannot drift. Watched is a Movie's alone and
  * Stopped a Show's alone, which the check constraints on `watch_records` say.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const WATCH_STATES = ['planned', 'watched', 'stopped'] as const;
 
@@ -47,7 +46,6 @@ export const isScore = (value: number): value is Score =>
  * passed alongside each other, because the two are only ever right together —
  * the pairs this union cannot spell are exactly the pairs the check constraint
  * on `watch_records` refuses.
- * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
  */
 export type Marking =
   | { state: 'planned' }
@@ -61,7 +59,6 @@ export type WatchedMarking = Extract<Marking, { state: 'watched' }>;
  * What an Episode's Watch Record says, which is only ever Watched at a Score:
  * an Episode is never Planned, so the marking an Episode can hold is the half
  * of `Marking` that carries one. `marked` needs nothing else to run on it.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export type EpisodeMarking = WatchedMarking;
 
@@ -70,7 +67,6 @@ export type EpisodeMarking = WatchedMarking;
  * and a Show's never is, since a Show is followed through its Episodes. The
  * action's refusal and the Watched list's paging ask this, and the check
  * constraint on `watch_records` says it too.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const takesScore = (kind: Kind): boolean => kind === 'movie';
 
@@ -80,7 +76,6 @@ export const takesScore = (kind: Kind): boolean => kind === 'movie';
  * does not, since only a Show is followed through Episodes it can give up on.
  * The action refuses a press this fails, and the check constraints on
  * `watch_records` refuse the row besides.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const recordHolds = (kind: Kind, marking: Marking): boolean => {
   if (marking.state === 'watched') return takesScore(kind);
@@ -128,7 +123,6 @@ export const toMarking = ({ state, score }: MarkingColumns): Marking => {
  * row as anything outside the queries needs. The Viewer is not on it: a
  * record is always read for one Viewer, so carrying the id would only invite
  * a page to compare it against something.
- * — `docs/adr/0007-watchlist-and-watched-are-one-record.md`
  */
 export type WatchRecord = MarkedMedia & {
   /** The moment of the last marking, which is what the lists order by. */
@@ -228,7 +222,6 @@ export const markingFrom = (value: string): Marking | null => {
  * A Viewer's lists, in the order the header draws them. Not keyed on
  * `WatchState`: a list is placed from what TMDB says as well as from what a
  * record says, so a Planned record can be on one list or another.
- * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 export const LIST_NAMES = ['watchlist', 'upcoming', 'watched'] as const;
 
@@ -247,8 +240,8 @@ export const LISTS: Record<List, { path: string; label: string }> = {
 };
 
 /**
- * The key a page's lookup is built on: `tv/1399`, the spelling of the URL and
- * of the ADRs. Written once here because a TMDB id is unique only within a
+ * The key a page's lookup is built on: `tv/1399`, the spelling of the URL.
+ * Written once here because a TMDB id is unique only within a
  * Kind, and a lookup keyed on the id alone would let a Show answer for a
  * Movie. Takes a `MediaRef`, which a Media Item already is.
  */
@@ -282,7 +275,6 @@ export type EpisodeLookup = ReadonlyMap<number, EpisodeMarking>;
  * An Episode as its Watch Record names it: TMDB's id for the Episode, which
  * the record is keyed on, and the Show it belongs to, which is the app's own
  * relationship and what finds a Show's records without TMDB.
- * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
  */
 export type RecordedEpisode = { showId: number; episodeId: number };
 
@@ -341,7 +333,6 @@ export const markingOf = (lookup: WatchLookup, ref: MediaRef): Marking | null =>
  * costs. Twenty is the page size TMDB uses everywhere else in the app. It no
  * longer bounds what a list reads: the Watchlist reads everything tracked and
  * pages it in memory, which `TRACKED_CEILING` bounds instead.
- * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 export const PAGE_SIZE = 20;
 
@@ -368,7 +359,6 @@ export const MARKS_PER_MINUTE = 60;
  * One page of one Kind of a Viewer's list, and how many that Kind holds in
  * all. The total is the open tab's and not the whole list's: a page is one
  * Kind's, and so is the page count read off it.
- * — `docs/adr/0015-the-lists-tabs-are-the-kind.md`
  */
 export type WatchRecordsPage = {
   records: WatchRecord[];
@@ -422,7 +412,6 @@ export type ScoredIds = ReadonlyMap<number, unknown>;
  * ask it to leave Specials out and a Show's page asks for them last; they are
  * passed over here either way, so the rule is this function's and holds
  * whatever hands it the seasons.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const upNext = (
   seasons: readonly SeasonEpisodes[],
@@ -507,7 +496,6 @@ const furthestScored = (
  * more is coming without saying when, which is nothing to watch and no day to
  * be told; a Viewer waiting on one of those is waiting on nothing, which is
  * what left such a Show undated at the foot of Upcoming.
- * — `docs/adr/0022-the-watched-list-holds-a-show-you-are-caught-up-with.md`
  */
 export const caughtUp = (show: ShowEpisodes, scored: ScoredIds): boolean => {
   const episodes = listedEpisodes(show);
@@ -530,7 +518,6 @@ export const caughtUp = (show: ShowEpisodes, scored: ScoredIds): boolean => {
  * which is what the lists read: an Episode TMDB lists without a day is still
  * an Episode left, so a Show with one is under way on its own page however
  * the lists place it, and goes on drawing Stop watching.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  *
  * An announced season counts against it even on an ended Show, where the two
  * contradict each other: wrongly calling a Show finished is a claim about the
@@ -557,7 +544,6 @@ export const hasFinished = (show: ShowEpisodes, scored: ScoredIds): boolean => {
  * The furthest they scored and not the last TMDB lists, which are the same
  * Episode only when nothing is left: a Viewer is caught up with a Show whose
  * next Episode TMDB has not dated, and that Episode is the last one listed.
- * — `docs/adr/0022-the-watched-list-holds-a-show-you-are-caught-up-with.md`
  */
 export const caughtUpAt = (
   show: ShowEpisodes,
@@ -599,7 +585,6 @@ export const showProgress = (
  * Planned and a Show under way draws Stop watching. A finished Show has
  * nothing to plan or give up on, and a Show whose progress went Unanswered
  * draws nothing rather than guess it is not finished.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  *
  * Read off what the control shows, so a press that lands flips the button
  * it pressed and never swaps it for another: pressing Stop watching lights
@@ -620,7 +605,6 @@ export const showPress = (
  * A Viewer's record for an Episode TMDB no longer lists: the id it is keyed
  * on and the Score it holds, which is all that is left to draw, since a
  * record stores nothing from TMDB.
- * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
  */
 export type GoneEpisode = { episodeId: number; marking: EpisodeMarking };
 
@@ -660,7 +644,6 @@ export const goneEpisodes = (
  * with when each was last scored, since a Show's are what `upNext` reads and
  * the one that finished it says when the Show was finished; a Movie's or a
  * Planned Show's are none.
- * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 export type TrackedMedia = {
   ref: MediaRef;
@@ -670,7 +653,6 @@ export type TrackedMedia = {
    * Whether this is a Stopped Show, which is tracked by no list and comes
    * along only because TMDB may call it Gone: then its card is the one place
    * left to take the record back, so it is drawn as Gone Media is.
-   * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
    */
   stopped: boolean;
 };
@@ -680,6 +662,5 @@ export type TrackedMedia = {
  * any page of the list can be drawn, so this is where that cost stops: the
  * latest marked are kept, and the rest are on no page and in no tally, which
  * the list says rather than leaving them to vanish.
- * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 export const TRACKED_CEILING = 200;

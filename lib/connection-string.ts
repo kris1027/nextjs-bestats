@@ -5,7 +5,6 @@
  * password is a plausible thing to print by accident. The driver does exactly
  * that: handed something unparseable, `neon()` throws with the whole string in
  * the message.
- * — `docs/adr/0009-every-environment-is-a-neon-branch.md`
  */
 
 /** The host a connection string names, or `null` when it is not a URL at all.

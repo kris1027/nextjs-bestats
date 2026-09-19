@@ -5,6 +5,7 @@ import {
   driftReport,
   hasDrift,
   migrationDrift,
+  onlyMissing,
   type ShippedMigration,
   toApplied,
 } from '@/lib/migration-drift';
@@ -137,4 +138,29 @@ test('toApplied widens the bigint every driver hands back as a string', () => {
   expect(toApplied([{ hash: 'h', created_at: '1788706576205' }])).toEqual([
     { hash: 'h', createdAt: 1788706576205 },
   ]);
+});
+
+test('only missing migrations are db:migrate’s whole fix', () => {
+  const missing = migrationDrift([ZERO, ONE, TWO], [ZERO].map(applied));
+  const rewritten = shipped(ZERO.tag, ZERO.when, 'hash-after-the-edit');
+  const editedToo = migrationDrift([rewritten, ONE, TWO], [ZERO].map(applied));
+  const unreachableToo = migrationDrift(
+    [ZERO, ONE, TWO],
+    [ZERO, TWO].map(applied),
+  );
+  // THREE ran here and this checkout does not ship it, while 0002_later is
+  // timestamped above everything that ran — so missing, not unreachable
+  const aheadToo = migrationDrift(
+    [ZERO, ONE, shipped('0002_later', 5000)],
+    [ZERO, ONE, THREE].map(applied),
+  );
+
+  expect(onlyMissing(missing)).toBe(true);
+  expect(onlyMissing(editedToo)).toBe(false);
+  expect(onlyMissing(unreachableToo)).toBe(false);
+  expect(aheadToo.missing).toHaveLength(1);
+  expect(aheadToo.ahead).toHaveLength(1);
+  expect(onlyMissing(aheadToo)).toBe(false);
+  expect(onlyMissing(migrationDrift([ZERO], null))).toBe(false);
+  expect(onlyMissing(migrationDrift([ZERO], [ZERO].map(applied)))).toBe(false);
 });

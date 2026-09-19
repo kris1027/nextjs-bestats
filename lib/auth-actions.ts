@@ -11,13 +11,11 @@ import { nextPath, signedInAddress } from '@/lib/next-path';
  * completing a sign-in means exchanging the verifier the provider returns
  * with, and `proxy.ts` is the only thing that can make that exchange — so
  * the provider has to return to the one route the proxy is watching.
- * — `docs/adr/0011-a-sign-in-completes-at-one-route.md`
  *
  * Neon Auth builds the authorize URL server-side, so no client instance is
  * needed for this and none exists. Localhost is a trusted origin already, so
  * there is no proxying to arrange for development; a preview deployment needs
  * its URL added to the branch's trusted domains by hand.
- * — `docs/adr/0009-every-environment-is-a-neon-branch.md`
  */
 export const signIn = async (formData: FormData): Promise<void> => {
   const callbackURL = signedInAddress(

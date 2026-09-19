@@ -11,7 +11,6 @@ import { address } from '@/lib/next-path';
  * `useSearchParams` needs a Suspense boundary above it, now that every route
  * prerenders a shell. The boundary each page draws around its own
  * request-time reads is the one that supplies it.
- * — `docs/adr/0010-the-shell-is-prerendered.md`
  */
 export const useAddress = (): string =>
   address(usePathname(), useSearchParams().toString());

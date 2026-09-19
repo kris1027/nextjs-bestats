@@ -13,7 +13,6 @@ import type { EpisodeMarking } from '@/lib/watch';
  * An Episode's control: the ten stars and nothing else, since an Episode is
  * Watched at a Score or has no Watch Record at all, and there is no Planned
  * to press. Giving one is how a Viewer records watching it.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  *
  * Drawn only for an Episode that has aired; the action refuses the rest
  * anyway, so the page leaving the stars out is a courtesy and not the guard.

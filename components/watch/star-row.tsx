@@ -17,7 +17,6 @@ import {
 /**
  * The ten stars that are the only way to give a Score. Pressing the Score the
  * record already holds unmarks it; pressing a different one rescores it.
- * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
  *
  * Only a detail page draws it, because that is the only place ten stars are
  * still ten targets: the slot there is `max-w-xs`, so 320px everywhere but

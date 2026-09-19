@@ -8,7 +8,6 @@ import { defineConfig } from '@neon/config/v1';
  * `auth` is Managed Better Auth: the Viewer's tables sit in the `neon_auth`
  * schema of this same database, which is what lets `watch_records.viewer_id`
  * be a real foreign key.
- * — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
  */
 export default defineConfig({
   auth: true,

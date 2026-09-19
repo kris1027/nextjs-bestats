@@ -69,7 +69,6 @@ export type MediaRef<K extends Kind = Kind> = { kind: K; id: number };
  * because the count never reaches a screen on its own: it is the guard, and
  * nobody having voted is the only thing that distinguishes an unrated piece
  * of Media from one TMDB scores at zero.
- * — `docs/adr/0002-placeholder-facts-are-not-facts.md`
  */
 export type Rating = { rating: number; voteCount: number };
 
@@ -146,7 +145,6 @@ export type MediaDetails = Rating & {
  * Where an Episode sits in its Show: the season, and its number within it.
  * This is how an address names an Episode and not how anything else should:
  * TMDB renumbers Episodes, so a position is only good for finding one now.
- * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
  */
 export type EpisodeRef = { showId: number; season: number; episode: number };
 
@@ -167,7 +165,6 @@ export type SeasonEpisodes = {
  * A Show's seasons with their Episodes, and whether TMDB says the Show
  * has ended — which, with nothing left after the furthest a Viewer has
  * scored, is what makes the Show finished rather than waited for.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export type ShowEpisodes = {
   ended: boolean;
@@ -209,7 +206,6 @@ export type EpisodeDetails = Rating & {
   /**
    * TMDB's own id for the Episode, which is what its Watch Record is keyed
    * on: the position it was found at may not find it next year.
-   * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
    */
   id: number;
   /**
@@ -239,7 +235,6 @@ export const isKind = (value: string): value is Kind =>
  * — so a Kind with something behind its tab is never left behind a closed
  * one, whether that something is a Match or a Watch Record. What counts as
  * something is the caller's: Matches it can render, records it holds.
- * — `docs/adr/0004-search-is-two-searches.md`
  */
 export const openKind = (has: Record<Kind, boolean>): Kind =>
   has.movie && !has.tv ? 'movie' : 'tv';
@@ -275,7 +270,6 @@ export const isEpisodeNumber = (value: string): boolean =>
  * `today` is read as UTC's day, since the server does not know the Viewer's
  * zone. West of UTC an Episode counts as aired from the evening before its
  * day, and east of it only some hours into its day, once UTC reaches it.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const hasAired = (airDate: string | null, today: Date): boolean =>
   airDate !== null &&
@@ -440,7 +434,6 @@ const findMedia = (
  * `mediaItems` is the one to call Gone. Unformatted, since `hasAired` reads
  * it. The request is the one the Movie's card already made, so it costs
  * nothing the list was not already paying.
- * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 export const releaseDate = async (movieId: number): Promise<string | null> => {
   const movie = await findTMDB<TmdbMovieDetails>(`/movie/${movieId}`);
@@ -469,7 +462,6 @@ export const mediaDetails = async (
  * A season's Facts on a Show's page. The count waits on an air date for the
  * reason `toShowDetails` does: a season TMDB has only announced carries a
  * count that is not yet a finished statement.
- * — `docs/adr/0002-placeholder-facts-are-not-facts.md`
  */
 const toSeasonListing = (season: TmdbSeasonSummary): Listing => {
   const aired = season.air_date ? formatDate(season.air_date) : null;
@@ -495,7 +487,6 @@ const airDate = (episode: TmdbEpisode): string | null =>
 
 // Unlike an absent Fact, an absent air date is stated: an Episode without one
 // cannot be scored, and a page that left the date out would not say why.
-// — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
 const NO_AIR_DATE = 'No air date announced';
 
 const toEpisodeListing = (episode: TmdbEpisode): Listing => ({
@@ -525,7 +516,6 @@ export const showSeasons = async (id: number): Promise<Listing[] | null> => {
  * `Returning Series`, `In Production`, a status TMDB adds tomorrow — is a
  * Show that has not ended, since calling one finished wrongly is a claim
  * about the Viewer, while holding one in Upcoming wrongly is only visible.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 const ENDED_STATUSES: ReadonlySet<string> = new Set(['Ended', 'Canceled']);
 
@@ -552,14 +542,12 @@ const APPENDS_PER_REQUEST = 20;
  * a Show is Unanswered and not a shorter Show. The Show's own request is the
  * one its card already made, and the seasons ride on as many more as TMDB's
  * cap on appends needs — one, for all but the longest Shows.
- * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  *
  * Specials are left out unless `specials` asks for them, last: they never
  * decide which Episode comes next, so the lists have no use for them and
  * should not go Unanswered over them. Telling a Gone Episode from a listed
  * one does need them, since a Viewer can score a Special, and one missing
  * from this answer would be taken for Gone.
- * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
  *
  * `fresh` goes past the `lib/tmdb` cache, which only confirming a Gone
  * Episode may ask for; `findTMDBUncached` says why.
@@ -778,7 +766,6 @@ const answered = <T>(
  *
  * This is what a page of a list costs, since a record stores nothing from
  * TMDB, and a Show on the Watchlist costs its seasons on top.
- * — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
  */
 export const mediaItems = async (
   refs: readonly MediaRef[],
@@ -825,7 +812,6 @@ const searchKind = async <K extends Kind>(
  * Runs the Query against both Kinds. The two are separate requests that need
  * nothing from each other, so they are issued together and settled apart: one
  * Kind failing leaves the other's Matches intact.
- * — `docs/adr/0004-search-is-two-searches.md`
  */
 export const searchMedia = async (query: string): Promise<Search> => {
   const [shows, movies] = await Promise.allSettled([

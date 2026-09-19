@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.15.1",
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -17,6 +20,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:check": "node db-check.ts",
+    "bootstrap": "node bootstrap.ts",
     "pre-commit": "lint-staged && tsc --noEmit && vitest run --project unit",
     "prepare": "husky"
   },
@@ -46,6 +50,7 @@
     "drizzle-kit": "^0.31.10",
     "husky": "^9.1.7",
     "lint-staged": "^17.3.0",
+    "neon": "^5.0.0",
     "shadcn": "^4.15.0",
     "tailwindcss": "^4",
     "typescript": "^5",

@@ -36,7 +36,6 @@ import {
  * whole answer instead and spells it as a key, which decides no more about
  * who the Viewer is than the others do — and `lib/viewer-key` is pure, so no
  * query drags a session in.
- * — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
  */
 
 /** The `where` clause that names one piece of Media: `(kind, tmdb_id) = (…)`. */
@@ -188,7 +187,6 @@ export const answeredEpisodeLookup = async (
  * id for each Episode, latest scored first. Found by the Show's id without
  * asking TMDB, which is what lets a Show's page find the records TMDB no
  * longer lists an Episode for.
- * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
  */
 export const showEpisodeLookup = async (
   viewerId: string,
@@ -234,7 +232,6 @@ export const answeredShowEpisodeLookup = async (
  * through. The one list tab left that Postgres pages: only a Movie's record is
  * Watched, and every other tab is placed from TMDB's answers, so the state and
  * the Kind are this query's and not a caller's to pass.
- * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  *
  * `page` counts from 1, and anything else is refused before Postgres sees it,
  * by `assertListPage`. The two queries are issued together because neither
@@ -286,13 +283,11 @@ export const watchedMoviesPage = async (
  * `markedAt` is the latest marking on the Movie, the Show or any of its
  * Episodes, which is what the Watchlist orders by, and a Show brings the ids
  * of its scored Episodes for `upNext`.
- * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  *
  * Each Stopped Show comes too, flagged, though it is tracked by no list:
  * whether it is Gone is TMDB's to say, and a Gone one is drawn so its record
  * can be taken back. `placed` leaves every other one off. It shares the
  * ceiling with what is tracked, since it costs TMDB the same request.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const trackedMedia = async (
   viewerId: string,
@@ -377,7 +372,6 @@ export const trackedMedia = async (
  * tab wears. Only a Movie's record is Watched, so this is the only tally left
  * that Postgres can answer; the Shows tab counts finished Shows, which only
  * TMDB can say, and is counted from what is placed, by `placedTallies`.
- * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 export const watchedMovieCount = async (viewerId: string): Promise<number> => {
   const [tally] = await db
@@ -436,13 +430,11 @@ export const tallyMarking = async (viewerId: string): Promise<number> => {
  * `update` and not for an upsert — and set from Postgres's clock, not this
  * process's, so a move and an insert are ordered by the one clock the lists
  * sort on.
- * — `docs/adr/0007-watchlist-and-watched-are-one-record.md`
  *
  * Both columns are written every time, the Score included, because moving a
  * record to Planned has to clear the Score it used to carry — the check
  * constraint refuses the row otherwise, which is the schema catching what a
  * forgotten `score: null` would have left behind.
- * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
  */
 export const writeWatchRecord = async (
   viewerId: string,
@@ -482,7 +474,6 @@ export const clearWatchRecord = async (
  * Stopped Show is how a Viewer resumes it. One batch because the HTTP driver
  * has no interactive transactions, and a Score written without the delete
  * would leave the Show Planned and under way at once.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const writeEpisodeRecord = async (
   viewerId: string,
@@ -511,7 +502,6 @@ export const writeEpisodeRecord = async (
 /**
  * `writeWatchRecord` for a Planned Show, refused while the Viewer is under way
  * with it: `false`, and nothing written, once any of its Episodes is scored.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const writePlannedShow = (
   viewerId: string,
@@ -522,7 +512,6 @@ export const writePlannedShow = (
  * `writeWatchRecord` for a Stopped Show, refused before the Viewer has
  * started it: `false`, and nothing written, while none of its Episodes is
  * scored. A Show not yet started has nothing to give up on.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const writeStoppedShow = (
   viewerId: string,

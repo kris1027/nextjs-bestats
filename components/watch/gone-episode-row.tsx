@@ -16,7 +16,6 @@ import { type GoneEpisode, MARKING_FIELD, markingValue } from '@/lib/watch';
  * pressing a Score on an Episode's page does. There is no title to show,
  * since a record stores nothing from TMDB, so the row says what the Viewer
  * gave it and nothing about which Episode it was.
- * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
  *
  * Once unscored there is nothing left to press: a Score is given on an
  * Episode's page, and this one has none, so the row says so instead of

@@ -227,6 +227,7 @@ _Avoid_: Save, add, track, toggle, set
 
 `pnpm` only — never `npm` or `yarn`.
 
+- `pnpm bootstrap` — writes `.env.local` from Neon and says what setup has left
 - `pnpm dev` — dev server
 - `pnpm lint` — Biome check; `pnpm format` writes the fixes
 - `pnpm typecheck` — `tsc --noEmit`
@@ -250,7 +251,6 @@ hand-written migrations in there follow the same rules as the rest.
 
 - Vitest, in two projects. `unit` is pure and runs on every commit;
   `integration` talks to Postgres and never runs on a commit.
-  — `docs/adr/0008-vitest-replaces-the-node-test-runner.md`
 - A test sits beside its source: `lib/format.ts` → `lib/format.test.ts`. An
   integration test takes `.integration.test.ts`, which is how the two projects
   tell each other's files apart.
@@ -265,19 +265,18 @@ hand-written migrations in there follow the same rules as the rest.
   module graph, so it runs on a commit and covers the failure branch a
   migrated CI branch cannot reach. An action that asks TMDB has `lib/media`
   mocked in both, since CI has no TMDB token.
-- `@/` resolves in tests but not for `pnpm db:check`, which Node runs
-  directly — and that holds for the whole graph Node loads: `db-check.ts`,
-  `lib/connection-string.ts`, `lib/migration-drift.ts` and
-  `lib/migration-files.ts` reach each other by relative path, extension
-  included. A `@/` among them breaks the script at runtime with no type error
-  and no test failure, since Vitest resolves what Node cannot.
+- `@/` resolves in tests but not for `pnpm db:check` or `pnpm bootstrap`,
+  which Node runs directly — and that holds for the whole graph Node loads:
+  `db-check.ts`, `bootstrap.ts`, `lib/connection-string.ts`,
+  `lib/env-file.ts`, `lib/migration-drift.ts` and `lib/migration-files.ts`
+  reach each other by relative path, extension included. A `@/` among them
+  breaks the script at runtime with no type error and no test failure, since
+  Vitest resolves what Node cannot.
 - The integration project runs against a real Neon branch, never a local
   Postgres: the driver we ship has no interactive transactions and a local
   Postgres does, so a suite built on rolling back would be green about code
   that cannot run. Run locally that branch is `main` — production — so
   `pnpm test` writes to the database the deployed app reads.
-  — `docs/adr/0009-every-environment-is-a-neon-branch.md`
-  — `docs/adr/0013-local-development-shares-productions-branch.md`
 
 ## Module boundary
 
@@ -288,7 +287,6 @@ two. `lib/tmdb` exports its wire types for `lib/media` alone. A `MediaRef` is
 `lib/media`'s, and so are the two ways resolving one can fail: `mediaItems`
 answers each ref with a Media Item, Gone or Unanswered, and never sees a
 Watch Record.
-— `docs/adr/0003-tmdb-client-separate-from-domain.md`
 
 `lib/auth` owns Neon Auth's instance and the `user`-shaped session it hands
 back; `app/` and `components/` read the current Viewer through its two helpers
@@ -302,8 +300,6 @@ It owns that instance twice over, and the two are not interchangeable. `auth`
 writes cookies and is for `proxy.ts`, the API route and `lib/auth-actions.ts`;
 `reader` cannot write and is what `askViewer` reads through. Merging them
 breaks signing in and out with no type error and no failing test.
-— `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
-— `docs/adr/0017-reading-the-session-never-writes-a-cookie.md`
 
 `lib/watch` holds Watch Records. `lib/watch.ts` is its pure half, so it never
 imports `lib/db`, whose import throws without `DATABASE_URL`; a client
@@ -355,34 +351,29 @@ page does, since resolving Watch Records against TMDB is a page's job and not
 
 ## Standing rules
 
+- There is no `docs/` folder and there are no ADRs. A decision worth keeping
+  is one bullet here, and its why is a comment beside the code it governs.
 - Every top-level route must be a static segment. `app/[slug]/page.tsx` would
   collide with `app/[kind]/`.
-  — `docs/adr/0001-one-route-serves-both-kinds.md`
 - Never drop the `first_air_date` guard in `toShowDetails`, and never replace it
   with a falsy check. TMDB's placeholder for an unaired Show is `1`, not `0`, so
   `count ? … : null` catches nothing.
-  — `docs/adr/0002-placeholder-facts-are-not-facts.md`
 - A Rating is absent when `voteCount` is `0`. TMDB reports `vote_average: 0`
   for Media nobody has voted on, so rendering it states a score of zero that
   nobody gave.
-  — `docs/adr/0002-placeholder-facts-are-not-facts.md`
 - Search is two per-Kind requests, never `/search/multi`, and its tabs are
   links so the open Kind stays in the address.
-  — `docs/adr/0004-search-is-two-searches.md`
 - A tab row above a grid is the Kind. The lists show one Kind at a time and
   name it `?kind=`; the way between the Watchlist, Upcoming and the Watched
   list is the header's, not the page's. Trending alone may hold its Kind in
   the client. There is no All tab, and `isKind` stays the guard that reads the
   address.
-  — `docs/adr/0015-the-lists-tabs-are-the-kind.md`
 - A Watch Record is in exactly one state, never two and never none. One row
   per Viewer per piece of Media, keyed `(viewerId, kind, tmdbId)` — composite
   because a TMDB id is unique only within a Kind. Unmarking deletes the row.
-  — `docs/adr/0007-watchlist-and-watched-are-one-record.md`
 - An Episode's record is a row of `episode_records`, keyed
   `(viewerId, episodeId)` on TMDB's id for the Episode and never its season
   and number, which TMDB renumbers.
-  — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
 - A Watched record always carries a Score of 1 to 10 and a Planned or Stopped
   one never does, only a Movie's record is Watched, and only a Show's is
   Stopped; the check constraints on `watch_records` are what say so, not the
@@ -402,8 +393,6 @@ page does, since resolving Watch Records against TMDB is a page's job and not
   stopped. So `trackedMedia` brings Stopped Shows flagged, and `placed` keeps
   a Gone one on the lists: leaving them out in SQL, before TMDB is asked,
   would stop a Gone Show for good.
-  — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
-  — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
 - The lists ask one thing about a Show the Viewer is under way with: whether a
   day lies ahead of them. A dated next Episode is Upcoming, or the Watchlist
   once that day has passed; no day ahead is Watched, and an Episode TMDB lists
@@ -418,38 +407,34 @@ page does, since resolving Watch Records against TMDB is a page's job and not
   `hasFinished` keeps the narrower rule and the `ended` check for
   `showProgress` alone: an undated Episode is still an Episode left, so such a
   Show is under way on its own page and must go on drawing Stop watching.
-  — `docs/adr/0022-the-watched-list-holds-a-show-you-are-caught-up-with.md`
 - A Watch Record stores nothing from TMDB — no label, no poster path, no
   snapshot. Rendering a list means asking TMDB for each item on it.
-  — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
 - Migrations are applied by running `pnpm db:migrate` on purpose, never from a
   build command, and CI never points at production. Only a person applies them
   there, so `pnpm db:check` is how that person finds what a database has not
   run.
-  — `docs/adr/0009-every-environment-is-a-neon-branch.md`
 - Neon owns every table in the `neon_auth` schema: `lib/schema.ts` declares
   none of them and `drizzle.config.ts` narrows generation to `public`. A
   Drizzle `references()` across that line makes drizzle-kit try to create the
   table it points at, so every foreign key to a Viewer is a hand-written
   migration through `drizzle-kit generate --custom` — `0001`, `0003` and
   `0008` so far, and the same for any new one.
-  — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
 - A migration that adds an enum value never uses it: drizzle-kit applies every
   pending migration in one transaction, and Postgres refuses a value used in
   the transaction that added it. So no check constraint names `stopped`;
   `0011` says what a Movie's row can be instead.
-  — `docs/adr/0021-a-migration-never-uses-the-enum-value-it-adds.md`
-- Environment variables come from Neon, not from typing: `neon checkout main`
-  writes every one but `NEON_AUTH_COOKIE_SECRET`, which `.env.example` names.
-  There is one branch, so `main` is the only thing to check out. That secret
-  cannot be missing — `createNeonAuth` asserts it at import, so the whole app
-  stops there, public half included — while the base URL is not asserted at
-  all, so an unset one is an outage Unanswered draws.
-  — `docs/adr/0013-local-development-shares-productions-branch.md`
-- Never edit or commit `.env.local`.
+- Environment variables come from Neon, not from typing: `pnpm bootstrap`
+  pulls every one but `TMDB_API_TOKEN` from the branch `.neon` pins, and
+  generates `NEON_AUTH_COOKIE_SECRET`. There is one branch, so `.neon` is
+  committed and pins `main`. `bootstrap` never runs `db:migrate`; it runs
+  `db:check` and says what is pending. The secret cannot be missing —
+  `createNeonAuth` asserts it at import, so the whole app stops there, public
+  half included — while the base URL is not asserted at all, so an unset one
+  is an outage Unanswered draws.
+- Never edit or commit `.env.local`. `pnpm bootstrap` is the one exception, run
+  by a person, and it fills only what is missing.
 - A Viewer cannot delete themselves, and `/settings` went with the button that
   tried: Neon's Managed Better Auth answers `delete-user` with a bare 404.
-  — `docs/adr/0012-a-viewer-cannot-delete-themselves.md`
 - `proxy.ts` matches `/signed-in` and nothing else. Widening the matcher makes
   every page private: Neon's middleware protects each route it sees that is not
   on a skip list hardcoded in the package, so a Visitor reading Trending,
@@ -457,7 +442,6 @@ page does, since resolving Watch Records against TMDB is a page's job and not
   since the middleware's redirect drops the `?next=` they compose themselves.
   `/signed-in` alone trades a verifier for a session cookie, and neither it nor
   the proxy reads a Viewer.
-  — `docs/adr/0011-a-sign-in-completes-at-one-route.md`
 - Reading the session never writes a cookie. Neon's adapter hands every server
   method a `setCookie` of `cookieStore.set`, which Next refuses while a page
   renders, so a render that asked `auth` would lose the Viewer's half of the
@@ -466,7 +450,6 @@ page does, since resolving Watch Records against TMDB is a page's job and not
   marking actions, which ask `answeredViewer` the way a render does. Only
   `lib/auth-actions.ts` and the sign-in exchange hold `auth` and write, so the
   sign-in exchange is the only thing that still extends a session.
-  — `docs/adr/0017-reading-the-session-never-writes-a-cookie.md`
 - `cacheComponents` is on, so a page's request-time reads — `cookies()`,
   `params`, `searchParams`, a database query — sit inside a Suspense boundary
   the page draws itself, with a skeleton the height of what replaces it as the
@@ -475,18 +458,16 @@ page does, since resolving Watch Records against TMDB is a page's job and not
   follows a check. The TMDB
   cache is `lib/tmdb`'s and by directive, never a fetch option, and a theme
   preference can never be a cookie.
-  — `docs/adr/0010-the-shell-is-prerendered.md`
 - The layout is drawn for a 390px screen and must not overflow a 320px one:
   nothing scrolls sideways there, nothing is clipped, and every control can
   still be pressed. The floor answers for content a Viewer will actually
   meet — a case that takes implausible data to reach may stand where it
   degrades to a scrolling page rather than to a clipped word or an unpressable
-  control, and where the ADR argues it. Unprefixed classes are the phone's and
+  control. Unprefixed classes are the phone's and
   are read on their own; a wider screen is a `sm:`/`lg:` prefix, which may add
   to what they said or undo it. There is no `max-*` variant in the repo and
   there should not be one. Nothing checks any of this, so a new width is
   measured in a browser rather than reasoned about.
-  — `docs/adr/0014-the-narrow-header-gives-up-words.md`
 - A control that two places draw at two widths is two components, not one
   that adapts. The marking control was one, with a container query on it, and
   is now `PlannedButton` — which `AbsentCard` and the Media page draw — and
@@ -494,7 +475,6 @@ page does, since resolving Watch Records against TMDB is a page's job and not
   page has at the 320px floor, and a card's control has 116px there.
   Splitting won because the two differ in what they can do and not only in
   how wide they are, and the widths are measured in a browser as always.
-  — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
 - Should a control have to adapt after all, it asks its container and never
   the viewport: `@container` on the wrapper and `@min-[…]` on what stacks,
   never `sm:`. A card is 151px in a grid at one viewport and 244px at another

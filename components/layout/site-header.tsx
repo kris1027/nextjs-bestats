@@ -34,8 +34,7 @@ const ViewerControl = async (): Promise<JSX.Element | null> => {
     <div className='flex items-center gap-2 sm:gap-4'>
       <ListLinks />
       {/* who they are signed in as, and nothing to press: the name led to
-          `/settings`, and that page went with the deletion it existed for
-          — docs/adr/0012-a-viewer-cannot-delete-themselves.md */}
+          `/settings`, and that page went with the deletion it existed for */}
       <div className='flex items-center gap-3'>
         <ViewerAvatar viewer={currentViewer} />
         {/* Read but not drawn below `sm:`: the name is 125px the 320px floor
@@ -61,7 +60,6 @@ const ViewerControl = async (): Promise<JSX.Element | null> => {
 /**
  * The app had no header until a Viewer existed to put in one. It reads the
  * Viewer through `lib/auth`'s helper and never a session of its own.
- * — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
  *
  * The height is fixed rather than left to the content. The Viewer control
  * streams in after the first paint, and a header sized by its children grows
@@ -73,7 +71,6 @@ const ViewerControl = async (): Promise<JSX.Element | null> => {
  * gaining a second row. The Viewer control is what streams in, so a row that
  * exists only once it lands would shift the page by its whole height instead
  * of by those two pixels.
- * — `docs/adr/0014-the-narrow-header-gives-up-words.md`
  */
 const SiteHeader = (): JSX.Element => (
   <header className='flex h-14 items-center justify-between gap-3 border-foreground/20 border-b px-4 sm:gap-4'>

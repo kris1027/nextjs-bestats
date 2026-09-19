@@ -28,7 +28,6 @@ import {
  * names it beats serving an app nobody can sign in to. The `?? ''` is
  * delegation rather than lenience — it hands the assertion to the package so
  * the package's message is what a developer reads.
- * — `docs/adr/0013-local-development-shares-productions-branch.md`
  */
 const baseUrl = process.env.NEON_AUTH_BASE_URL ?? '';
 const cookieSecret = process.env.NEON_AUTH_COOKIE_SECRET ?? '';
@@ -38,7 +37,6 @@ const cookieSecret = process.env.NEON_AUTH_COOKIE_SECRET ?? '';
  * hands back. Viewers live in the `neon_auth` schema of this same database,
  * which is what lets `watch_records.viewer_id` be a real foreign key rather
  * than an id we hope still refers to someone.
- * — `docs/adr/0005-the-viewer-lives-beside-the-domain.md`
  *
  * `viewer()` below is where the glossary's word takes over, so `app/` and
  * `components/` never read a `user` of their own.
@@ -54,7 +52,6 @@ export const auth = createNeonAuth({
  * Next refuses while a page renders — so a session refresh, the one reply that
  * carries a `Set-Cookie`, took the Viewer's half of the app down once a day
  * until this existed.
- * — `docs/adr/0017-reading-the-session-never-writes-a-cookie.md`
  *
  * `auth` above keeps its writing context and every caller that needs one:
  * `signOut` clears the session cookie and `signIn.social` sets the challenge

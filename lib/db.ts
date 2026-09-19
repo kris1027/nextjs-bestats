@@ -17,6 +17,5 @@ const connectionString = (): string => {
  * The Drizzle client, over Neon's HTTP driver. That driver has no interactive
  * transactions, which is why the integration suite runs against a real Neon
  * branch rather than a local Postgres that would let it roll back.
- * — `docs/adr/0009-every-environment-is-a-neon-branch.md`
  */
 export const db = drizzle(neon(connectionString()), { schema });
