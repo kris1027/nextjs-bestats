@@ -24,7 +24,7 @@ import { type Marking, scoreOf, showPress } from '@/lib/watch';
  *
  * One component rather than a badge and a button apart, because the two have
  * to agree the instant a press lands and can only share the optimistic
- * marking inside one client subtree. The title bar is inside the link and the
+ * marking inside one client subtree. The head is inside the link and the
  * button has to be outside it — a button inside a link is nested interactive
  * content — so this spans them both.
  *
@@ -52,7 +52,7 @@ const MarkableCard = ({
   underWay: boolean;
   /** Passed straight on; the Score on top of it is this component's. */
   head: CardHeadContent;
-  /** Anything between the title bar and the control. */
+  /** Anything between the title and the control. */
   children?: ReactNode;
 }): JSX.Element => {
   const handle = useMarking(marking, mediaTarget(media));

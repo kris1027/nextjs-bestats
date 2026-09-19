@@ -372,7 +372,7 @@ const Tabs = ({
 type ListEntry = {
   ref: MediaRef;
   answer: MediaAnswer;
-  /** The line under its title bar, or `null` for a card that draws none. */
+  /** The pill over its poster, or `null` for a card that draws none. */
   lead: CardLead | null;
   /**
    * Whether the Viewer has scored an Episode of this Show, which is what an
