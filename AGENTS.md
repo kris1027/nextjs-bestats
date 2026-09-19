@@ -315,9 +315,18 @@ whose it is — only the actions read `lib/auth` to find out.
 whether the database or the sign-in was what did not answer. `lib/watch`
 reads `lib/media`, never the other way — and `lib/watch.ts` reads only its
 types: `lib/media` reaches `lib/tmdb` and `next/cache`, so a value imported
-there puts TMDB's client in a browser bundle with no type error. A rule that
-needs one, like `hasAired`, goes in `lib/watch-lists.ts`, which places what a
-Viewer tracks on the Watchlist, Upcoming or Watched.
+there would put TMDB's client in a browser bundle, and the build refuses it
+with no type error to warn first. A rule that needs one, like `hasAired`, goes
+in `lib/watch-lists.ts`, which places what a Viewer tracks on the Watchlist,
+Upcoming or Watched.
+
+`lib/db`, `lib/tmdb`, `lib/auth`, `lib/watch-queries` and `lib/media` open
+with `import 'server-only'`, so a client component that imports a value from
+one fails `pnpm build`; `import type` is erased and passes. Vitest runs
+outside the `react-server` condition the package asks for, so
+`vitest.config.ts` aliases it to the empty `lib/test-server-only.ts`. The
+`db:check` graph never takes it: Node runs that graph without the alias, and
+the import would throw there.
 
 A `ViewerLookup` is what a page hands its cards: that answer, and the key of
 the Viewer whose markings are in it. An Episode page has no cards and hands
