@@ -2,8 +2,7 @@
 
 import type { JSX } from 'react';
 
-import { BackButton } from '@/components/ui/back-button';
-import { control } from '@/lib/utils';
+import { ErrorNotice } from '@/components/layout/error-notice';
 
 /**
  * The page for what nobody anticipated. The failures the glossary has a word
@@ -21,23 +20,7 @@ import { control } from '@/lib/utils';
  * fetched, and the failure with it.
  */
 const ErrorPage = ({ retry }: { retry: () => void }): JSX.Element => (
-  <main className='flex flex-1 flex-col items-center justify-center gap-6 p-8 text-center'>
-    <p className='font-extrabold text-primary-accent text-sm tracking-wide'>
-      Something went wrong
-    </p>
-    <h1 className='font-black text-3xl leading-[1.05] lg:text-[40px]'>
-      This page could not be built
-    </h1>
-    <p className='max-w-[48ch] opacity-60'>
-      Something BeStats asked did not answer. Try again in a moment.
-    </p>
-    <div className='flex flex-wrap justify-center gap-3'>
-      <button type='button' onClick={retry} className={control}>
-        Try again
-      </button>
-      <BackButton href='/'>Back to trending</BackButton>
-    </div>
-  </main>
+  <ErrorNotice retry={retry} />
 );
 
 export default ErrorPage;
