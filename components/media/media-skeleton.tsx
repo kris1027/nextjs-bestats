@@ -14,16 +14,11 @@ import { PAGE_SIZE } from '@/lib/watch';
  * most cards now that marking left them. The same height as the card that replaces it, so
  * nothing moves when it lands.
  *
- * `lead` holds the line a list card draws under its title bar. Every card on
- * Upcoming draws one, so its grid asks for it; on the Watchlist only a Show
- * does, and on Watched only a Show with something announced ahead of the
- * Viewer, so this stands short on both. The fallback is drawn before the
- * address is read, so it cannot know whether the Shows tab is open, and
- * reserving the line on the Movies tab would move every card there instead.
- * A list page's grid can also hold an `AbsentCard`, which still draws a
- * control, and this stands short for that too.
+ * A list card's lead is a pill over its poster rather than a line under it,
+ * so every card is this one height whichever list, tab or card it stands
+ * for — `AbsentCard` aside, which still draws its line and its control below.
  */
-const MediaCardSkeleton = ({ lead }: { lead: boolean }): JSX.Element => (
+const MediaCardSkeleton = (): JSX.Element => (
   <li className='flex flex-col'>
     {/* `PosterFrame`'s box, border included */}
     <div className='aspect-2/3 animate-pulse rounded-xl border border-transparent bg-muted' />
@@ -31,8 +26,6 @@ const MediaCardSkeleton = ({ lead }: { lead: boolean }): JSX.Element => (
     <div className='mt-2 w-3/4 animate-pulse bg-muted/60 text-sm leading-[1.3] sm:text-[15px]'>
       &nbsp;
     </div>
-    {/* `CardHead`'s line: `pt-1` over one line of `text-xs` */}
-    {lead ? <div className='h-5' /> : null}
   </li>
 );
 
@@ -42,11 +35,7 @@ const MediaCardSkeleton = ({ lead }: { lead: boolean }): JSX.Element => (
  * fallback is the height of what replaces it. One "Loading" for a screen
  * reader rather than twenty blocks, and the blocks hidden from it.
  */
-const MediaGridSkeleton = ({
-  lead = false,
-}: {
-  lead?: boolean;
-}): JSX.Element => (
+const MediaGridSkeleton = (): JSX.Element => (
   // <output> is a live region on its own, as the marking control's is
   <output aria-busy='true' className='block'>
     <span className='sr-only'>Loading</span>
@@ -55,7 +44,7 @@ const MediaGridSkeleton = ({
         {Array.from({ length: PAGE_SIZE }, (_, index) => (
           // nothing distinguishes one block from another but its position
           // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity
-          <MediaCardSkeleton key={index} lead={lead} />
+          <MediaCardSkeleton key={index} />
         ))}
       </MediaGrid>
     </div>

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { JSX, ReactNode } from 'react';
 
+import { LeadBadge, type LeadContent } from '@/components/media/lead-badge';
 import { PosterFrame } from '@/components/media/poster-frame';
 import { StarBadge } from '@/components/media/star-badge';
 import type { Rating } from '@/lib/media';
@@ -19,10 +20,11 @@ type CardHeadContent = {
   /** What the badge shows until the Viewer has scored this. */
   tmdbRating?: Rating;
   /**
-   * A line under the title bar, inside the link, so a screen reader hears it
-   * as part of where the card goes: `S2E4`, announced as "Next episode".
+   * The pill over the poster's lower corner, inside the link, so a screen
+   * reader hears it as part of where the card goes: `S2E4`, announced as
+   * "Next episode".
    */
-  detail?: { label: string; text: string };
+  lead?: LeadContent;
 };
 
 /**
@@ -42,7 +44,7 @@ const CardHead = ({
   href,
   score,
   tmdbRating,
-  detail,
+  lead,
 }: CardHeadContent & {
   /** The Viewer's Score, which takes the badge whenever there is one. */
   score: Score | null;
@@ -51,6 +53,7 @@ const CardHead = ({
     <>
       <PosterFrame poster={poster}>
         <StarBadge score={score} tmdbRating={tmdbRating} />
+        {lead ? <LeadBadge lead={lead} /> : null}
       </PosterFrame>
       <h2
         className='mt-2 truncate font-medium text-sm leading-[1.3] sm:text-[15px]'
@@ -58,12 +61,6 @@ const CardHead = ({
       >
         {label}
       </h2>
-      {detail ? (
-        <p className='pt-1 text-muted-foreground text-xs'>
-          <span className='sr-only'>{detail.label}: </span>
-          {detail.text}
-        </p>
-      ) : null}
     </>
   );
 
