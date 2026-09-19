@@ -10,8 +10,8 @@ import { PAGE_SIZE } from '@/lib/watch';
 
 /**
  * A card's shape while the Media behind it is being fetched: the poster's
- * aspect and the title bar's height, which is the whole of most cards now
- * that marking left them. The same height as the card that replaces it, so
+ * rounded frame and the one line of title under it, which is the whole of
+ * most cards now that marking left them. The same height as the card that replaces it, so
  * nothing moves when it lands.
  *
  * `lead` holds the line a list card draws under its title bar. Every card on
@@ -25,10 +25,14 @@ import { PAGE_SIZE } from '@/lib/watch';
  */
 const MediaCardSkeleton = ({ lead }: { lead: boolean }): JSX.Element => (
   <li className='flex flex-col'>
-    <div className='aspect-2/3 animate-pulse bg-muted' />
-    <div className='h-7 animate-pulse bg-muted/60' />
-    {/* `CardHead`'s line: `pt-2` over one line of `text-xs` */}
-    {lead ? <div className='h-6' /> : null}
+    {/* `PosterFrame`'s box, border included */}
+    <div className='aspect-2/3 animate-pulse rounded-xl border border-transparent bg-muted' />
+    {/* the title's own type, so the block is one line of it */}
+    <div className='mt-2 w-3/4 animate-pulse bg-muted/60 text-sm leading-[1.3] sm:text-[15px]'>
+      &nbsp;
+    </div>
+    {/* `CardHead`'s line: `pt-1` over one line of `text-xs` */}
+    {lead ? <div className='h-5' /> : null}
   </li>
 );
 

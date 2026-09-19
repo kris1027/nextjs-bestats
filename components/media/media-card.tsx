@@ -60,7 +60,7 @@ const MediaCard = ({
       height={1170}
       // decorative: the link's accessible name comes from the <h2> inside it
       alt=''
-      className='h-auto w-full'
+      className='size-full object-cover'
       // `MediaGrid`'s columns, restated as widths, because nothing but
       // this tells the browser how big the poster lands. Two columns
       // below `lg:` put a card at half the viewport less half the
@@ -77,7 +77,8 @@ const MediaCard = ({
   const marking = lookup.markings && markingOf(lookup.markings, item);
 
   return (
-    <li className='flex flex-col transition duration-150 ease-out hover:-translate-y-1.5 hover:shadow-lg focus-within:-translate-y-1.5 focus-within:ring-2 focus-within:ring-ring'>
+    // `group`, which `PosterFrame` lifts on: the whole card is the target
+    <li className='group flex flex-col'>
       <CardHead
         label={item.label}
         poster={poster}

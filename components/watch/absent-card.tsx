@@ -57,7 +57,7 @@ const AbsentCard = ({
   );
 
   return (
-    <li className='flex flex-col'>
+    <li className='group flex flex-col'>
       {lookup.markings !== null ? (
         <MarkableCard
           key={lookup.viewerKey}
