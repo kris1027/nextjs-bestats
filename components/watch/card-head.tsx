@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { JSX, ReactNode } from 'react';
 
 import { LeadBadge, type LeadContent } from '@/components/media/lead-badge';
+import { PlannedMark } from '@/components/media/planned-mark';
 import { PosterFrame } from '@/components/media/poster-frame';
 import { StarBadge } from '@/components/media/star-badge';
 import type { Rating } from '@/lib/media';
@@ -43,17 +44,25 @@ const CardHead = ({
   poster,
   href,
   score,
+  planned = false,
   tmdbRating,
   lead,
 }: CardHeadContent & {
   /** The Viewer's Score, which takes the badge whenever there is one. */
   score: Score | null;
+  /**
+   * Whether to draw the bookmark that says the record is Planned. Only
+   * `MediaCard` does: `MarkableCard` draws a Planned button that says so in
+   * words, and a bookmark beside it would say it twice.
+   */
+  planned?: boolean;
 }): JSX.Element => {
   const head = (
     <>
       <PosterFrame poster={poster}>
         <StarBadge score={score} tmdbRating={tmdbRating} />
         {lead ? <LeadBadge lead={lead} /> : null}
+        {planned ? <PlannedMark /> : null}
       </PosterFrame>
       <h2
         className='mt-2 truncate font-medium text-sm leading-[1.3] sm:text-[15px]'

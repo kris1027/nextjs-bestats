@@ -88,6 +88,7 @@ const MediaCard = ({
         href={lead?.episode ? episodeAddress(lead.episode) : mediaAddress(item)}
         lead={lead ?? undefined}
         score={marking && scoreOf(marking)}
+        planned={marking?.state === 'planned'}
         tmdbRating={item}
       />
     </li>
