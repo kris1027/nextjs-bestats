@@ -24,15 +24,23 @@ import { cn, control } from '@/lib/utils';
  * Next exposes no "can I go back?" API. `history.length` is the usable signal:
  * it counts soft navigations, whereas `document.referrer` does not update on
  * them and would misreport in-app navigation as external.
+ *
+ * `reload` draws a plain anchor instead, which loads `href` as a new document
+ * and never steps back. It is for `app/global-error.tsx`, where the root
+ * layout is what failed. A soft navigation keeps the page that failed: Next
+ * clears that boundary only when the pathname changes, so from `/` a link to
+ * `/` leaves the error page up. A history step may also leave the app.
  */
 const BackButton = ({
   href,
   children,
   className,
+  reload = false,
 }: {
   href: string;
   children: ReactNode;
   className?: string;
+  reload?: boolean;
 }): JSX.Element => {
   const router = useRouter();
 
@@ -61,6 +69,15 @@ const BackButton = ({
     event.preventDefault();
     router.back();
   };
+
+  if (reload) {
+    return (
+      <a href={href} className={cn(control, className)}>
+        <ArrowLeft size={18} />
+        {children}
+      </a>
+    );
+  }
 
   return (
     <Link href={href} onClick={handleClick} className={cn(control, className)}>

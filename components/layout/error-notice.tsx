@@ -10,7 +10,14 @@ import { control } from '@/lib/utils';
  * what failed. Neither imports the other, since each is a file convention
  * Next reads on its own terms.
  */
-const ErrorNotice = ({ retry }: { retry: () => void }): JSX.Element => (
+const ErrorNotice = ({
+  retry,
+  reload = false,
+}: {
+  retry: () => void;
+  /** Leave by loading `/` as a new document, for when the layout failed. */
+  reload?: boolean;
+}): JSX.Element => (
   <main className='flex flex-1 flex-col items-center justify-center gap-6 p-8 text-center'>
     <p className='font-extrabold text-primary-accent text-sm tracking-wide'>
       Something went wrong
@@ -25,7 +32,9 @@ const ErrorNotice = ({ retry }: { retry: () => void }): JSX.Element => (
       <button type='button' onClick={retry} className={control}>
         Try again
       </button>
-      <BackButton href='/'>Back to trending</BackButton>
+      <BackButton href='/' reload={reload}>
+        Back to trending
+      </BackButton>
     </div>
   </main>
 );

@@ -24,7 +24,7 @@ const GlobalError = ({ retry }: { retry: () => void }): JSX.Element => (
   >
     <body className='min-h-full flex flex-col'>
       <title>Something went wrong · BeStats</title>
-      <ErrorNotice retry={retry} />
+      <ErrorNotice retry={retry} reload />
     </body>
   </html>
 );
