@@ -488,6 +488,15 @@ page does, since resolving Watch Records against TMDB is a page's job and not
   still looks right while every phone fetches a poster far wider than it
   draws. Nothing but `sizes` tells a browser how wide an image lands, and no
   test or type will notice that it lies.
+- A card's three colours are `--rating` for TMDB's Rating, `--score` for the
+  Viewer's Score and `--planned` for a Planned record, and nothing else wears
+  them. `CardGlyph` draws each mark for the card and for `CardLegend` alike,
+  so a colour reused elsewhere would be explained as something it is not.
+  `--score` is not `--primary-accent`: that one is text on the page, and this
+  is a mark on a poster, brighter so it reads over one. The legend is drawn
+  in the shell of each page that draws cards, last on it, and reads no
+  Viewer: it says what a card there can show, so it never waits and never
+  moves. The card is the one rounded thing in the app.
 
 ## Conventions Biome does not enforce
 
