@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 
 import { envValue, withEnvValue } from './lib/env-file.ts';
+import { PENDING_EXIT_CODE } from './lib/migration-drift.ts';
 
 /**
  * Everything setup can do without a person, in the order it has to happen:
@@ -22,16 +23,16 @@ import { envValue, withEnvValue } from './lib/env-file.ts';
 const ENV_FILE = '.env.local';
 
 /** Runs a command with the terminal handed to it, since `neon` may ask the
- * person to sign in; answers whether it succeeded. */
-const run = (command: string, args: string[]): boolean =>
-  spawnSync(command, args, { stdio: 'inherit' }).status === 0;
+ * person to sign in; answers its exit code, or `null` when it never ran. */
+const run = (command: string, args: string[]): number | null =>
+  spawnSync(command, args, { stdio: 'inherit' }).status;
 
 if (!existsSync(ENV_FILE)) {
   copyFileSync('.env.example', ENV_FILE);
   console.log(`Created ${ENV_FILE} from .env.example.`);
 }
 
-if (!run('pnpm', ['exec', 'neon', 'env', 'pull', '--file', ENV_FILE])) {
+if (run('pnpm', ['exec', 'neon', 'env', 'pull', '--file', ENV_FILE]) !== 0) {
   console.error(
     [
       '',
@@ -55,16 +56,25 @@ if (!envValue(env, 'NEON_AUTH_COOKIE_SECRET')) {
 }
 
 console.log('');
-const migrated = run('pnpm', ['db:check']);
+// Node directly rather than `pnpm db:check`: pnpm reports any failing script
+// as exit code 1, which would lose PENDING_EXIT_CODE
+const checked = run(process.execPath, ['db-check.ts']);
 const tokened = envValue(env, 'TMDB_API_TOKEN') !== null;
+
+// only a database missing migrations and nothing else is db:migrate's to fix;
+// every other failure is one db:check has already described above
+const database =
+  checked === 0
+    ? null
+    : checked === PENDING_EXIT_CODE
+      ? 'Apply the pending migrations with `pnpm db:migrate`, on purpose: main is production.'
+      : 'Resolve what `pnpm db:check` reported above; `db:migrate` will not fix it.';
 
 const left = [
   tokened
     ? null
     : `Paste a TMDB read access token into ${ENV_FILE} as TMDB_API_TOKEN — https://www.themoviedb.org/settings/api`,
-  migrated
-    ? null
-    : 'Apply the pending migrations with `pnpm db:migrate`, on purpose: main is production.',
+  database,
 ].filter((step) => step !== null);
 
 console.log('');

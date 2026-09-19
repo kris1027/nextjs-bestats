@@ -8,6 +8,8 @@ import {
   driftReport,
   hasDrift,
   migrationDrift,
+  onlyMissing,
+  PENDING_EXIT_CODE,
   toApplied,
 } from './lib/migration-drift.ts';
 import { shippedMigrations } from './lib/migration-files.ts';
@@ -98,4 +100,4 @@ const drift = migrationDrift(shippedMigrations(), applied);
 
 console.log(driftReport(drift));
 
-if (hasDrift(drift)) process.exit(1);
+if (hasDrift(drift)) process.exit(onlyMissing(drift) ? PENDING_EXIT_CODE : 1);
