@@ -227,6 +227,7 @@ _Avoid_: Save, add, track, toggle, set
 
 `pnpm` only — never `npm` or `yarn`.
 
+- `pnpm bootstrap` — writes `.env.local` from Neon and says what setup has left
 - `pnpm dev` — dev server
 - `pnpm lint` — Biome check; `pnpm format` writes the fixes
 - `pnpm typecheck` — `tsc --noEmit`
@@ -264,12 +265,13 @@ hand-written migrations in there follow the same rules as the rest.
   module graph, so it runs on a commit and covers the failure branch a
   migrated CI branch cannot reach. An action that asks TMDB has `lib/media`
   mocked in both, since CI has no TMDB token.
-- `@/` resolves in tests but not for `pnpm db:check`, which Node runs
-  directly — and that holds for the whole graph Node loads: `db-check.ts`,
-  `lib/connection-string.ts`, `lib/migration-drift.ts` and
-  `lib/migration-files.ts` reach each other by relative path, extension
-  included. A `@/` among them breaks the script at runtime with no type error
-  and no test failure, since Vitest resolves what Node cannot.
+- `@/` resolves in tests but not for `pnpm db:check` or `pnpm bootstrap`,
+  which Node runs directly — and that holds for the whole graph Node loads:
+  `db-check.ts`, `bootstrap.ts`, `lib/connection-string.ts`,
+  `lib/env-file.ts`, `lib/migration-drift.ts` and `lib/migration-files.ts`
+  reach each other by relative path, extension included. A `@/` among them
+  breaks the script at runtime with no type error and no test failure, since
+  Vitest resolves what Node cannot.
 - The integration project runs against a real Neon branch, never a local
   Postgres: the driver we ship has no interactive transactions and a local
   Postgres does, so a suite built on rolling back would be green about code
@@ -421,13 +423,16 @@ page does, since resolving Watch Records against TMDB is a page's job and not
   pending migration in one transaction, and Postgres refuses a value used in
   the transaction that added it. So no check constraint names `stopped`;
   `0011` says what a Movie's row can be instead.
-- Environment variables come from Neon, not from typing: `neon checkout main`
-  writes every one but `NEON_AUTH_COOKIE_SECRET`, which `.env.example` names.
-  There is one branch, so `main` is the only thing to check out. That secret
-  cannot be missing — `createNeonAuth` asserts it at import, so the whole app
-  stops there, public half included — while the base URL is not asserted at
-  all, so an unset one is an outage Unanswered draws.
-- Never edit or commit `.env.local`.
+- Environment variables come from Neon, not from typing: `pnpm bootstrap`
+  pulls every one but `TMDB_API_TOKEN` from the branch `.neon` pins, and
+  generates `NEON_AUTH_COOKIE_SECRET`. There is one branch, so `.neon` is
+  committed and pins `main`. `bootstrap` never runs `db:migrate`; it runs
+  `db:check` and says what is pending. The secret cannot be missing —
+  `createNeonAuth` asserts it at import, so the whole app stops there, public
+  half included — while the base URL is not asserted at all, so an unset one
+  is an outage Unanswered draws.
+- Never edit or commit `.env.local`. `pnpm bootstrap` is the one exception, run
+  by a person, and it fills only what is missing.
 - A Viewer cannot delete themselves, and `/settings` went with the button that
   tried: Neon's Managed Better Auth answers `delete-user` with a bare 404.
 - `proxy.ts` matches `/signed-in` and nothing else. Widening the matcher makes

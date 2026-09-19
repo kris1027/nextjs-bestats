@@ -20,6 +20,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:check": "node db-check.ts",
+    "bootstrap": "node bootstrap.ts",
     "pre-commit": "lint-staged && tsc --noEmit && vitest run --project unit",
     "prepare": "husky"
   },
