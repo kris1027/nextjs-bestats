@@ -332,11 +332,10 @@ way. One value, because a control given the markings without the key stays
 lit for a Viewer who has signed out — its state outlives a re-render at the
 same position — and a missing `key` is not a type error. So whatever holds
 that state is keyed on the `viewerKey` of the lookup it came from:
-`absent-card.tsx` keys its `MarkableCard`, the Media page its `MarkingControl`
-or `ShowControl` and each `GoneEpisodeRow`, and the Episode page its
-`EpisodeScoreControl`, and each reads the two halves off one value.
-`media-card.tsx` takes the same lookup and reads only the markings, because a
-card that draws no control holds no state to unmount. `lib/viewer-key` makes
+`absent-card.tsx` keys its `MarkableCard`, `media-card.tsx` its
+`CardPlannedButton`, the Media page its `MarkingControl` or `ShowControl` and
+each `GoneEpisodeRow`, and the Episode page its `EpisodeScoreControl`, and
+each reads the two halves off one value. `lib/viewer-key` makes
 that key, and is pure for the reason `lib/watch.ts` is: `lib/auth.ts` boots
 Neon Auth and reads `next/headers` at import, so a query that reached it for a
 string could not be loaded outside Next at all. Four callers —
@@ -384,11 +383,14 @@ page does, since resolving Watch Records against TMDB is a page's job and not
   which `showPress` decides — and the only stars on its page are the Scores of
   its Gone Episodes, which belong to them and not to the Show. Watched → Shows
   is placed from TMDB's answer like the other lists, and a Stopped Show is on
-  none of them unless it is Gone. Marking is the detail page's alone — a card
-  shows a Marking and cannot set one — and a card's one star is TMDB's Rating
-  until the Viewer scores a Movie, theirs after. `AbsentCard` is the single
-  exception, since Gone Media 404s on the detail page and its card has no link
-  to one: it draws the button that page would, Planned or Stop watching, and
+  none of them unless it is Gone. A card sets one Marking and no other: its
+  bookmark marks Planned, and is withheld on a Watched Movie, whose Score that
+  press would destroy from a grid with no stars in sight, on a Stopped Show,
+  and on a Show a list knows is under way. Scoring and stopping are the
+  detail page's, and a card's one star is TMDB's Rating until the Viewer
+  scores a Movie, theirs after. `AbsentCard` is the exception, since Gone
+  Media 404s on the detail page and its card has no link to one: it draws the
+  labelled button that page would, Planned or Stop watching, and
   that button is the only way such a record is ever removed or such a Show
   stopped. So `trackedMedia` brings Stopped Shows flagged, and `placed` keeps
   a Gone one on the lists: leaving them out in SQL, before TMDB is asked,
@@ -471,7 +473,8 @@ page does, since resolving Watch Records against TMDB is a page's job and not
 - A control that two places draw at two widths is two components, not one
   that adapts. The marking control was one, with a container query on it, and
   is now `PlannedButton` — which `AbsentCard` and the Media page draw — and
-  `StarRow`, which only a detail page can: ten targets need the 288px a detail
+  `StarRow`, which only a detail page can, with a card's round bookmark a
+  third, `CardPlannedButton`: ten targets need the 288px a detail
   page has at the 320px floor, and a card's control has 116px there.
   Splitting won because the two differ in what they can do and not only in
   how wide they are, and the widths are measured in a browser as always.

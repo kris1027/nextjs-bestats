@@ -294,10 +294,10 @@ have watched.
 Most of it is here. Sign-in is Neon's Managed Better Auth over Google; Watch
 Records live in Neon Postgres through Drizzle, in a table whose primary key
 is the Viewer, the Kind and the TMDB id together, so the one-state-only
-invariant is the database's to keep; a card shows its Marking and the detail
-page sets it; and `/watchlist` and `/watched` show the records. A Watch Record
-stores no copy of TMDB's data, so every fact on those pages keeps coming from
-TMDB.
+invariant is the database's to keep; a card's bookmark marks Planned and the
+detail page scores and stops; and `/watchlist` and `/watched` show the
+records. A Watch Record stores no copy of TMDB's data, so every fact on those
+pages keeps coming from TMDB.
 
 A Viewer cannot delete themselves. `/settings` offered it and never could:
 Managed Better Auth answers `delete-user` with a 404, so the page went. The foreign
