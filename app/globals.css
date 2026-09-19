@@ -43,6 +43,16 @@
      surface, but on a near-black one there is no darkness left to add, so
      the dark theme separates with a hairline edge instead (see .dark). */
   --elevation-lg: 0 12px 32px oklch(0.148 0.004 228.8 / 22%);
+  /* The card's three signals, which mean these and nothing else: TMDB's
+     Rating, the Viewer's Score, and a Planned record. The legend draws the
+     same three, so a colour reused for anything else says something false
+     there. --score is brighter than --primary-accent on purpose: it sits on
+     posters, not on the page. Darker here than in .dark, since in the
+     light theme the legend draws them on white. */
+  --rating: oklch(0.666 0.179 58.3);
+  --score: oklch(0.6 0.11 220.6);
+  --planned: oklch(0.596 0.145 163.2);
+  --planned-foreground: oklch(0.222 0.032 174.3);
 }
 
 .dark {
@@ -81,6 +91,10 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.56 0.021 213.5);
   --elevation-lg: 0 0 0 1px oklch(1 0 0 / 12%), 0 12px 32px oklch(0 0 0 / 60%);
+  --rating: oklch(0.837 0.164 84.4);
+  --score: oklch(0.783 0.107 220.6);
+  --planned: oklch(0.773 0.153 163.2);
+  --planned-foreground: oklch(0.222 0.032 174.3);
 }
 
 @theme inline {
@@ -110,6 +124,10 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-accent: var(--primary-accent);
+  --color-rating: var(--rating);
+  --color-score: var(--score);
+  --color-planned: var(--planned);
+  --color-planned-foreground: var(--planned-foreground);
   --color-primary: var(--primary);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
