@@ -13,7 +13,6 @@ import type { Marking } from '@/lib/watch';
  * The caller asks `showPress` once and draws nothing when it picks nothing,
  * so a finished Show never reaches here. The detail page and `MarkableCard`
  * both draw it, so the two cannot draw a pick differently.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 const ShowButton = ({
   handle,

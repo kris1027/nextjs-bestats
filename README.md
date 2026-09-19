@@ -10,8 +10,7 @@ app.
 > **Status:** a Viewer can sign in, mark any Show or Movie as Planned or
 > Watched, and see those records on `/watchlist` and `/watched`. There is no
 > way to delete an account: Neon's Managed Better Auth has no route for it,
-> so the page that offered one was removed
-> ([ADR 0012](docs/adr/0012-a-viewer-cannot-delete-themselves.md)). See
+> so the page that offered one was removed. See
 > [Roadmap](#roadmap).
 
 ## What it does
@@ -53,8 +52,7 @@ those as the absences they are rather than reporting them as measurements.
   at <https://www.themoviedb.org/settings/api>.
 - **A Neon Postgres project**, with Auth enabled. Free, and scales to zero.
   `neon checkout main` writes its connection details for you. There is one
-  branch: `main` is production, and local work shares it
-  ([ADR 0013](docs/adr/0013-local-development-shares-productions-branch.md)).
+  branch: `main` is production, and local work shares it.
 - **No OAuth application.** Neon supplies development credentials for Google,
   so sign-in works before you register anything of your own.
 
@@ -123,9 +121,7 @@ cannot run.
 **Local development is production.** Signing in on localhost creates a real
 Viewer, marking writes a real Watch Record, and `pnpm test:integration` inserts
 and deletes rows in the database the deployed app reads. `pnpm pre-commit` runs
-the unit project alone and is unaffected. This is deliberate and its cost is
-written down in
-[ADR 0013](docs/adr/0013-local-development-shares-productions-branch.md).
+the unit project alone and is unaffected. This is deliberate.
 
 Auth branches with the database. Each branch carries its own `neon_auth`
 schema, so a CI run signs in against its own Viewers and drops them with the
@@ -146,9 +142,6 @@ sign-in rather than a missing entry.
 neon neon-auth domain add https://example.com --branch main
 neon neon-auth domain list --branch main
 ```
-
-Both are explained in
-[`docs/adr/0009`](docs/adr/0009-every-environment-is-a-neon-branch.md).
 
 ## Commands
 
@@ -198,8 +191,6 @@ lib/
   next-path.ts           Validates ?next=
 neon.ts                  Which Neon services every branch carries
 drizzle/                 Migrations — generated, except the foreign key
-docs/
-  adr/                   Decisions, and why they were made
 ```
 
 ### The one thing to know
@@ -223,9 +214,6 @@ for a session themselves. `lib/media` never learns that Viewers exist.
 That boundary has already been tested once. v1 began on a self-hosted Better
 Auth and moved to Neon's managed one mid-branch; `app/`, `components/` and the
 sign-in page did not change, because `viewer()` absorbed it.
-
-See [`docs/adr/0003`](docs/adr/0003-tmdb-client-separate-from-domain.md) and
-[`docs/adr/0005`](docs/adr/0005-the-viewer-lives-beside-the-domain.md).
 
 ## Language
 
@@ -267,9 +255,6 @@ pnpm test:integration   # needs DATABASE_URL
 pnpm test               # both
 ```
 
-Replacing Node's runner overturned a written rule, so it is recorded as such
-in [`docs/adr/0008`](docs/adr/0008-vitest-replaces-the-node-test-runner.md).
-
 ## Conventions
 
 Formatting, quote style, import order and strictness are enforced by
@@ -295,11 +280,6 @@ that must not be broken.
 | ------------------------ | ----------------------------------------------------- |
 | [`AGENTS.md`](AGENTS.md) | The glossary, commands, boundaries and standing rules |
 | `CLAUDE.md`              | A symlink to `AGENTS.md`, for the agents that read it |
-| [`docs/adr/`](docs/adr)  | Decisions that were hard to reverse, and why          |
-
-The ADRs are short and worth reading in order — they explain why one route
-serves both Kinds, why placeholder values are not facts, why the TMDB client
-is separate from the domain, and why search is two requests rather than one.
 
 ## Roadmap
 
@@ -315,17 +295,13 @@ and `/watchlist` and `/watched` show the records. A Watch Record stores no
 copy of TMDB's data, so every fact on those pages keeps coming from TMDB.
 
 A Viewer cannot delete themselves. `/settings` offered it and never could:
-Managed Better Auth answers `delete-user` with a 404, so the page went
-([ADR 0012](docs/adr/0012-a-viewer-cannot-delete-themselves.md)). The foreign
+Managed Better Auth answers `delete-user` with a 404, so the page went. The foreign
 keys still cascade, so a Viewer removed by any other means takes their Watch
 Records with them. Marking is rate-limited per Viewer, in Postgres, so every
 Neon branch enforces the same rule.
 
 Every route prerenders a shell and streams its request-time reads into a
 skeleton, and one `error.tsx` at the root catches what nobody anticipated.
-
-The decisions behind all of this, and what each one cost, are in
-[`docs/adr/`](docs/adr) — fourteen of them, short, worth reading in order.
 
 ## Attribution
 

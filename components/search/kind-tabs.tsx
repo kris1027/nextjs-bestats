@@ -12,7 +12,6 @@ import { KIND_WORDS, KINDS, type Kind, type Search } from '@/lib/media';
  *
  * They replace rather than push, so the page's `Back` returns to trending
  * rather than to whichever tab was open before.
- * — `docs/adr/0004-search-is-two-searches.md`
  */
 const KindTabs = ({
   query,

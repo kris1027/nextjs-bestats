@@ -18,17 +18,14 @@ const LINES: Record<Absence, string> = {
  * record stores nothing from TMDB, so all the card can name is the Kind and
  * the id, and it says which absence this is. No link: the detail page would
  * only say the same thing, and for Gone Media it answers `notFound()`.
- * — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
  *
  * The control stays, because it is the only one a Gone record will ever have.
  * A card cannot score, so a Gone record that is Watched is removed the way
  * any card's is: Planned, which drops the Score, then Planned again, which
  * deletes the row. Nothing else can reach it.
- * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
  *
  * A Show the Viewer is under way with draws Stop watching in Planned's place,
  * since its page is where a Show is stopped and a Gone Show has none.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  *
  * The card reads its own marking and its key out of `lookup`, the way a
  * `MediaCard` does: the pair is one value so this card cannot be given one

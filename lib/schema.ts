@@ -43,7 +43,6 @@ export const watchState = pgEnum('watch_state', [
  * piece of Media, and a record cannot be in both states at once. It is
  * composite because a TMDB id is unique only within a Kind — `tv/1399` and
  * `movie/1399` are different Media.
- * — `docs/adr/0007-watchlist-and-watched-are-one-record.md`
  *
  * A Watched row carries a Score and a Planned or Stopped row carries none,
  * which the check constraint below keeps rather than the code that writes it:
@@ -51,11 +50,8 @@ export const watchState = pgEnum('watch_state', [
  * Watched, which a second constraint keeps: a Show is never Watched, its
  * Episodes are. Only a Show's row is Stopped, which a third keeps: a Movie is
  * watched once, so there is nothing partway through to give up on.
- * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  *
  * Nothing from TMDB is stored: no label, no poster path, no snapshot.
- * — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
  */
 export const watchRecords = pgTable(
   'watch_records',
@@ -89,7 +85,6 @@ export const watchRecords = pgTable(
     // would make it exact and cost a migration; one Viewer's list is small
     // enough that it has not been worth one. The Watchlist no longer pages
     // here — it reads everything tracked, on `viewer_id` alone
-    // — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
     index('watch_records_viewer_state_idx').on(
       table.viewerId,
       table.state,
@@ -118,7 +113,6 @@ export const watchRecords = pgTable(
     // Watched row is a Movie's. Its own constraint rather than a clause in the
     // one above, which says what a state carries and not what it is about.
     // Neither column is nullable, so this one has no NULL to fall through.
-    // — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
     check(
       'watch_records_watched_is_a_movie',
       sql`${table.state} <> 'watched' or ${table.kind} = 'movie'`,
@@ -126,7 +120,6 @@ export const watchRecords = pgTable(
     // and a Show is given up on partway through, which a Movie has no part of,
     // so a Stopped row is a Show's. Spelled as what a Movie's row can be,
     // for the reason the constraint above names no `stopped`.
-    // — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
     check(
       'watch_records_stopped_is_a_show',
       sql`${table.kind} = 'tv' or ${table.state} in ('planned', 'watched')`,
@@ -138,14 +131,12 @@ export const watchRecords = pgTable(
  * One Viewer's Watch Record for one Episode, which is only ever Watched at a
  * Score: there is no Planned Episode, so there is no state column, and the
  * Score is `not null` rather than checked against one.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  *
  * Keyed on TMDB's id for the Episode and not on its season and number, which
  * TMDB renumbers: a Score keyed on a position would stay behind when the
  * Episode moved. The Show's id rides beside it as the app's own relationship,
  * so a Show's records can be found without asking TMDB; nothing else from
  * TMDB is kept.
- * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
  *
  * A table of its own rather than rows in `watch_records`, since that would
  * have made an Episode a Kind, and a Kind is a Show or a Movie.

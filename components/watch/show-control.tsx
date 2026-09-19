@@ -13,7 +13,6 @@ import { type Marking, type ShowProgress, showPress } from '@/lib/watch';
  * A Show's own marking control on its detail page: one button, which the
  * Viewer's progress picks, and no stars. A Show is never Watched: a Viewer
  * scores its Episodes, each on its own page.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  *
  * Its own component rather than a branch of `MarkingControl`, since the two
  * differ in what they can do: a Movie's is Planned and ten stars whatever the

@@ -80,7 +80,6 @@ const MatchesFor = async ({
   // here on purpose: it earns its place in the address by opening the list the
   // sender meant and by letting a closed tab admit what waits behind it, and
   // there is no list on either side to do either for.
-  // — `docs/adr/0004-search-is-two-searches.md`
   //
   // Still a 200: there is a search box at this address, which is what the
   // visitor needs next.

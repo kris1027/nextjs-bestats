@@ -14,7 +14,6 @@ import { MARKING_FIELD, markingValue, STOPPED } from '@/lib/watch';
  * One button and not two, because the two are one press of `STOPPED` — the
  * press that makes the record and the press that deletes it — and a button
  * that became another as it landed would move under the Viewer's thumb.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  *
  * The same size and class as `PlannedButton`, since the two take turns in the
  * one slot a Show's control has, and takes the whole handle for its reason.

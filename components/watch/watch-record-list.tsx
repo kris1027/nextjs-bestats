@@ -92,7 +92,6 @@ const EMPTY: Record<List, (kind: Kind) => string> = {
   // furthest Episode scored, so the ones before it need not be. An undated
   // Episode cannot be scored, so the furthest always has a day and the
   // sentence can name the latest that has one
-  // — `docs/adr/0022-the-watched-list-holds-a-show-you-are-caught-up-with.md`
   watched: (kind) =>
     takesScore(kind)
       ? `No ${KIND_WORDS[kind].other} watched yet. Score a ${KIND_WORDS[kind].one} and it will appear here.`
@@ -142,7 +141,6 @@ type ListTallies = {
  * the exception, since a Watched Movie is a Watch Record and Postgres pages
  * those; its Shows are the ones nothing dated is left of, which only TMDB
  * can say.
- * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 type ListContents = {
   list: PlacedList;
@@ -201,7 +199,6 @@ const trackedAnswer = async (
  * Everything a Viewer is tracking, placed. TMDB is asked about every item up
  * to the ceiling before any page is cut, since which list an item is on is
  * TMDB's to say; the `lib/tmdb` cache is what keeps a second visit cheap.
- * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 const placeTracked = async (
   viewerId: string,
@@ -330,7 +327,6 @@ const ListTabs = async ({
  * A list's two tabs, one per Kind, with or without their counts. They say
  * nothing about the list: the heading names it, and the header's two
  * links are what move between them.
- * — `docs/adr/0015-the-lists-tabs-are-the-kind.md`
  *
  * `replace`, because opening the other Kind is a step within this list rather
  * than another page of it — the call `KindTabs` makes for the same reason,
@@ -342,7 +338,6 @@ const ListTabs = async ({
  * drawn in the prerendered shell, which reads no `searchParams`: it cannot
  * mark even the Kind an address names, the way `/search`'s fallback does from
  * inside a boundary that has already read one.
- * — `docs/adr/0010-the-shell-is-prerendered.md`
  *
  * Guessing is no way out either. Which tab is open is what the counts decide,
  * so before they land a guess would move the mark under a Viewer whose list
@@ -395,7 +390,6 @@ type ListEntries = {
 /**
  * What a placed list says when the ceiling left tracked Media off it, which
  * would otherwise be on no page and in no tally without a word.
- * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 const CEILING_NOTE = `Only the ${formatNumber(TRACKED_CEILING)} movies and shows you marked most recently are placed on your lists. Older ones are left off.`;
 
@@ -414,7 +408,6 @@ const NO_DATE = 'No date yet';
  * is over draws no line, and one between seasons draws the announcement that
  * would otherwise be nowhere on the lists. A Movie there draws nothing
  * either, since the tab it is on is paged from records and asks for no lead.
- * — `docs/adr/0022-the-watched-list-holds-a-show-you-are-caught-up-with.md`
  *
  * A card TMDB gave no answer to place by draws nothing, since its day is not
  * "no date" but unknown.
@@ -636,7 +629,6 @@ const ListPage = async ({
  * Watched list — shared by the three routes, which differ only in the list
  * they show. A page shows one Kind of that list at a time, which `?kind=`
  * names.
- * — `docs/adr/0015-the-lists-tabs-are-the-kind.md`
  *
  * The heading and the tabs are the shell, and the heading is where the list
  * is named: the tabs are the Kind, and the header's links are the way to the
@@ -651,7 +643,6 @@ const ListPage = async ({
  * Nothing moves when a card here is marked. A card pressed out of this list
  * shows its new state where it is, and the list catches up on the next
  * navigation; that keeps the undo one press away.
- * — `docs/adr/0006-a-watch-record-stores-no-copy-of-tmdb.md`
  */
 const WatchRecordList = ({
   list,

@@ -24,7 +24,6 @@ import { shippedMigrations } from './lib/migration-files.ts';
  *
  * Reading only, and never a migration of its own: applying them stays a thing
  * someone does on purpose.
- * — `docs/adr/0009-every-environment-is-a-neon-branch.md`
  *
  * A plain Node script rather than anything of Next's, run by the type
  * stripping Node has had since 22.6 — which is why it imports `.ts` by name

@@ -44,7 +44,6 @@ const ICONS: Record<List, LucideIcon> = {
  * the row is a target. Width is what the row is short of — three at 32 with
  * gaps measured 322px of content in 288 — and height is free inside a 56px
  * header, so it is spent in full.
- * — `docs/adr/0014-the-narrow-header-gives-up-words.md`
  */
 const ListLinks = (): JSX.Element => {
   const pathname = usePathname();

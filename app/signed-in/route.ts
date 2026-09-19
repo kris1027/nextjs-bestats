@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { nextPath } from '@/lib/next-path';
 
 // `signed-in` is a static segment, so the standing rule about top-level
-// routes holds — docs/adr/0001-one-route-serves-both-kinds.md
+// routes holds.
 
 /**
  * Where a sign-in completes. By the time this runs `proxy.ts` has already
@@ -11,12 +11,10 @@ import { nextPath } from '@/lib/next-path';
  * session cookie that makes them a Viewer — or found nothing to exchange and
  * sent them to sign in again. So there is no Viewer to read here and nothing
  * to decide: what is left is the address they were reading when they left.
- * — `docs/adr/0011-a-sign-in-completes-at-one-route.md`
  *
  * A handler rather than a page, because a page would be a request-time read
  * of `searchParams` behind a Suspense boundary drawn around a redirect
  * nobody is ever there to see.
- * — `docs/adr/0010-the-shell-is-prerendered.md`
  */
 export const GET = (request: Request): never => {
   const { searchParams } = new URL(request.url);

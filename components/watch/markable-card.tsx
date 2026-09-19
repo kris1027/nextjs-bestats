@@ -16,7 +16,6 @@ import { type Marking, scoreOf, showPress } from '@/lib/watch';
  * control a card has room for. `AbsentCard` is its only caller, because it is
  * the only card that marks anything — a `MediaCard` links to the detail page
  * and lets that page do it, while Gone Media has no detail page to link to.
- * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
  *
  * One caller and still its own file: inlining it would make `absent-card.tsx`
  * a client component whole, and the placeholder and the line it draws would
@@ -39,7 +38,6 @@ import { type Marking, scoreOf, showPress } from '@/lib/watch';
  * Show under way has no record for Planned to remove and a Gone one has no
  * page left to stop it on. A card is never drawn for a finished Show, which
  * is on the Watched list only once TMDB has said so.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 const MarkableCard = ({
   media,

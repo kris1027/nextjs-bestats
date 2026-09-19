@@ -147,7 +147,6 @@ const request = async (path: string): Promise<Response> => {
  * one module that knows a request is made at all. An hour, as the option
  * said. A thrown request never reaches the cache, so Unanswered stays a
  * per-request answer; a 404 does, and Gone Media stops being asked for.
- * — `docs/adr/0010-the-shell-is-prerendered.md`
  */
 const TMDB_CACHE_LIFE = 'hours';
 
@@ -184,7 +183,6 @@ export const findTMDB = async <T>(path: string): Promise<T | null> => {
  * Viewer has scored since, so a record missing from it is only a candidate,
  * and this is what confirms it. Never a first read — every Show page would
  * ask TMDB on every visit.
- * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
  */
 export const findTMDBUncached = async <T>(path: string): Promise<T | null> => {
   const res = await request(path);

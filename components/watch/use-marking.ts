@@ -37,7 +37,6 @@ type MarkingHandle = {
  * leaves. A hook rather than a component because there are two controls with
  * one rule between them — the card's, which shows a Score and cannot set one,
  * and the detail page's, which is the only place ten stars fit.
- * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
  *
  * `marked` in `lib/watch` is the whole rule, and it runs here for the
  * optimistic flip and again in the action against the row as it really is.

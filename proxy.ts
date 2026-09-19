@@ -6,7 +6,6 @@ import { auth } from '@/lib/auth';
  * Neon's middleware is the only thing that can make that exchange, and it
  * protects every route it sees that is not on a skip list of its own — a
  * list this app cannot add to. So it sees `/signed-in` and nothing else.
- * — `docs/adr/0011-a-sign-in-completes-at-one-route.md`
  */
 export default auth.middleware({ loginUrl: '/sign-in' });
 

@@ -10,7 +10,6 @@ config({ path: '.env.local', quiet: true });
  * Two projects, because the two suites have different rights. `unit` is pure
  * and runs on every commit; `integration` talks to a real Neon branch and
  * never does.
- * — `docs/adr/0008-vitest-replaces-the-node-test-runner.md`
  */
 export default defineConfig({
   resolve: {

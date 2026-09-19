@@ -30,7 +30,6 @@ type RouteParams = {
  * Resolves to `null` for any address TMDB cannot answer. The address is a
  * position, which is what finds an Episode today and all it is good for:
  * TMDB renumbers, so nothing should keep one.
- * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
  */
 const findEpisode = async (
   params: Promise<RouteParams>,

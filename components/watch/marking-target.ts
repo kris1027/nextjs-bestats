@@ -34,7 +34,6 @@ const mediaTarget = ({ kind, id }: MediaRef): MarkingTarget => ({
 /**
  * An Episode, scored. Named by its position, which is what the action asks
  * TMDB about; the id its record is keyed on comes from that answer.
- * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
  */
 const episodeTarget = ({
   showId,
@@ -53,7 +52,6 @@ const episodeTarget = ({
 /**
  * An Episode TMDB no longer lists, unscored. Named by the id its record is
  * keyed on and its Show, since it has no position left for TMDB to find it at.
- * — `docs/adr/0020-an-episode-record-is-keyed-on-its-tmdb-id.md`
  */
 const goneEpisodeTarget = ({
   showId,

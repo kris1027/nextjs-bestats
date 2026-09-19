@@ -94,7 +94,6 @@ const DetailFrame = ({
  * TMDB's Rating and the votes behind it, or nothing: unvoted Media has no
  * Rating, since TMDB's 0 is a placeholder and the vote count is what tells
  * the two apart. An Episode is voted on the same way, so it draws the same.
- * — `docs/adr/0002-placeholder-facts-are-not-facts.md`
  */
 const DetailRating = ({ rating, voteCount }: Rating): JSX.Element | null =>
   voteCount > 0 ? (

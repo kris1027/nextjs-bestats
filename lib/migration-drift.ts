@@ -5,7 +5,6 @@
  * from a real Neon branch. Pure here so the interesting half — which of four
  * disagreements a database is in — is a unit test rather than a fixture
  * database.
- * — `docs/adr/0009-every-environment-is-a-neon-branch.md`
  */
 
 /** One migration as the build ships it: `drizzle/meta/_journal.json` and the

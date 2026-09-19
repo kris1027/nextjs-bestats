@@ -19,7 +19,6 @@ import {
  * it. Pure, and kept out of `lib/watch.ts` because it reads
  * `hasAired` from `lib/media`, which reaches `lib/tmdb` and `next/cache` — a
  * client component imports `lib/watch.ts`, and nothing here is a client's.
- * — `docs/adr/0019-the-lists-are-paged-by-tmdb-not-by-postgres.md`
  */
 
 /**
@@ -120,12 +119,10 @@ const calendarDay = (date: string | null): CalendarDay | null =>
  * Episode has not aired or has no date, a Show with a later season announced
  * and no Episodes in it yet — is Upcoming; a Show the Viewer is caught up
  * with is on Watched and nowhere else, ended or still running.
- * — `docs/adr/0022-the-watched-list-holds-a-show-you-are-caught-up-with.md`
  *
  * A Stopped Show is on no list, unless TMDB says it is Gone: its page is a
  * 404, so the card Gone Media gets on both lists is the one place left to
  * take its record back. One TMDB did not answer for still has a page.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  */
 export const placed = (
   tracked: TrackedMedia,

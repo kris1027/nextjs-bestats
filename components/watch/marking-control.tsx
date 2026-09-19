@@ -14,11 +14,9 @@ import type { Marking } from '@/lib/watch';
  * The whole marking control for a Movie: Planned, and the ten stars that are
  * the only way to reach Watched. Pressing Planned on a scored record moves it
  * and drops the Score.
- * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
  *
  * A Show draws `ShowControl` instead: it is never Watched, and its one button
  * is chosen by how far the Viewer has got through its Episodes.
- * — `docs/adr/0018-a-show-is-followed-through-its-episodes.md`
  *
  * The detail page is its only caller, which is what makes the star row
  * possible, and one caller is also why there is no container query here —

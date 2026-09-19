@@ -8,8 +8,6 @@ import { disposableViewers, dropViewer, newViewer } from '@/lib/test-viewers';
 /**
  * The invariant is the schema's to keep, not the writing code's, so these
  * assertions go through Drizzle to Postgres and never through `lib/watch`.
- * — `docs/adr/0007-watchlist-and-watched-are-one-record.md`
- * — `docs/adr/0016-a-score-is-what-makes-a-record-watched.md`
  */
 
 const viewer = disposableViewers();
