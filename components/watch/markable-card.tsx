@@ -68,7 +68,7 @@ const MarkableCard = ({
     <>
       <CardHead {...head} score={shown && scoreOf(shown)} />
       {children}
-      <div className='px-2.5 pt-2.5'>
+      <div className='pt-2.5'>
         <MarkingForm handle={handle}>
           {pressed ? (
             <ShowButton handle={handle} pressed={pressed} />
