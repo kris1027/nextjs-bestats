@@ -1,14 +1,12 @@
 'use client';
 
-import { Montserrat } from 'next/font/google';
 import './globals.css';
 import type { JSX } from 'react';
 
 import { ErrorNotice } from '@/components/layout/error-notice';
+import { sans } from '@/lib/fonts';
 import { LOCALE } from '@/lib/format';
 import { cn } from '@/lib/utils';
-
-const sans = Montserrat({ subsets: ['latin'], variable: '--font-sans' });
 
 /**
  * The error page for when the root layout is what failed, which `error.tsx`

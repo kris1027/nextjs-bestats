@@ -1,13 +1,11 @@
 import type { Metadata } from 'next';
-import { Montserrat } from 'next/font/google';
 import './globals.css';
 import type { JSX } from 'react';
 
 import { SiteHeader } from '@/components/layout/site-header';
+import { sans } from '@/lib/fonts';
 import { LOCALE } from '@/lib/format';
 import { cn } from '@/lib/utils';
-
-const sans = Montserrat({ subsets: ['latin'], variable: '--font-sans' });
 
 // Vercel names the production domain at build and at run time, bare; off
 // Vercel the app is on a developer's machine, where `next dev` listens
