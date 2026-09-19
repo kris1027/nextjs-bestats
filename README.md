@@ -138,8 +138,8 @@ not on the list fails with `invalid domain`, which reads like a bug in
 sign-in rather than a missing entry.
 
 ```bash
-neon neon-auth domain add https://example.com --branch main
-neon neon-auth domain list --branch main
+pnpm exec neon neon-auth domain add https://example.com --branch main
+pnpm exec neon neon-auth domain list --branch main
 ```
 
 ## Commands
