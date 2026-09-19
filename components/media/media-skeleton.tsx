@@ -98,7 +98,7 @@ const DetailFrameSkeleton = ({
 /**
  * A detail page's heading and the row of its Rating and Facts. The row wraps,
  * so a block of fixed height stood a line or two short on a phone: instead
- * it holds `DetailRating` and a `Tag` for each of `facts` in their own box
+ * it holds `DetailRating` and a `FactBadge` for each of `facts` in their own box
  * sizes, with the words kept invisible, and wraps where the real row does.
  * `facts` are typical of the page, since the real ones are what is awaited.
  */
@@ -117,7 +117,7 @@ const HeadingSkeleton = ({ facts }: { facts: string[] }): JSX.Element => (
         </span>
       </div>
       {facts.map((fact) => (
-        // `Tag`'s own box, border included, so the block is its size
+        // `FactBadge`'s own box, border included, so the block is its size
         <span
           key={fact}
           className='inline-flex animate-pulse border border-transparent bg-muted px-2.5 py-0.75 text-[11px] tracking-wide'

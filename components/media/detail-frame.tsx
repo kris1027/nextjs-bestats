@@ -5,7 +5,7 @@ import { Star } from 'lucide-react';
 
 import { MediaPlaceholder } from '@/components/media/media-placeholder';
 import { BackButton } from '@/components/ui/back-button';
-import { Tag } from '@/components/ui/tag';
+import { Badge } from '@/components/ui/badge';
 import { formatCount } from '@/lib/format';
 import type { Rating } from '@/lib/media';
 
@@ -107,6 +107,22 @@ const DetailRating = ({ rating, voteCount }: Rating): JSX.Element | null =>
   ) : null;
 
 /**
+ * One Fact, in the square outline a detail page draws it in. A shadcn `Badge`
+ * wearing its own classes over the generated ones: the badge is uppercase,
+ * unbroken and clipped, and a Fact such as "Released: October 15, 1999" has
+ * to read as written and wrap at the 320px floor rather than lose its end.
+ * `HeadingSkeleton` copies this box, so the two change together.
+ */
+const FactBadge = ({ children }: { children: ReactNode }): JSX.Element => (
+  <Badge
+    variant='outline'
+    className='whitespace-normal border border-primary-accent px-2.5 py-0.75 font-normal text-[11px] text-primary-accent normal-case tracking-wide'
+  >
+    {children}
+  </Badge>
+);
+
+/**
  * A detail page's name and, beneath it, its Rating and Facts. What a piece of
  * Media's page and an Episode's say first, in the same words, so it is drawn
  * once; each page puts what is its own around it.
@@ -126,7 +142,7 @@ const DetailHeading = ({
       <DetailRating rating={rating} voteCount={voteCount} />
       {/* facts arrive formatted and unique, so each is its own key */}
       {facts.map((fact) => (
-        <Tag key={fact}>{fact}</Tag>
+        <FactBadge key={fact}>{fact}</FactBadge>
       ))}
     </div>
   </>
