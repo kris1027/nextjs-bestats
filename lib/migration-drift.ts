@@ -146,12 +146,15 @@ export const hasDrift = (drift: MigrationDrift): boolean =>
 
 /** Whether `db:migrate` is the whole fix: migrations are missing and nothing
  * else is wrong. A database never migrated is left out, since that usually
- * means `DATABASE_URL` names the wrong one. */
+ * means `DATABASE_URL` names the wrong one, and so is one ahead of the build:
+ * this checkout has diverged from what ran there, and `db:migrate` would add
+ * to that database without reconciling it. */
 export const onlyMissing = (drift: MigrationDrift): boolean =>
   drift.migrated &&
   drift.missing.length > 0 &&
   drift.unreachable.length === 0 &&
-  drift.edited.length === 0;
+  drift.edited.length === 0 &&
+  drift.ahead.length === 0;
 
 /** `db:check`'s exit code when `onlyMissing` holds, so `pnpm bootstrap` can
  * tell "run db:migrate" apart from every other failure, which exits 1. */

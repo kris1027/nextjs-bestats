@@ -148,10 +148,19 @@ test('only missing migrations are db:migrate’s whole fix', () => {
     [ZERO, ONE, TWO],
     [ZERO, TWO].map(applied),
   );
+  // THREE ran here and this checkout does not ship it, while 0002_later is
+  // timestamped above everything that ran — so missing, not unreachable
+  const aheadToo = migrationDrift(
+    [ZERO, ONE, shipped('0002_later', 5000)],
+    [ZERO, ONE, THREE].map(applied),
+  );
 
   expect(onlyMissing(missing)).toBe(true);
   expect(onlyMissing(editedToo)).toBe(false);
   expect(onlyMissing(unreachableToo)).toBe(false);
+  expect(aheadToo.missing).toHaveLength(1);
+  expect(aheadToo.ahead).toHaveLength(1);
+  expect(onlyMissing(aheadToo)).toBe(false);
   expect(onlyMissing(migrationDrift([ZERO], null))).toBe(false);
   expect(onlyMissing(migrationDrift([ZERO], [ZERO].map(applied)))).toBe(false);
 });
