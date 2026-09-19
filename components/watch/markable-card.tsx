@@ -13,9 +13,10 @@ import { type Marking, scoreOf, showPress } from '@/lib/watch';
 
 /**
  * The body of a card whose Media a Viewer can mark: the head, then the one
- * control a card has room for. `AbsentCard` is its only caller, because it is
- * the only card that marks anything — a `MediaCard` links to the detail page
- * and lets that page do it, while Gone Media has no detail page to link to.
+ * control a card has room for. `AbsentCard` is its only caller: a
+ * `MediaCard` marks only Planned, from its bookmark, and leaves the rest to
+ * the detail page it links to, while Gone Media has no detail page, so this
+ * card draws the labelled button that page would.
  *
  * One caller and still its own file: inlining it would make `absent-card.tsx`
  * a client component whole, and the placeholder and the line it draws would
@@ -24,7 +25,7 @@ import { type Marking, scoreOf, showPress } from '@/lib/watch';
  *
  * One component rather than a badge and a button apart, because the two have
  * to agree the instant a press lands and can only share the optimistic
- * marking inside one client subtree. The title bar is inside the link and the
+ * marking inside one client subtree. The head is inside the link and the
  * button has to be outside it — a button inside a link is nested interactive
  * content — so this spans them both.
  *
@@ -52,7 +53,7 @@ const MarkableCard = ({
   underWay: boolean;
   /** Passed straight on; the Score on top of it is this component's. */
   head: CardHeadContent;
-  /** Anything between the title bar and the control. */
+  /** Anything between the title and the control. */
   children?: ReactNode;
 }): JSX.Element => {
   const handle = useMarking(marking, mediaTarget(media));
@@ -68,7 +69,7 @@ const MarkableCard = ({
     <>
       <CardHead {...head} score={shown && scoreOf(shown)} />
       {children}
-      <div className='px-2.5 pt-2.5'>
+      <div className='pt-2.5'>
         <MarkingForm handle={handle}>
           {pressed ? (
             <ShowButton handle={handle} pressed={pressed} />

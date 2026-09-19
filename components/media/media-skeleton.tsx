@@ -10,25 +10,22 @@ import { PAGE_SIZE } from '@/lib/watch';
 
 /**
  * A card's shape while the Media behind it is being fetched: the poster's
- * aspect and the title bar's height, which is the whole of most cards now
- * that marking left them. The same height as the card that replaces it, so
- * nothing moves when it lands.
+ * rounded frame and the one line of title under it, which is the whole of a
+ * card: its pills and its bookmark lie over the poster. The same height as
+ * the card that replaces it, so nothing moves when it lands.
  *
- * `lead` holds the line a list card draws under its title bar. Every card on
- * Upcoming draws one, so its grid asks for it; on the Watchlist only a Show
- * does, and on Watched only a Show with something announced ahead of the
- * Viewer, so this stands short on both. The fallback is drawn before the
- * address is read, so it cannot know whether the Shows tab is open, and
- * reserving the line on the Movies tab would move every card there instead.
- * A list page's grid can also hold an `AbsentCard`, which still draws a
- * control, and this stands short for that too.
+ * A list card's lead is a pill over its poster rather than a line under it,
+ * so every card is this one height whichever list, tab or card it stands
+ * for — `AbsentCard` aside, which still draws its line and its control below.
  */
-const MediaCardSkeleton = ({ lead }: { lead: boolean }): JSX.Element => (
+const MediaCardSkeleton = (): JSX.Element => (
   <li className='flex flex-col'>
-    <div className='aspect-2/3 animate-pulse bg-muted' />
-    <div className='h-7 animate-pulse bg-muted/60' />
-    {/* `CardHead`'s line: `pt-2` over one line of `text-xs` */}
-    {lead ? <div className='h-6' /> : null}
+    {/* `PosterFrame`'s box, border included */}
+    <div className='aspect-2/3 animate-pulse rounded-xl border border-transparent bg-muted' />
+    {/* the title's own type, so the block is one line of it */}
+    <div className='mt-2 w-3/4 animate-pulse bg-muted/60 text-sm leading-[1.3] sm:text-[15px]'>
+      &nbsp;
+    </div>
   </li>
 );
 
@@ -38,11 +35,7 @@ const MediaCardSkeleton = ({ lead }: { lead: boolean }): JSX.Element => (
  * fallback is the height of what replaces it. One "Loading" for a screen
  * reader rather than twenty blocks, and the blocks hidden from it.
  */
-const MediaGridSkeleton = ({
-  lead = false,
-}: {
-  lead?: boolean;
-}): JSX.Element => (
+const MediaGridSkeleton = (): JSX.Element => (
   // <output> is a live region on its own, as the marking control's is
   <output aria-busy='true' className='block'>
     <span className='sr-only'>Loading</span>
@@ -51,7 +44,7 @@ const MediaGridSkeleton = ({
         {Array.from({ length: PAGE_SIZE }, (_, index) => (
           // nothing distinguishes one block from another but its position
           // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity
-          <MediaCardSkeleton key={index} lead={lead} />
+          <MediaCardSkeleton key={index} />
         ))}
       </MediaGrid>
     </div>
@@ -98,7 +91,7 @@ const DetailFrameSkeleton = ({
 /**
  * A detail page's heading and the row of its Rating and Facts. The row wraps,
  * so a block of fixed height stood a line or two short on a phone: instead
- * it holds `DetailRating` and a `Tag` for each of `facts` in their own box
+ * it holds `DetailRating` and a `FactBadge` for each of `facts` in their own box
  * sizes, with the words kept invisible, and wraps where the real row does.
  * `facts` are typical of the page, since the real ones are what is awaited.
  */
@@ -117,7 +110,7 @@ const HeadingSkeleton = ({ facts }: { facts: string[] }): JSX.Element => (
         </span>
       </div>
       {facts.map((fact) => (
-        // `Tag`'s own box, border included, so the block is its size
+        // `FactBadge`'s own box, border included, so the block is its size
         <span
           key={fact}
           className='inline-flex animate-pulse border border-transparent bg-muted px-2.5 py-0.75 text-[11px] tracking-wide'

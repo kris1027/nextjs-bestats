@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import type { JSX, ReactNode } from 'react';
 
-import { Star } from 'lucide-react';
-
+import { LeadBadge, type LeadContent } from '@/components/media/lead-badge';
+import { PosterFrame } from '@/components/media/poster-frame';
+import { StarBadge } from '@/components/media/star-badge';
 import type { Rating } from '@/lib/media';
 import type { Score } from '@/lib/watch';
 
@@ -19,19 +20,23 @@ type CardHeadContent = {
   /** What the badge shows until the Viewer has scored this. */
   tmdbRating?: Rating;
   /**
-   * A line under the title bar, inside the link, so a screen reader hears it
-   * as part of where the card goes: `S2E4`, announced as "Next episode".
+   * The pill over the poster's lower corner, inside the link, so a screen
+   * reader hears it as part of where the card goes: `S2E4`, announced as
+   * "Next episode".
    */
-  detail?: { label: string; text: string };
+  lead?: LeadContent;
 };
 
 /**
- * The top of a card: the poster and the title bar, with the one star-and-
- * number that bar holds. No directive of its own, so it stays server-rendered
- * in a card that has no control to draw and comes along into the client
- * subtree of one that does — which is what lets `MediaCard`, which has no
- * control at all, and `MarkableCard`, which has one, share this markup
+ * The top of a card: the poster in its rounded frame, the one star-and-number
+ * over it, and the title under it. No directive of its own, so it stays
+ * server-rendered in a card that has no control to draw and comes along into
+ * the client subtree of one that does — which is what lets `MediaCard`, which
+ * has no control at all, and `MarkableCard`, which has one, share this markup
  * rather than keep two copies of it.
+ *
+ * The title is one line, cut short with its whole self in `title`, so every
+ * card in a row is one height and `MediaCardSkeleton` can hold it exactly.
  */
 const CardHead = ({
   label,
@@ -39,44 +44,23 @@ const CardHead = ({
   href,
   score,
   tmdbRating,
-  detail,
+  lead,
 }: CardHeadContent & {
   /** The Viewer's Score, which takes the badge whenever there is one. */
   score: Score | null;
 }): JSX.Element => {
   const head = (
     <>
-      {poster}
-      <div className='flex items-center justify-between gap-2 bg-primary px-2.5 py-1.5 text-primary-foreground'>
-        <h2
-          className='min-w-0 truncate font-extrabold text-[13px] leading-[1.2]'
-          title={label}
-        >
-          {label}
-        </h2>
-        {/* One star and one number, never two. A Viewer who has scored this
-            sees their Score where TMDB's Rating was: two ten-point numbers a
-            few pixels apart in a card this narrow is the confusion the
-            glossary separates Rating from Score to avoid, and TMDB's is still
-            on the detail page, where there is room to say which is which.
-            Nobody has voted is no Rating at all — a 0.0 here would read as a
-            score rather than as its absence. */}
-        {score !== null ? (
-          <Badge label={`Your Score: ${score} out of 10`}>{score}</Badge>
-        ) : tmdbRating && tmdbRating.voteCount > 0 ? (
-          <Badge
-            label={`TMDB rating: ${tmdbRating.rating.toFixed(1)} out of 10`}
-          >
-            {tmdbRating.rating.toFixed(1)}
-          </Badge>
-        ) : null}
-      </div>
-      {detail ? (
-        <p className='px-2.5 pt-2 text-muted-foreground text-xs'>
-          <span className='sr-only'>{detail.label}: </span>
-          {detail.text}
-        </p>
-      ) : null}
+      <PosterFrame poster={poster}>
+        <StarBadge score={score} tmdbRating={tmdbRating} />
+        {lead ? <LeadBadge lead={lead} /> : null}
+      </PosterFrame>
+      <h2
+        className='mt-2 truncate font-medium text-sm leading-[1.3] sm:text-[15px]'
+        title={label}
+      >
+        {label}
+      </h2>
     </>
   );
 
@@ -88,29 +72,6 @@ const CardHead = ({
     </Link>
   );
 };
-
-/**
- * The one star-and-number a title bar holds. The label says which of the two
- * it is, since nothing about the number itself does.
- */
-const Badge = ({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}): JSX.Element => (
-  <div
-    className='flex shrink-0 items-center gap-1 whitespace-nowrap font-extrabold text-xs'
-    title={label}
-  >
-    <Star size={12} className='fill-current' aria-hidden='true' />
-    <p>
-      <span className='sr-only'>{label}</span>
-      <span aria-hidden='true'>{children}</span>
-    </p>
-  </div>
-);
 
 export { CardHead };
 export type { CardHeadContent };

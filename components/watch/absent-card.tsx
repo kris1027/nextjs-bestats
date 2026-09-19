@@ -53,11 +53,11 @@ const AbsentCard = ({
   // nowhere to follow this card to
   const head = { label, poster: <MediaPlaceholder artwork='poster' /> };
   const line = (
-    <p className='px-2.5 pt-2 text-muted-foreground text-xs'>{LINES[answer]}</p>
+    <p className='pt-1 text-muted-foreground text-xs'>{LINES[answer]}</p>
   );
 
   return (
-    <li className='flex flex-col'>
+    <li className='group flex flex-col'>
       {lookup.markings !== null ? (
         <MarkableCard
           key={lookup.viewerKey}

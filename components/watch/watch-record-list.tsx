@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { cache, type JSX, Suspense } from 'react';
 
+import { CardLegend, LEGENDS } from '@/components/media/card-legend';
 import { type CardLead, MediaCard } from '@/components/media/media-card';
 import { eagerCards, MediaGrid } from '@/components/media/media-grid';
 import { MediaGridSkeleton } from '@/components/media/media-skeleton';
@@ -371,11 +372,12 @@ const Tabs = ({
 type ListEntry = {
   ref: MediaRef;
   answer: MediaAnswer;
-  /** The line under its title bar, or `null` for a card that draws none. */
+  /** The pill over its poster, or `null` for a card that draws none. */
   lead: CardLead | null;
   /**
    * Whether the Viewer has scored an Episode of this Show, which is what an
-   * `AbsentCard` offers Stop watching for; never a Movie.
+   * `AbsentCard` offers Stop watching for and a `MediaCard` withholds its
+   * bookmark for; never a Movie.
    */
   underWay: boolean;
 };
@@ -397,7 +399,7 @@ const CEILING_NOTE = `Only the ${formatNumber(TRACKED_CEILING)} movies and shows
 const NO_DATE = 'No date yet';
 
 /**
- * The line a card on a placed list draws under its title bar. On the
+ * The pill a card on a placed list draws over its poster. On the
  * Watchlist a Show names its next Episode and a Movie draws nothing, since
  * everything there is out; on Upcoming every card says what it waits for and
  * when — **S3E1 · Mar 12**, **S3 · No date yet**, **Mar 12** for a Movie.
@@ -405,7 +407,7 @@ const NO_DATE = 'No date yet';
  * On Watched a Show says what TMDB has announced and not dated — **S4E1 · No
  * date yet**, **S5 · No date yet** — and a Show with nothing ahead of the
  * Viewer at all says nothing, which is what tells the two apart: a Show that
- * is over draws no line, and one between seasons draws the announcement that
+ * is over draws no pill, and one between seasons draws the announcement that
  * would otherwise be nowhere on the lists. A Movie there draws nothing
  * either, since the tab it is on is paged from records and asks for no lead.
  *
@@ -417,16 +419,20 @@ const leadOf = (
   { tracked, placedBy, upNext, day }: PlacedMedia,
   today: Date,
 ): CardLead | null => {
-  // unbroken, so a line too long for a 136px card at the 320px floor —
-  // "S12E10 · Sep 17, 2027" — wraps at the dot rather than inside the date
-  const date = ((day && formatShortDate(day, today)) ?? NO_DATE).replaceAll(
-    ' ',
-    ' ',
-  );
+  // a day held to its month, so a pill too narrow for "S12E10 · Sep 17, 2027"
+  // at the 320px floor breaks at the dot, then after the comma, and never
+  // between "Sep" and "17"; "No date yet" is words, and breaks where a pill
+  // needs it to
+  const date =
+    (day && formatShortDate(day, today))?.replace(/(?<!,) /g, '\u00a0') ??
+    NO_DATE;
+  // the Watchlist's Episode is out, and a TV says so; anything else is
+  // waiting on a day, had or not, and a calendar says that
+  const glyph = list === 'watchlist' ? 'episode' : 'date';
 
   if (placedBy === 'movie') {
     return list === 'upcoming'
-      ? { label: 'Release date', text: date, episode: null }
+      ? { label: 'Release date', text: date, glyph: 'date', episode: null }
       : null;
   }
 
@@ -440,6 +446,7 @@ const leadOf = (
       label: 'Next episode',
       // the Watchlist's Episode is out, so its day is the one thing left off
       text: list === 'watchlist' ? code : `${code} · ${date}`,
+      glyph,
       // TMDB lists this Episode, so its page is there to lead to
       episode,
     };
@@ -450,6 +457,7 @@ const leadOf = (
     return {
       label: 'Next season',
       text: `S${upNext.season} · ${NO_DATE}`,
+      glyph: 'date',
       episode: null,
     };
   }
@@ -458,7 +466,7 @@ const leadOf = (
   // which says nothing, and elsewhere a Show TMDB lists no Episodes for yet
   return list === 'watched'
     ? null
-    : { label: 'Next episode', text: NO_DATE, episode: null };
+    : { label: 'Next episode', text: NO_DATE, glyph: 'date', episode: null };
 };
 
 /**
@@ -577,6 +585,7 @@ const ListPage = async ({
               item={answer.item}
               lookup={lookup}
               lead={lead}
+              underWay={underWay}
               eager={index < eagerCards}
             />
           ) : (
@@ -661,9 +670,12 @@ const WatchRecordList = ({
       <Suspense fallback={<Tabs list={list} />}>
         <ListTabs list={list} searchParams={searchParams} />
       </Suspense>
-      <Suspense fallback={<MediaGridSkeleton lead={list === 'upcoming'} />}>
+      <Suspense fallback={<MediaGridSkeleton />}>
         <ListPage list={list} searchParams={searchParams} />
       </Suspense>
+      {/* in the shell, so after the page links rather than between them and
+          the grid: those stream with the cards */}
+      <CardLegend entries={LEGENDS.list} />
     </div>
   </main>
 );
