@@ -14,8 +14,16 @@ import type { JSX, ReactNode } from 'react';
  * poster is fetched by. The two are one decision said in two places, since
  * nothing but the markup tells a browser how wide the image will be.
  */
+/**
+ * How many cards open the grid on the first screen: the one row of four on a
+ * wide screen, two rows of two on a phone. Their posters load eagerly, since
+ * one of them is the page's largest paint and a lazy image waits until the
+ * browser has laid out the page to find it is in view.
+ */
+const eagerCards = 4;
+
 const MediaGrid = ({ children }: { children: ReactNode }): JSX.Element => (
   <ul className='grid grid-cols-2 gap-4 lg:grid-cols-4'>{children}</ul>
 );
 
-export { MediaGrid };
+export { eagerCards, MediaGrid };
