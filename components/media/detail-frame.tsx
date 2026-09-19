@@ -42,7 +42,7 @@ const DetailFrame = ({
           // already hides the bottom, so send the whole crop there
           className='object-cover object-top'
           sizes='(min-width: 1200px) 1200px, 100vw'
-          priority
+          preload
         />
       ) : (
         <MediaPlaceholder artwork='backdrop' />
