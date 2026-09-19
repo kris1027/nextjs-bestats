@@ -10,9 +10,9 @@ import { PAGE_SIZE } from '@/lib/watch';
 
 /**
  * A card's shape while the Media behind it is being fetched: the poster's
- * rounded frame and the one line of title under it, which is the whole of
- * most cards now that marking left them. The same height as the card that replaces it, so
- * nothing moves when it lands.
+ * rounded frame and the one line of title under it, which is the whole of a
+ * card: its pills and its bookmark lie over the poster. The same height as
+ * the card that replaces it, so nothing moves when it lands.
  *
  * A list card's lead is a pill over its poster rather than a line under it,
  * so every card is this one height whichever list, tab or card it stands

@@ -13,9 +13,10 @@ import { type Marking, scoreOf, showPress } from '@/lib/watch';
 
 /**
  * The body of a card whose Media a Viewer can mark: the head, then the one
- * control a card has room for. `AbsentCard` is its only caller, because it is
- * the only card that marks anything — a `MediaCard` links to the detail page
- * and lets that page do it, while Gone Media has no detail page to link to.
+ * control a card has room for. `AbsentCard` is its only caller: a
+ * `MediaCard` marks only Planned, from its bookmark, and leaves the rest to
+ * the detail page it links to, while Gone Media has no detail page, so this
+ * card draws the labelled button that page would.
  *
  * One caller and still its own file: inlining it would make `absent-card.tsx`
  * a client component whole, and the placeholder and the line it draws would

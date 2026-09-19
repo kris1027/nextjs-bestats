@@ -376,7 +376,8 @@ type ListEntry = {
   lead: CardLead | null;
   /**
    * Whether the Viewer has scored an Episode of this Show, which is what an
-   * `AbsentCard` offers Stop watching for; never a Movie.
+   * `AbsentCard` offers Stop watching for and a `MediaCard` withholds its
+   * bookmark for; never a Movie.
    */
   underWay: boolean;
 };
@@ -584,6 +585,7 @@ const ListPage = async ({
               item={answer.item}
               lookup={lookup}
               lead={lead}
+              underWay={underWay}
               eager={index < eagerCards}
             />
           ) : (

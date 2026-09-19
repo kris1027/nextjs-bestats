@@ -27,10 +27,13 @@ import { cn } from '@/lib/utils';
 const MarkingForm = ({
   handle,
   className,
+  errorClassName,
   children,
 }: {
   handle: MarkingHandle;
   className?: string;
+  /** Where a refused press's sentence goes, for a form with no room below. */
+  errorClassName?: string;
   children: ReactNode;
 }): JSX.Element => (
   <form
@@ -45,7 +48,9 @@ const MarkingForm = ({
     {/* <output> is a live region on its own, kept in the tree even when
         empty so the message is announced when it arrives rather than
         needing focus to find it */}
-    <output className='block min-h-4 text-destructive text-xs'>
+    <output
+      className={cn('block min-h-4 text-destructive text-xs', errorClassName)}
+    >
       {handle.error}
     </output>
   </form>
