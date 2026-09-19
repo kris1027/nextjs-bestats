@@ -15,10 +15,12 @@ import { control } from '@/lib/utils';
  * root rather than one per route, because no route has anything of its own
  * to say about an unexpected failure.
  *
- * A client component, as Next requires of an error boundary; `reset` asks
- * the router to render the segment again.
+ * A client component, as Next requires of an error boundary. `retry` fetches
+ * the segment from the server again and re-renders it, which is what "may
+ * answer next time" needs; `reset` would only redraw what was already
+ * fetched, and the failure with it.
  */
-const ErrorPage = ({ reset }: { reset: () => void }): JSX.Element => (
+const ErrorPage = ({ retry }: { retry: () => void }): JSX.Element => (
   <main className='flex flex-1 flex-col items-center justify-center gap-6 p-8 text-center'>
     <p className='font-extrabold text-primary-accent text-sm tracking-wide'>
       Something went wrong
@@ -30,7 +32,7 @@ const ErrorPage = ({ reset }: { reset: () => void }): JSX.Element => (
       Something BeStats asked did not answer. Try again in a moment.
     </p>
     <div className='flex flex-wrap justify-center gap-3'>
-      <button type='button' onClick={reset} className={control}>
+      <button type='button' onClick={retry} className={control}>
         Try again
       </button>
       <BackButton href='/'>Back to trending</BackButton>
