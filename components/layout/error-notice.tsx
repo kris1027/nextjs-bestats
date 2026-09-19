@@ -4,10 +4,11 @@ import { BackButton } from '@/components/ui/back-button';
 import { control } from '@/lib/utils';
 
 /**
- * What a page that could not be built says, and the offer to try again.
- * `app/error.tsx` draws it inside the root layout; a boundary that has to
- * draw the same page without that layout imports this rather than the file
- * convention, which Next reads on its own terms.
+ * What a page that could not be built says, and the offer to try again. Its
+ * own component because two boundaries draw it: `app/error.tsx` inside the
+ * root layout, and `app/global-error.tsx` in place of it, when the layout was
+ * what failed. Neither imports the other, since each is a file convention
+ * Next reads on its own terms.
  */
 const ErrorNotice = ({ retry }: { retry: () => void }): JSX.Element => (
   <main className='flex flex-1 flex-col items-center justify-center gap-6 p-8 text-center'>
