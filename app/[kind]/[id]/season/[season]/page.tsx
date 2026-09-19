@@ -44,6 +44,7 @@ export const generateMetadata = async ({
   return {
     title: `${season.show.label}: ${season.label}`,
     description: season.overview || undefined,
+    ...(season.posterUrl && { openGraph: { images: [season.posterUrl] } }),
   };
 };
 

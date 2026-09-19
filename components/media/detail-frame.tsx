@@ -42,7 +42,7 @@ const DetailFrame = ({
           // already hides the bottom, so send the whole crop there
           className='object-cover object-top'
           sizes='(min-width: 1200px) 1200px, 100vw'
-          priority
+          preload
         />
       ) : (
         <MediaPlaceholder artwork='backdrop' />
@@ -71,6 +71,9 @@ const DetailFrame = ({
             alt=''
             className='h-auto w-full'
             sizes='(min-width: 1024px) 260px, (min-width: 640px) 208px, 168px'
+            // overlapping the backdrop puts it on the first screen at every
+            // width, and where there is no backdrop it is the largest paint
+            loading='eager'
           />
         ) : (
           <MediaPlaceholder artwork='poster' />

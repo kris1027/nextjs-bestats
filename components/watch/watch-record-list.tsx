@@ -3,7 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { cache, type JSX, Suspense } from 'react';
 
 import { type CardLead, MediaCard } from '@/components/media/media-card';
-import { MediaGrid } from '@/components/media/media-grid';
+import { eagerCards, MediaGrid } from '@/components/media/media-grid';
 import { MediaGridSkeleton } from '@/components/media/media-skeleton';
 import { LinkTabs } from '@/components/navigation/link-tabs';
 import { AbsentCard } from '@/components/watch/absent-card';
@@ -575,7 +575,7 @@ const ListPage = async ({
     <>
       {ceiling}
       <MediaGrid>
-        {entries.map(({ ref, answer, lead, underWay }) => {
+        {entries.map(({ ref, answer, lead, underWay }, index) => {
           const key = watchKey(ref);
 
           return answer.answer === 'item' ? (
@@ -584,6 +584,7 @@ const ListPage = async ({
               item={answer.item}
               lookup={lookup}
               lead={lead}
+              eager={index < eagerCards}
             />
           ) : (
             <AbsentCard

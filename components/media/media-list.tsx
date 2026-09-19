@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 
 import { MediaCard } from '@/components/media/media-card';
-import { MediaGrid } from '@/components/media/media-grid';
+import { eagerCards, MediaGrid } from '@/components/media/media-grid';
 import type { MediaItem } from '@/lib/media';
 import { type ViewerLookup, watchKey } from '@/lib/watch';
 
@@ -22,8 +22,13 @@ const MediaList = ({
 }): JSX.Element => {
   return (
     <MediaGrid>
-      {media.map((item) => (
-        <MediaCard item={item} lookup={lookup} key={watchKey(item)} />
+      {media.map((item, index) => (
+        <MediaCard
+          item={item}
+          lookup={lookup}
+          key={watchKey(item)}
+          eager={index < eagerCards}
+        />
       ))}
     </MediaGrid>
   );

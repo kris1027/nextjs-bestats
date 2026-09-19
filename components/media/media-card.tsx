@@ -47,10 +47,13 @@ const MediaCard = ({
   item,
   lookup,
   lead = null,
+  eager = false,
 }: {
   item: MediaItem;
   lookup: ViewerLookup;
   lead?: CardLead | null;
+  /** One of the grid's first cards, whose poster is on the first screen. */
+  eager?: boolean;
 }): JSX.Element => {
   const poster = item.posterUrl ? (
     <Image
@@ -67,6 +70,7 @@ const MediaCard = ({
       // divide the 1024px the list is capped at. A stale `100vw` here
       // would have every phone fetch a poster twice the width it draws.
       sizes='(min-width: 1024px) 244px, calc(50vw - 24px)'
+      loading={eager ? 'eager' : 'lazy'}
     />
   ) : (
     <MediaPlaceholder artwork='poster' />
