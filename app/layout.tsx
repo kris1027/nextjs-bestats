@@ -9,7 +9,12 @@ import { cn } from '@/lib/utils';
 
 const sans = Montserrat({ subsets: ['latin'], variable: '--font-sans' });
 
+// Vercel names the production domain at build and at run time, bare; off
+// Vercel the app is on a developer's machine, where `next dev` listens
+const origin = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+
 export const metadata: Metadata = {
+  metadataBase: new URL(origin ? `https://${origin}` : 'http://localhost:3000'),
   title: {
     default: 'BeStats',
     // detail pages set only their own label; this frames it
