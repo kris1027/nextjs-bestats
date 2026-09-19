@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { type JSX, Suspense } from 'react';
 
+import { CardLegend, LEGENDS } from '@/components/media/card-legend';
 import { MediaList } from '@/components/media/media-list';
 import { MediaGridSkeleton } from '@/components/media/media-skeleton';
 import { KindTabs } from '@/components/search/kind-tabs';
@@ -180,6 +181,9 @@ const Asked = async ({
       >
         <MatchesFor query={query} kind={kind} />
       </Suspense>
+      {/* outside TMDB's boundary: it explains what a card can show, which
+          does not wait on what matched */}
+      <CardLegend entries={LEGENDS.browse} />
     </>
   );
 };

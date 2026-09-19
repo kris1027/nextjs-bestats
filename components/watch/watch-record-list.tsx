@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { cache, type JSX, Suspense } from 'react';
 
+import { CardLegend, LEGENDS } from '@/components/media/card-legend';
 import { type CardLead, MediaCard } from '@/components/media/media-card';
 import { eagerCards, MediaGrid } from '@/components/media/media-grid';
 import { MediaGridSkeleton } from '@/components/media/media-skeleton';
@@ -670,6 +671,9 @@ const WatchRecordList = ({
       <Suspense fallback={<MediaGridSkeleton />}>
         <ListPage list={list} searchParams={searchParams} />
       </Suspense>
+      {/* in the shell, so after the page links rather than between them and
+          the grid: those stream with the cards */}
+      <CardLegend entries={LEGENDS.list} />
     </div>
   </main>
 );

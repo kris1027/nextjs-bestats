@@ -1,5 +1,6 @@
 import { cache, type JSX, Suspense } from 'react';
 
+import { CardLegend, LEGENDS } from '@/components/media/card-legend';
 import { MediaList } from '@/components/media/media-list';
 import { MediaGridSkeleton } from '@/components/media/media-skeleton';
 import { SearchForm } from '@/components/search/search-form';
@@ -91,6 +92,11 @@ const HomePage = (): JSX.Element => (
         </TabsContent>
       ))}
     </Tabs>
+    {/* outside the panels, so switching Kind does not redraw it */}
+    {/* the gap and foot the other card pages' column gives its legend */}
+    <div className='mx-auto w-full max-w-5xl pt-6 pb-4'>
+      <CardLegend entries={LEGENDS.browse} />
+    </div>
   </main>
 );
 
