@@ -66,10 +66,15 @@ export const generateMetadata = async ({
   // nothing to say: the root layout's title and description stand
   if (!found) return {};
 
+  // the backdrop is what a shared link's preview is shaped for, the poster
+  // stands in, and Artwork TMDB lacks is left out rather than faked
+  const artwork = found.media.backdropUrl ?? found.media.posterUrl;
+
   return {
     title: found.media.label,
     // an empty overview falls through to the description in the root layout
     description: found.media.overview || undefined,
+    ...(artwork && { openGraph: { images: [artwork] } }),
   };
 };
 

@@ -62,9 +62,13 @@ export const generateMetadata = async ({
 
   if (!episode) return {};
 
+  // the still stands where a backdrop would, as it does on the page
+  const artwork = episode.stillUrl ?? episode.posterUrl;
+
   return {
     title: `${episode.label} · ${episode.show.label}`,
     description: episode.overview || undefined,
+    ...(artwork && { openGraph: { images: [artwork] } }),
   };
 };
 
